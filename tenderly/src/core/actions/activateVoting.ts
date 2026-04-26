@@ -1,8 +1,8 @@
-import type { Address } from 'viem';
-import { governanceAbi } from '../abis';
-import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import type { ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
-import { ProposalState, proposalStateName } from '../state';
+import type {Address} from 'viem';
+import {governanceAbi} from '../abis';
+import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
+import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {ProposalState, proposalStateName} from '../state';
 
 const GOVERNANCE = GovernanceV3Ethereum.GOVERNANCE as Address;
 
@@ -11,7 +11,7 @@ export const checkActivateVoting = async (
   ctx: ReadContext,
   proposalId: bigint,
 ): Promise<CheckResult> => {
-  ctx.logger.trace('activateVoting: checking', { proposalId: proposalId.toString() });
+  ctx.logger.trace('activateVoting: checking', {proposalId: proposalId.toString()});
   const proposal = await ctx.publicClient.readContract({
     address: GOVERNANCE,
     abi: governanceAbi,
@@ -25,7 +25,7 @@ export const checkActivateVoting = async (
   });
 
   if (proposal.state !== ProposalState.Created) {
-    return { ok: false, reason: `state=${proposalStateName(proposal.state)}, want Created` };
+    return {ok: false, reason: `state=${proposalStateName(proposal.state)}, want Created`};
   }
 
   const config = await ctx.publicClient.readContract({
@@ -44,15 +44,15 @@ export const checkActivateVoting = async (
     };
   }
 
-  ctx.logger.debug('activateVoting: ready', { proposalId: proposalId.toString() });
-  return { ok: true };
+  ctx.logger.debug('activateVoting: ready', {proposalId: proposalId.toString()});
+  return {ok: true};
 };
 
 const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteResult> => {
   const check = await checkActivateVoting(ctx, proposalId);
   if (!check.ok) throw new Error(`activateVoting precheck failed: ${check.reason}`);
 
-  ctx.logger.info('activateVoting: sending tx', { proposalId: proposalId.toString() });
+  ctx.logger.info('activateVoting: sending tx', {proposalId: proposalId.toString()});
   const txHash = await ctx.walletClient.writeContract({
     address: GOVERNANCE,
     abi: governanceAbi,
@@ -61,8 +61,8 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
     account: ctx.walletClient.account!,
     chain: ctx.walletClient.chain!,
   });
-  ctx.logger.info('activateVoting: submitted', { proposalId: proposalId.toString(), txHash });
-  return { txHash };
+  ctx.logger.info('activateVoting: submitted', {proposalId: proposalId.toString(), txHash});
+  return {txHash};
 };
 
 export const activateVotingAction: ActionModule<bigint> = {

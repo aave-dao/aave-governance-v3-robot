@@ -1,7 +1,7 @@
-import type { ActionFn, Context, Event } from '@tenderly/actions';
-import { EXECUTION_CHAINS } from '../core/chains';
-import { runExecutionScan } from '../orchestration/executionScan';
-import { setupChain, tenderlyLogger } from './runtime';
+import type {ActionFn, Context, Event} from '@tenderly/actions';
+import {EXECUTION_CHAINS} from '../core/chains';
+import {runExecutionScan} from '../orchestration/executionScan';
+import {setupChain, tenderlyLogger} from './runtime';
 
 /**
  * Single Tenderly Action that scans every execution chain in sequence. Same rationale as
@@ -10,13 +10,13 @@ import { setupChain, tenderlyLogger } from './runtime';
  * Per-chain failure is isolated.
  */
 export const executionAll: ActionFn = async (ctx: Context, _event: Event) => {
-  const logger = tenderlyLogger().child({ action: 'executionAll' });
+  const logger = tenderlyLogger().child({action: 'executionAll'});
   const ids = Object.keys(EXECUTION_CHAINS).map(Number);
   for (const chainId of ids) {
     const config = EXECUTION_CHAINS[chainId]!;
     try {
       const target = await setupChain(ctx, chainId, config.name);
-      target.logger.info('executionAll: scan start', { chain: config.name });
+      target.logger.info('executionAll: scan start', {chain: config.name});
       const results = await runExecutionScan(target.write);
       target.logger.info('executionAll: scan done', {
         chain: config.name,

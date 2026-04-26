@@ -1,5 +1,5 @@
-import type { Address, Hex, PublicClient, WalletClient } from 'viem';
-import type { Logger } from './logger';
+import type {Address, Hex, PublicClient, WalletClient} from 'viem';
+import type {Logger} from './logger';
 
 /** Read-only execution context — used by `check()` predicates and inspector. */
 export type ReadContext = {
@@ -14,11 +14,11 @@ export type WriteContext = ReadContext & {
   account: Address;
 };
 
-export type CheckOk = { ok: true };
-export type CheckSkip = { ok: false; reason: string };
+export type CheckOk = {ok: true};
+export type CheckSkip = {ok: false; reason: string};
 export type CheckResult = CheckOk | CheckSkip;
 
-export type ExecuteResult = { txHash: Hex };
+export type ExecuteResult = {txHash: Hex};
 
 /** Common shape implemented by every action module. */
 export interface ActionModule<Id = bigint> {

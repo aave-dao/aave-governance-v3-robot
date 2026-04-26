@@ -1,8 +1,8 @@
-import { MULTICALL3_ADDRESS, payloadsControllerAbi } from '../core/abis';
-import { EXECUTION_CHAINS } from '../core/chains';
-import { executePayloadAction } from '../core/actions';
-import type { ReadContext, WriteContext } from '../core/context';
-import { PayloadState } from '../core/state';
+import {MULTICALL3_ADDRESS, payloadsControllerAbi} from '../core/abis';
+import {EXECUTION_CHAINS} from '../core/chains';
+import {executePayloadAction} from '../core/actions';
+import type {ReadContext, WriteContext} from '../core/context';
+import {PayloadState} from '../core/state';
 
 /**
  * Mirrors ExecutionChainRobotKeeper scan:
@@ -21,7 +21,7 @@ const requireExecutionChain = (chainId: number) => {
   return config;
 };
 
-export type ScannedPayload = { payloadId: bigint };
+export type ScannedPayload = {payloadId: bigint};
 
 /** Same window-sizing rationale as governanceScan: covers any realistic scan in one RPC. */
 const SCAN_WINDOW = MAX_EXECUTION_ACTIONS * (MAX_EXECUTION_SKIP + 1) + MAX_EXECUTION_SKIP + 1;
@@ -47,7 +47,7 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
   for (let n = 0; n < SCAN_WINDOW && n < total; n++) {
     ids.push(total - 1 - n);
   }
-  ctx.logger.debug('executionScan: multicall fetch', { chain: config.name, count: ids.length });
+  ctx.logger.debug('executionScan: multicall fetch', {chain: config.name, count: ids.length});
   const payloads = await ctx.publicClient.multicall({
     contracts: ids.map((id) => ({
       address: config.payloadsController,
@@ -65,11 +65,11 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
 
   for (let idx = 0; idx < ids.length; idx++) {
     if (skipCount > MAX_EXECUTION_SKIP) {
-      ctx.logger.debug('executionScan: stop — skipCount exceeded', { skipCount, examined });
+      ctx.logger.debug('executionScan: stop — skipCount exceeded', {skipCount, examined});
       break;
     }
     if (found.length >= MAX_EXECUTION_ACTIONS) {
-      ctx.logger.debug('executionScan: stop — actions cap reached', { found: found.length });
+      ctx.logger.debug('executionScan: stop — actions cap reached', {found: found.length});
       break;
     }
 
@@ -77,7 +77,7 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
     const payload = payloads[idx]!;
     const id = BigInt(i);
     examined += 1;
-    ctx.logger.trace('executionScan: examined', { payloadId: i, state: payload.state });
+    ctx.logger.trace('executionScan: examined', {payloadId: i, state: payload.state});
 
     if (payload.state !== PayloadState.Queued) {
       skipCount += 1;
@@ -86,36 +86,39 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
 
     const check = await executePayloadAction.check(ctx, id);
     if (check.ok) {
-      ctx.logger.info('executionScan: payload ready', { payloadId: i });
-      found.push({ payloadId: id });
+      ctx.logger.info('executionScan: payload ready', {payloadId: i});
+      found.push({payloadId: id});
       skipCount = 0;
     } else {
       skipCount += 1;
     }
   }
 
-  ctx.logger.debug('executionScan: complete', { examined, found: found.length });
+  ctx.logger.debug('executionScan: complete', {examined, found: found.length});
   return found;
 };
 
 export const runExecutionScan = async (
   ctx: WriteContext,
-): Promise<Array<{ payloadId: bigint; txHash?: string; error?: string }>> => {
+): Promise<Array<{payloadId: bigint; txHash?: string; error?: string}>> => {
   const items = await scanExecutionChain(ctx);
-  const results: Array<{ payloadId: bigint; txHash?: string; error?: string }> = [];
-  for (const { payloadId } of items) {
+  const results: Array<{payloadId: bigint; txHash?: string; error?: string}> = [];
+  for (const {payloadId} of items) {
     try {
       const recheck = await executePayloadAction.check(ctx, payloadId);
       if (!recheck.ok) {
-        results.push({ payloadId, error: recheck.reason });
+        results.push({payloadId, error: recheck.reason});
         continue;
       }
-      const { txHash } = await executePayloadAction.execute(ctx, payloadId);
-      results.push({ payloadId, txHash });
+      const {txHash} = await executePayloadAction.execute(ctx, payloadId);
+      results.push({payloadId, txHash});
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      ctx.logger.error('executionScan: action failed', { payloadId: payloadId.toString(), error: msg });
-      results.push({ payloadId, error: msg });
+      ctx.logger.error('executionScan: action failed', {
+        payloadId: payloadId.toString(),
+        error: msg,
+      });
+      results.push({payloadId, error: msg});
     }
   }
   return results;

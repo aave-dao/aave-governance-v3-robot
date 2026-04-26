@@ -1,6 +1,6 @@
 import 'dotenv/config';
-import type { Hex } from 'viem';
-import { z } from 'zod';
+import type {Hex} from 'viem';
+import {z} from 'zod';
 
 const HexKey = z
   .string()

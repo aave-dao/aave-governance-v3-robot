@@ -1,5 +1,5 @@
-import type { Context } from '@tenderly/actions';
-import type { Hex } from 'viem';
+import type {Context} from '@tenderly/actions';
+import type {Hex} from 'viem';
 
 /**
  * Tenderly Web3 Actions don't expose `process.env` to the running function — they expose
@@ -52,7 +52,7 @@ const trySecret = async (ctx: Context, key: string): Promise<string | undefined>
   }
 };
 
-export type TenderlySecrets = { privateKey: Hex };
+export type TenderlySecrets = {privateKey: Hex};
 
 /**
  * Read PRIVATE_KEY (required) and copy ALCHEMY_API_KEY + any configured RPC_<NETWORK>
@@ -75,5 +75,5 @@ export const hydrateSecrets = async (ctx: Context): Promise<TenderlySecrets> => 
     );
   }
 
-  return { privateKey };
+  return {privateKey};
 };

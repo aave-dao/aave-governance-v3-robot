@@ -3,7 +3,7 @@ export const votingStrategyAbi = [
     name: 'hasRequiredRoots',
     type: 'function',
     stateMutability: 'view',
-    inputs: [{ name: 'blockHash', type: 'bytes32' }],
+    inputs: [{name: 'blockHash', type: 'bytes32'}],
     outputs: [],
   },
   {
@@ -11,13 +11,13 @@ export const votingStrategyAbi = [
     type: 'function',
     stateMutability: 'view',
     inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
+    outputs: [{name: '', type: 'uint256'}],
   },
   {
     name: 'DATA_WAREHOUSE',
     type: 'function',
     stateMutability: 'view',
     inputs: [],
-    outputs: [{ name: '', type: 'address' }],
+    outputs: [{name: '', type: 'address'}],
   },
 ] as const;

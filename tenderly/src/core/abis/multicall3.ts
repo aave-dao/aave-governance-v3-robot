@@ -10,9 +10,9 @@ export const multicall3Abi = [
         name: 'calls',
         type: 'tuple[]',
         components: [
-          { name: 'target', type: 'address' },
-          { name: 'allowFailure', type: 'bool' },
-          { name: 'callData', type: 'bytes' },
+          {name: 'target', type: 'address'},
+          {name: 'allowFailure', type: 'bool'},
+          {name: 'callData', type: 'bytes'},
         ],
       },
     ],
@@ -21,8 +21,8 @@ export const multicall3Abi = [
         name: 'returnData',
         type: 'tuple[]',
         components: [
-          { name: 'success', type: 'bool' },
-          { name: 'returnData', type: 'bytes' },
+          {name: 'success', type: 'bool'},
+          {name: 'returnData', type: 'bytes'},
         ],
       },
     ],

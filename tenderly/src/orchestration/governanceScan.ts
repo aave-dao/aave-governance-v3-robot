@@ -1,13 +1,9 @@
-import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import type { Address } from 'viem';
-import { MULTICALL3_ADDRESS, governanceAbi } from '../core/abis';
-import {
-  activateVotingAction,
-  cancelProposalAction,
-  executeProposalAction,
-} from '../core/actions';
-import type { ActionModule, ReadContext, WriteContext } from '../core/context';
-import { isProposalFinal } from '../core/state';
+import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
+import type {Address} from 'viem';
+import {MULTICALL3_ADDRESS, governanceAbi} from '../core/abis';
+import {activateVotingAction, cancelProposalAction, executeProposalAction} from '../core/actions';
+import type {ActionModule, ReadContext, WriteContext} from '../core/context';
+import {isProposalFinal} from '../core/state';
 
 const GOVERNANCE = GovernanceV3Ethereum.GOVERNANCE as Address;
 
@@ -63,7 +59,7 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
   for (let n = 0; n < SCAN_WINDOW && BigInt(n) < total; n++) {
     ids.push(total - 1n - BigInt(n));
   }
-  ctx.logger.debug('governanceScan: multicall fetch', { count: ids.length });
+  ctx.logger.debug('governanceScan: multicall fetch', {count: ids.length});
   const proposals = await ctx.publicClient.multicall({
     contracts: ids.map((id) => ({
       address: GOVERNANCE,
@@ -81,11 +77,11 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
 
   for (let idx = 0; idx < ids.length; idx++) {
     if (skipCount > MAX_GOVERNANCE_SKIP) {
-      ctx.logger.debug('governanceScan: stop — skipCount exceeded', { skipCount, examined });
+      ctx.logger.debug('governanceScan: stop — skipCount exceeded', {skipCount, examined});
       break;
     }
     if (found.length >= MAX_GOVERNANCE_ACTIONS) {
-      ctx.logger.debug('governanceScan: stop — actions cap reached', { found: found.length });
+      ctx.logger.debug('governanceScan: stop — actions cap reached', {found: found.length});
       break;
     }
 
@@ -114,7 +110,7 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
           proposalId: i.toString(),
           action: action.name,
         });
-        found.push({ proposalId: i, action, reason: action.name });
+        found.push({proposalId: i, action, reason: action.name});
         skipCount = 0;
         matched = true;
         break;
@@ -123,7 +119,7 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
     if (!matched) skipCount += 1;
   }
 
-  ctx.logger.debug('governanceScan: complete', { examined, found: found.length });
+  ctx.logger.debug('governanceScan: complete', {examined, found: found.length});
   return found;
 };
 
@@ -133,9 +129,9 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
  */
 export const runGovernanceScan = async (
   ctx: WriteContext,
-): Promise<Array<{ proposalId: bigint; action: string; txHash?: string; error?: string }>> => {
+): Promise<Array<{proposalId: bigint; action: string; txHash?: string; error?: string}>> => {
   const scanned = await scanGovernanceChain(ctx);
-  const results: Array<{ proposalId: bigint; action: string; txHash?: string; error?: string }> = [];
+  const results: Array<{proposalId: bigint; action: string; txHash?: string; error?: string}> = [];
   for (const item of scanned) {
     try {
       const recheck = await item.action.check(ctx, item.proposalId);
@@ -145,11 +141,15 @@ export const runGovernanceScan = async (
           action: item.action.name,
           reason: recheck.reason,
         });
-        results.push({ proposalId: item.proposalId, action: item.action.name, error: recheck.reason });
+        results.push({
+          proposalId: item.proposalId,
+          action: item.action.name,
+          error: recheck.reason,
+        });
         continue;
       }
-      const { txHash } = await item.action.execute(ctx, item.proposalId);
-      results.push({ proposalId: item.proposalId, action: item.action.name, txHash });
+      const {txHash} = await item.action.execute(ctx, item.proposalId);
+      results.push({proposalId: item.proposalId, action: item.action.name, txHash});
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       ctx.logger.error('governanceScan: action failed', {
@@ -157,7 +157,7 @@ export const runGovernanceScan = async (
         action: item.action.name,
         error: msg,
       });
-      results.push({ proposalId: item.proposalId, action: item.action.name, error: msg });
+      results.push({proposalId: item.proposalId, action: item.action.name, error: msg});
     }
   }
   return results;

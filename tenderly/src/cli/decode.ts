@@ -1,11 +1,11 @@
-import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import type { Address, Hex } from 'viem';
-import { governanceAbi } from '../core/abis';
-import { GOVERNANCE_CHAIN_ID, EXECUTION_CHAINS } from '../core/chains';
-import { getPublicClient } from '../core/clients';
-import { fetchProposalMetadata, ipfsHashToCidV0, type ProposalMetadata } from '../core/ipfs';
-import { proposalStateName } from '../core/state';
-import { c } from './colors';
+import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
+import type {Address, Hex} from 'viem';
+import {governanceAbi} from '../core/abis';
+import {GOVERNANCE_CHAIN_ID, EXECUTION_CHAINS} from '../core/chains';
+import {getPublicClient} from '../core/clients';
+import {fetchProposalMetadata, ipfsHashToCidV0, type ProposalMetadata} from '../core/ipfs';
+import {proposalStateName} from '../core/state';
+import {c} from './colors';
 
 export type DecodeResult = {
   proposalId: bigint;
@@ -25,7 +25,7 @@ export type DecodeResult = {
 
 export const decodeProposal = async (
   proposalId: bigint,
-  opts: { fetchMetadata?: boolean } = {},
+  opts: {fetchMetadata?: boolean} = {},
 ): Promise<DecodeResult> => {
   const client = getPublicClient(GOVERNANCE_CHAIN_ID);
   const proposal = await client.readContract({
@@ -62,7 +62,7 @@ export const decodeProposal = async (
   };
 };
 
-export const formatDecodeResult = (r: DecodeResult, opts: { full?: boolean } = {}): string => {
+export const formatDecodeResult = (r: DecodeResult, opts: {full?: boolean} = {}): string => {
   const lines: string[] = [];
   lines.push(c.bold(`Proposal #${r.proposalId}`) + ' ' + c.dim(`(${r.state})`));
 

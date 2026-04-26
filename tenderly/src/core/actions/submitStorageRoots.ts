@@ -1,5 +1,5 @@
-import { encodeFunctionData, type Address, type Hex } from 'viem';
-import { dataWarehouseAbi } from '../abis';
+import {encodeFunctionData, type Address, type Hex} from 'viem';
+import {dataWarehouseAbi} from '../abis';
 import {
   GOVERNANCE_TOKENS,
   STK_AAVE_EXCHANGE_RATE_SLOT,
@@ -7,11 +7,11 @@ import {
   type VotingChainConfig,
   type VotingChainId,
 } from '../chains';
-import { sendAggregate3, type Call3 } from '../multicall';
-import { formatToProofRLP, prepareBlockRLP } from '../proofs';
-import { getProof, getRawBlockByHash } from '../rpc';
-import type { CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
-import { hasRequiredRoots } from './createVote';
+import {sendAggregate3, type Call3} from '../multicall';
+import {formatToProofRLP, prepareBlockRLP} from '../proofs';
+import {getProof, getRawBlockByHash} from '../rpc';
+import type {CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {hasRequiredRoots} from './createVote';
 
 const requireVotingChain = (chainId: number): VotingChainConfig => {
   const config = VOTING_CHAINS[chainId as VotingChainId];
@@ -30,9 +30,12 @@ export const buildStorageRootCalls = async (
   ethRpcUrl: string,
   config: VotingChainConfig,
   snapshotBlockHash: Hex,
-  logger?: { trace: (m: string, meta?: Record<string, unknown>) => void; debug: (m: string, meta?: Record<string, unknown>) => void },
+  logger?: {
+    trace: (m: string, meta?: Record<string, unknown>) => void;
+    debug: (m: string, meta?: Record<string, unknown>) => void;
+  },
 ): Promise<Call3[]> => {
-  logger?.trace('buildStorageRootCalls: fetching block', { snapshotBlockHash });
+  logger?.trace('buildStorageRootCalls: fetching block', {snapshotBlockHash});
   const block = await getRawBlockByHash(ethRpcUrl, snapshotBlockHash);
   if (!block || !block.number) {
     throw new Error(`block ${snapshotBlockHash} not found via eth_getBlockByHash`);
@@ -64,14 +67,30 @@ export const buildStorageRootCalls = async (
     throw new Error('stkAAVE storage proof for exchange-rate slot is missing');
   }
 
-  const calls: Array<{ token: Address; proofRLP: Hex; label: string }> = [
-    { token: GOVERNANCE_TOKENS.aave, proofRLP: formatToProofRLP(aaveProof.accountProof), label: 'AAVE' },
-    { token: GOVERNANCE_TOKENS.aAave, proofRLP: formatToProofRLP(aAaveProof.accountProof), label: 'aAAVE' },
-    { token: GOVERNANCE_TOKENS.stkAave, proofRLP: formatToProofRLP(stkAaveProof.accountProof), label: 'stkAAVE' },
-    { token: config.governance, proofRLP: formatToProofRLP(governanceProof.accountProof), label: 'Governance' },
+  const calls: Array<{token: Address; proofRLP: Hex; label: string}> = [
+    {
+      token: GOVERNANCE_TOKENS.aave,
+      proofRLP: formatToProofRLP(aaveProof.accountProof),
+      label: 'AAVE',
+    },
+    {
+      token: GOVERNANCE_TOKENS.aAave,
+      proofRLP: formatToProofRLP(aAaveProof.accountProof),
+      label: 'aAAVE',
+    },
+    {
+      token: GOVERNANCE_TOKENS.stkAave,
+      proofRLP: formatToProofRLP(stkAaveProof.accountProof),
+      label: 'stkAAVE',
+    },
+    {
+      token: config.governance,
+      proofRLP: formatToProofRLP(governanceProof.accountProof),
+      label: 'Governance',
+    },
   ];
 
-  const out: Call3[] = calls.map(({ token, proofRLP }) => ({
+  const out: Call3[] = calls.map(({token, proofRLP}) => ({
     target: config.dataWarehouse,
     allowFailure: true,
     callData: encodeFunctionData({
@@ -104,15 +123,15 @@ const ZERO_HASH = '0x00000000000000000000000000000000000000000000000000000000000
 /** Returns ok if there's a real snapshot block hash and the voting chain doesn't yet have roots. */
 export const checkSubmitStorageRoots = async (
   ctx: ReadContext,
-  args: { proposalId: bigint; l1ProposalBlockHash: Hex },
+  args: {proposalId: bigint; l1ProposalBlockHash: Hex},
 ): Promise<CheckResult> => {
   if (args.l1ProposalBlockHash === ZERO_HASH) {
-    return { ok: false, reason: 'no snapshot block hash yet (proposal not yet activated on L1)' };
+    return {ok: false, reason: 'no snapshot block hash yet (proposal not yet activated on L1)'};
   }
   const config = requireVotingChain(ctx.chainId);
   const ready = await hasRequiredRoots(ctx, config, args.l1ProposalBlockHash);
-  if (ready) return { ok: false, reason: 'roots already registered for this snapshot block' };
-  return { ok: true };
+  if (ready) return {ok: false, reason: 'roots already registered for this snapshot block'};
+  return {ok: true};
 };
 
 /**
@@ -124,8 +143,8 @@ export const checkSubmitStorageRoots = async (
  * but the dataWarehouse can be overridden if the deployment is non-standard).
  */
 export const submitStorageRootsForBlock = async (
-  ctx: WriteContext & { ethRpcUrl: string },
-  args: { l1BlockHash: Hex; config: VotingChainConfig },
+  ctx: WriteContext & {ethRpcUrl: string},
+  args: {l1BlockHash: Hex; config: VotingChainConfig},
 ): Promise<ExecuteResult> => {
   ctx.logger.info('submitStorageRootsForBlock: building proofs', {
     blockHash: args.l1BlockHash,
@@ -157,7 +176,7 @@ export const submitStorageRootsForBlock = async (
     txHash,
     chain: args.config.name,
   });
-  return { txHash };
+  return {txHash};
 };
 
 /**
@@ -166,8 +185,8 @@ export const submitStorageRootsForBlock = async (
  * doesn't abort the whole batch).
  */
 export const executeSubmitStorageRoots = async (
-  ctx: WriteContext & { ethRpcUrl: string },
-  args: { proposalId: bigint; l1ProposalBlockHash: Hex },
+  ctx: WriteContext & {ethRpcUrl: string},
+  args: {proposalId: bigint; l1ProposalBlockHash: Hex},
 ): Promise<ExecuteResult> => {
   const config = requireVotingChain(ctx.chainId);
 
@@ -205,5 +224,5 @@ export const executeSubmitStorageRoots = async (
     txHash,
     chain: config.name,
   });
-  return { txHash };
+  return {txHash};
 };

@@ -1,5 +1,5 @@
-import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import type { Address, Hex, PublicClient } from 'viem';
+import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
+import type {Address, Hex, PublicClient} from 'viem';
 import {
   MULTICALL3_ADDRESS,
   governanceAbi,
@@ -16,13 +16,9 @@ import {
   checkSubmitStorageRoots,
   hasRequiredRoots,
 } from '../core/actions';
-import {
-  EXECUTION_CHAINS,
-  findVotingChainByPortal,
-  type VotingChainConfig,
-} from '../core/chains';
-import { fetchProposalMetadataSafe, type ProposalMetadata } from '../core/ipfs';
-import type { Logger } from '../core/logger';
+import {EXECUTION_CHAINS, findVotingChainByPortal, type VotingChainConfig} from '../core/chains';
+import {fetchProposalMetadataSafe, type ProposalMetadata} from '../core/ipfs';
+import type {Logger} from '../core/logger';
 import {
   PayloadState,
   ProposalState,
@@ -44,9 +40,9 @@ export type InspectorConfig = {
 };
 
 export type ActionStatus =
-  | { name: string; status: 'ready' }
-  | { name: string; status: 'blocked'; reason: string; etaAt?: number }
-  | { name: string; status: 'done'; reason: string };
+  | {name: string; status: 'ready'}
+  | {name: string; status: 'blocked'; reason: string; etaAt?: number}
+  | {name: string; status: 'done'; reason: string};
 
 export type InspectorReport = {
   proposalId: bigint;
@@ -82,23 +78,33 @@ export type InspectorReport = {
     actionCount: number;
     actions: ActionStatus[];
   }>;
-  nextRecommended?: { stage: 'governance' | 'voting' | 'payload'; action: string; chainId: number; id: bigint };
+  nextRecommended?: {
+    stage: 'governance' | 'voting' | 'payload';
+    action: string;
+    chainId: number;
+    id: bigint;
+  };
 };
 
 const buildActionStatus = async (
   name: string,
-  fn: () => Promise<{ ok: true } | { ok: false; reason: string }>,
+  fn: () => Promise<{ok: true} | {ok: false; reason: string}>,
   doneReason?: string,
   /** Unix-seconds timestamp when this blocked action would become ready (best-effort). */
   etaAt?: number,
 ): Promise<ActionStatus> => {
   try {
     const result = await fn();
-    if (result.ok) return { name, status: 'ready' };
-    if (doneReason) return { name, status: 'done', reason: doneReason };
-    return { name, status: 'blocked', reason: result.reason, etaAt };
+    if (result.ok) return {name, status: 'ready'};
+    if (doneReason) return {name, status: 'done', reason: doneReason};
+    return {name, status: 'blocked', reason: result.reason, etaAt};
   } catch (err) {
-    return { name, status: 'blocked', reason: err instanceof Error ? err.message : String(err), etaAt };
+    return {
+      name,
+      status: 'blocked',
+      reason: err instanceof Error ? err.message : String(err),
+      etaAt,
+    };
   }
 };
 
@@ -106,7 +112,7 @@ export const inspectProposal = async (
   config: InspectorConfig,
   proposalId: bigint,
 ): Promise<InspectorReport> => {
-  const { l1Public, logger } = config;
+  const {l1Public, logger} = config;
   const proposal = await l1Public.readContract({
     address: GOVERNANCE,
     abi: governanceAbi,
@@ -131,7 +137,7 @@ export const inspectProposal = async (
   // ETA inputs — fetched once from L1 in a single multicall, reused across each blocked action.
   const [cooldownPeriod, votingConfig] = await l1Public.multicall({
     contracts: [
-      { address: GOVERNANCE, abi: governanceAbi, functionName: 'COOLDOWN_PERIOD' as const },
+      {address: GOVERNANCE, abi: governanceAbi, functionName: 'COOLDOWN_PERIOD' as const},
       {
         address: GOVERNANCE,
         abi: governanceAbi,
@@ -156,13 +162,13 @@ export const inspectProposal = async (
     Promise.all([
       buildActionStatus(
         'activateVoting',
-        () => checkActivateVoting({ chainId: 1, publicClient: l1Public, logger }, proposalId),
+        () => checkActivateVoting({chainId: 1, publicClient: l1Public, logger}, proposalId),
         isPastActivate ? `proposal ${proposalStateName(proposal.state).toLowerCase()}` : undefined,
         activateEtaAt,
       ),
       buildActionStatus(
         'executeProposal',
-        () => checkExecuteProposal({ chainId: 1, publicClient: l1Public, logger }, proposalId),
+        () => checkExecuteProposal({chainId: 1, publicClient: l1Public, logger}, proposalId),
         isExecuted
           ? 'proposal executed'
           : isFailedOrExpired || isCancelled
@@ -172,7 +178,7 @@ export const inspectProposal = async (
       ),
       buildActionStatus(
         'cancelProposal',
-        () => checkCancelProposal({ chainId: 1, publicClient: l1Public, logger }, proposalId),
+        () => checkCancelProposal({chainId: 1, publicClient: l1Public, logger}, proposalId),
         isCancelled ? 'proposal cancelled' : undefined,
       ),
     ]),
@@ -188,9 +194,11 @@ export const inspectProposal = async (
   if (votingChain) {
     const vmClient = config.votingClients[votingChain.chainId];
     if (!vmClient) {
-      logger.warn(`no RPC configured for voting chain ${votingChain.name} — skipping voting inspection`);
+      logger.warn(
+        `no RPC configured for voting chain ${votingChain.name} — skipping voting inspection`,
+      );
     } else {
-      const ctx = { chainId: votingChain.chainId, publicClient: vmClient, logger };
+      const ctx = {chainId: votingChain.chainId, publicClient: vmClient, logger};
       let vmState = -1;
       let vmBridgedHash: Hex = '0x0000000000000000000000000000000000000000000000000000000000000000';
       let vmEndTime: number | undefined;
@@ -253,7 +261,7 @@ export const inspectProposal = async (
       const votingActions: ActionStatus[] = [
         await buildActionStatus(
           'submitStorageRoots',
-          () => checkSubmitStorageRoots(ctx, { proposalId, l1ProposalBlockHash: l1Hash }),
+          () => checkSubmitStorageRoots(ctx, {proposalId, l1ProposalBlockHash: l1Hash}),
           rootsReady ? 'roots registered' : undefined,
         ),
         await buildActionStatus(
@@ -323,7 +331,11 @@ export const inspectProposal = async (
         payload.state === PayloadState.Queued ? payload.queuedAt + payload.delay : undefined;
       const action = await buildActionStatus(
         'executePayload',
-        () => checkExecutePayload({ chainId: Number(ref.chain), publicClient: client, logger }, BigInt(payloadId)),
+        () =>
+          checkExecutePayload(
+            {chainId: Number(ref.chain), publicClient: client, logger},
+            BigInt(payloadId),
+          ),
         payloadDoneReason,
         payloadEtaAt,
       );
@@ -383,7 +395,10 @@ export const inspectProposal = async (
     voting,
     payloads,
     nextRecommended: nextRecommended
-      ? { ...nextRecommended, id: nextRecommended.stage === 'payload' ? nextRecommended.id : proposalId }
+      ? {
+          ...nextRecommended,
+          id: nextRecommended.stage === 'payload' ? nextRecommended.id : proposalId,
+        }
       : undefined,
   };
 };
@@ -392,14 +407,19 @@ const pickNext = (
   gov: ActionStatus[],
   voting: ActionStatus[] | undefined,
   payloads: InspectorReport['payloads'],
-): { stage: 'governance' | 'voting' | 'payload'; action: string; chainId: number; id: bigint } | undefined => {
-  for (const a of gov) if (a.status === 'ready') return { stage: 'governance', action: a.name, chainId: 1, id: 0n };
+):
+  | {stage: 'governance' | 'voting' | 'payload'; action: string; chainId: number; id: bigint}
+  | undefined => {
+  for (const a of gov)
+    if (a.status === 'ready') return {stage: 'governance', action: a.name, chainId: 1, id: 0n};
   if (voting) {
-    for (const a of voting) if (a.status === 'ready') return { stage: 'voting', action: a.name, chainId: 0, id: 0n };
+    for (const a of voting)
+      if (a.status === 'ready') return {stage: 'voting', action: a.name, chainId: 0, id: 0n};
   }
   for (const p of payloads) {
     for (const a of p.actions) {
-      if (a.status === 'ready') return { stage: 'payload', action: a.name, chainId: p.chainId, id: BigInt(p.payloadId) };
+      if (a.status === 'ready')
+        return {stage: 'payload', action: a.name, chainId: p.chainId, id: BigInt(p.payloadId)};
     }
   }
   return undefined;

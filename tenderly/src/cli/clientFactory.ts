@@ -1,5 +1,10 @@
-import type { PublicClient } from 'viem';
-import { GOVERNANCE_CHAIN_ID, EXECUTION_CHAINS, VOTING_CHAINS, type VotingChainId } from '../core/chains';
+import type {PublicClient} from 'viem';
+import {
+  GOVERNANCE_CHAIN_ID,
+  EXECUTION_CHAINS,
+  VOTING_CHAINS,
+  type VotingChainId,
+} from '../core/chains';
 import {
   accountFromPrivateKey,
   describeRpcSource,
@@ -7,9 +12,9 @@ import {
   getRpcUrl,
   getWalletClient,
 } from '../core/clients';
-import type { ReadContext, WriteContext } from '../core/context';
-import type { Logger } from '../core/logger';
-import { loadEnv, requirePrivateKey, type Env } from './env';
+import type {ReadContext, WriteContext} from '../core/context';
+import type {Logger} from '../core/logger';
+import {loadEnv, requirePrivateKey, type Env} from './env';
 
 export const makeWriteContext = (
   env: Env,
@@ -18,11 +23,11 @@ export const makeWriteContext = (
   chainName?: string,
 ): WriteContext => {
   const privateKey = requirePrivateKey(env);
-  const child = logger.child({ chainId, chain: chainName });
+  const child = logger.child({chainId, chain: chainName});
   const url = getRpcUrl(chainId);
-  child.debug('rpc resolved', { source: describeRpcSource(chainId, url) });
+  child.debug('rpc resolved', {source: describeRpcSource(chainId, url)});
   const account = accountFromPrivateKey(privateKey);
-  child.trace('write context built', { account });
+  child.trace('write context built', {account});
   return {
     chainId,
     publicClient: getPublicClient(chainId),
@@ -38,9 +43,9 @@ export const makeReadContext = (
   logger: Logger,
   chainName?: string,
 ): ReadContext => {
-  const child = logger.child({ chainId, chain: chainName });
+  const child = logger.child({chainId, chain: chainName});
   const url = getRpcUrl(chainId);
-  child.debug('rpc resolved', { source: describeRpcSource(chainId, url) });
+  child.debug('rpc resolved', {source: describeRpcSource(chainId, url)});
   return {
     chainId,
     publicClient: getPublicClient(chainId),
@@ -70,7 +75,7 @@ export const buildInspectorClients = (_env: Env) => {
     }
   }
 
-  return { govPublic, votingClients, executionClients };
+  return {govPublic, votingClients, executionClients};
 };
 
 /** L1 RPC URL — used by storage-roots flow for eth_getProof / eth_getBlockByHash. */

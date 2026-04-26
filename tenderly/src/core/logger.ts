@@ -22,7 +22,7 @@ export type LogRecord = {
 
 export type LogFormatter = (record: LogRecord) => string;
 
-const LEVEL_RANK: Record<LogLevel, number> = { trace: 5, debug: 10, info: 20, warn: 30, error: 40 };
+const LEVEL_RANK: Record<LogLevel, number> = {trace: 5, debug: 10, info: 20, warn: 30, error: 40};
 
 const fmtMeta = (meta: Record<string, unknown>): string => {
   if (Object.keys(meta).length === 0) return '';
@@ -33,7 +33,7 @@ const fmtMeta = (meta: Record<string, unknown>): string => {
 };
 
 /** Default plain formatter — used by Tenderly Actions where ANSI escapes would clutter logs. */
-export const plainFormatter: LogFormatter = ({ level, message, meta, timestamp }) =>
+export const plainFormatter: LogFormatter = ({level, message, meta, timestamp}) =>
   `[${timestamp}] ${level.toUpperCase()} ${message}${fmtMeta(meta)}`;
 
 class ConsoleLogger implements Logger {
@@ -46,20 +46,32 @@ class ConsoleLogger implements Logger {
 
   private emit(level: LogLevel, msg: string, meta?: Record<string, unknown>) {
     if (LEVEL_RANK[level] < LEVEL_RANK[this.minLevel]) return;
-    const merged = { ...this.bindings, ...(meta ?? {}) };
-    this.sink(this.formatter({ level, message: msg, meta: merged, timestamp: new Date().toISOString() }));
+    const merged = {...this.bindings, ...(meta ?? {})};
+    this.sink(
+      this.formatter({level, message: msg, meta: merged, timestamp: new Date().toISOString()}),
+    );
   }
 
-  trace(msg: string, meta?: Record<string, unknown>) { this.emit('trace', msg, meta); }
-  debug(msg: string, meta?: Record<string, unknown>) { this.emit('debug', msg, meta); }
-  info(msg: string, meta?: Record<string, unknown>) { this.emit('info', msg, meta); }
-  warn(msg: string, meta?: Record<string, unknown>) { this.emit('warn', msg, meta); }
-  error(msg: string, meta?: Record<string, unknown>) { this.emit('error', msg, meta); }
+  trace(msg: string, meta?: Record<string, unknown>) {
+    this.emit('trace', msg, meta);
+  }
+  debug(msg: string, meta?: Record<string, unknown>) {
+    this.emit('debug', msg, meta);
+  }
+  info(msg: string, meta?: Record<string, unknown>) {
+    this.emit('info', msg, meta);
+  }
+  warn(msg: string, meta?: Record<string, unknown>) {
+    this.emit('warn', msg, meta);
+  }
+  error(msg: string, meta?: Record<string, unknown>) {
+    this.emit('error', msg, meta);
+  }
 
   child(bindings: Record<string, unknown>): Logger {
     return new ConsoleLogger(
       this.minLevel,
-      { ...this.bindings, ...bindings },
+      {...this.bindings, ...bindings},
       this.sink,
       this.formatter,
     );

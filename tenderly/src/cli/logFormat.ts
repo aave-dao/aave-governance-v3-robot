@@ -1,5 +1,5 @@
-import type { LogFormatter, LogLevel } from '../core/logger';
-import { c } from './colors';
+import type {LogFormatter, LogLevel} from '../core/logger';
+import {c} from './colors';
 
 /**
  * Color scheme — chosen to make scanning a verbose log easy:
@@ -49,5 +49,5 @@ const styleMeta = (meta: Record<string, unknown>): string => {
 /** Strip the `T` and trailing `Z` for compactness; full ISO is overkill in interactive use. */
 const compactTime = (iso: string): string => iso.slice(11, 23); // HH:mm:ss.SSS
 
-export const colorFormatter: LogFormatter = ({ level, message, meta, timestamp }) =>
+export const colorFormatter: LogFormatter = ({level, message, meta, timestamp}) =>
   `${c.dim(compactTime(timestamp))} ${LEVEL_LABEL[level]} ${styleMessage(level, message)}${styleMeta(meta)}`;

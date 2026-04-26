@@ -1,7 +1,7 @@
-import { votingMachineAbi } from '../abis';
-import { VOTING_CHAINS, type VotingChainId, type VotingChainConfig } from '../chains';
-import type { ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
-import { VotingMachineProposalState, votingProposalStateName } from '../state';
+import {votingMachineAbi} from '../abis';
+import {VOTING_CHAINS, type VotingChainId, type VotingChainConfig} from '../chains';
+import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {VotingMachineProposalState, votingProposalStateName} from '../state';
 
 const requireVotingChain = (chainId: number): VotingChainConfig => {
   const config = VOTING_CHAINS[chainId as VotingChainId];
@@ -28,9 +28,9 @@ export const checkCloseAndSendVote = async (
     args: [proposalId],
   });
   if (state !== VotingMachineProposalState.Finished) {
-    return { ok: false, reason: `vm state=${votingProposalStateName(state)}, want Finished` };
+    return {ok: false, reason: `vm state=${votingProposalStateName(state)}, want Finished`};
   }
-  return { ok: true };
+  return {ok: true};
 };
 
 const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteResult> => {
@@ -38,7 +38,7 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
   if (!check.ok) throw new Error(`closeAndSendVote precheck failed: ${check.reason}`);
 
   const config = requireVotingChain(ctx.chainId);
-  ctx.logger.info('closeAndSendVote: sending tx', { proposalId: proposalId.toString() });
+  ctx.logger.info('closeAndSendVote: sending tx', {proposalId: proposalId.toString()});
   const txHash = await ctx.walletClient.writeContract({
     address: config.votingMachine,
     abi: votingMachineAbi,
@@ -47,8 +47,8 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
     account: ctx.walletClient.account!,
     chain: ctx.walletClient.chain!,
   });
-  ctx.logger.info('closeAndSendVote: submitted', { proposalId: proposalId.toString(), txHash });
-  return { txHash };
+  ctx.logger.info('closeAndSendVote: submitted', {proposalId: proposalId.toString(), txHash});
+  return {txHash};
 };
 
 export const closeAndSendVoteAction: ActionModule<bigint> = {

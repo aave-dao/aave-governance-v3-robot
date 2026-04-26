@@ -1,12 +1,13 @@
-import { MULTICALL3_ADDRESS, dataWarehouseAbi, votingMachineAbi, votingStrategyAbi } from '../core/abis';
-import { VOTING_CHAINS, type VotingChainConfig, type VotingChainId } from '../core/chains';
 import {
-  closeAndSendVoteAction,
-  createVoteAction,
-  executeSubmitStorageRoots,
-} from '../core/actions';
-import type { ReadContext, WriteContext } from '../core/context';
-import { VotingMachineProposalState, votingProposalStateName } from '../core/state';
+  MULTICALL3_ADDRESS,
+  dataWarehouseAbi,
+  votingMachineAbi,
+  votingStrategyAbi,
+} from '../core/abis';
+import {VOTING_CHAINS, type VotingChainConfig, type VotingChainId} from '../core/chains';
+import {closeAndSendVoteAction, createVoteAction, executeSubmitStorageRoots} from '../core/actions';
+import type {ReadContext, WriteContext} from '../core/context';
+import {VotingMachineProposalState, votingProposalStateName} from '../core/state';
 
 /**
  * Mirrors VotingChainRobotKeeper paginated scan:
@@ -19,9 +20,9 @@ export const VOTING_SCAN_PAGE_SIZE = 20n;
 type VotingActionKind = 'submitStorageRoots' | 'createVote' | 'closeAndSendVote';
 
 export type VotingScannedAction =
-  | { kind: 'submitStorageRoots'; proposalId: bigint; l1ProposalBlockHash: `0x${string}` }
-  | { kind: 'createVote'; proposalId: bigint }
-  | { kind: 'closeAndSendVote'; proposalId: bigint };
+  | {kind: 'submitStorageRoots'; proposalId: bigint; l1ProposalBlockHash: `0x${string}`}
+  | {kind: 'createVote'; proposalId: bigint}
+  | {kind: 'closeAndSendVote'; proposalId: bigint};
 
 const requireVotingChain = (chainId: number) => {
   const config = VOTING_CHAINS[chainId as VotingChainId];
@@ -33,7 +34,10 @@ const ZERO_HASH = '0x00000000000000000000000000000000000000000000000000000000000
 
 export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAction[]> => {
   const config = requireVotingChain(ctx.chainId);
-  ctx.logger.debug('votingScan: starting', { chain: config.name, pageSize: VOTING_SCAN_PAGE_SIZE.toString() });
+  ctx.logger.debug('votingScan: starting', {
+    chain: config.name,
+    pageSize: VOTING_SCAN_PAGE_SIZE.toString(),
+  });
   const collected: VotingScannedAction[] = [];
   let skip = 0n;
 
@@ -44,7 +48,7 @@ export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAc
       functionName: 'getProposalsVoteConfigurationIds',
       args: [skip, VOTING_SCAN_PAGE_SIZE],
     });
-    ctx.logger.trace('votingScan: page fetched', { skip: skip.toString(), count: ids.length });
+    ctx.logger.trace('votingScan: page fetched', {skip: skip.toString(), count: ids.length});
     if (ids.length === 0) break;
 
     // Batch every id's (state, voteConfig) read in one multicall — 2N reads → 1 RPC.
@@ -78,19 +82,21 @@ export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAc
 
     ids.forEach((id, i) => {
       const state = stateAndConfig[i * 2] as number;
-      const voteConfig = stateAndConfig[i * 2 + 1] as { l1ProposalBlockHash: `0x${string}` };
+      const voteConfig = stateAndConfig[i * 2 + 1] as {l1ProposalBlockHash: `0x${string}`};
       const blockHash = voteConfig.l1ProposalBlockHash;
 
       if (state === VotingMachineProposalState.NotCreated) {
         if (blockHash === ZERO_HASH) {
-          ctx.logger.trace('votingScan: skip — voteConfig not bridged', { proposalId: id.toString() });
+          ctx.logger.trace('votingScan: skip — voteConfig not bridged', {
+            proposalId: id.toString(),
+          });
           return;
         }
-        pendingNotCreated.push({ proposalId: id, state, blockHash });
+        pendingNotCreated.push({proposalId: id, state, blockHash});
         return;
       }
       if (state === VotingMachineProposalState.Finished) {
-        decisions.set(id, { kind: 'closeAndSendVote', proposalId: id });
+        decisions.set(id, {kind: 'closeAndSendVote', proposalId: id});
         return;
       }
       ctx.logger.trace('votingScan: no-op', {
@@ -131,8 +137,12 @@ export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAc
         decisions.set(
           p.proposalId,
           ready
-            ? { kind: 'createVote', proposalId: p.proposalId }
-            : { kind: 'submitStorageRoots', proposalId: p.proposalId, l1ProposalBlockHash: p.blockHash },
+            ? {kind: 'createVote', proposalId: p.proposalId}
+            : {
+                kind: 'submitStorageRoots',
+                proposalId: p.proposalId,
+                l1ProposalBlockHash: p.blockHash,
+              },
         );
       });
     }
@@ -154,40 +164,47 @@ export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAc
     skip += VOTING_SCAN_PAGE_SIZE;
   }
 
-  ctx.logger.debug('votingScan: complete', { found: collected.length });
+  ctx.logger.debug('votingScan: complete', {found: collected.length});
   return collected;
 };
 
 export const runVotingScan = async (
-  ctx: WriteContext & { ethRpcUrl: string },
-): Promise<Array<{ kind: VotingActionKind; proposalId: bigint; txHash?: string; error?: string }>> => {
+  ctx: WriteContext & {ethRpcUrl: string},
+): Promise<
+  Array<{kind: VotingActionKind; proposalId: bigint; txHash?: string; error?: string}>
+> => {
   const items = await scanVotingChain(ctx);
-  const results: Array<{ kind: VotingActionKind; proposalId: bigint; txHash?: string; error?: string }> = [];
+  const results: Array<{
+    kind: VotingActionKind;
+    proposalId: bigint;
+    txHash?: string;
+    error?: string;
+  }> = [];
 
   for (const item of items) {
     try {
       if (item.kind === 'submitStorageRoots') {
-        const { txHash } = await executeSubmitStorageRoots(ctx, {
+        const {txHash} = await executeSubmitStorageRoots(ctx, {
           proposalId: item.proposalId,
           l1ProposalBlockHash: item.l1ProposalBlockHash,
         });
-        results.push({ kind: item.kind, proposalId: item.proposalId, txHash });
+        results.push({kind: item.kind, proposalId: item.proposalId, txHash});
       } else if (item.kind === 'createVote') {
         const recheck = await createVoteAction.check(ctx, item.proposalId);
         if (!recheck.ok) {
-          results.push({ kind: item.kind, proposalId: item.proposalId, error: recheck.reason });
+          results.push({kind: item.kind, proposalId: item.proposalId, error: recheck.reason});
           continue;
         }
-        const { txHash } = await createVoteAction.execute(ctx, item.proposalId);
-        results.push({ kind: item.kind, proposalId: item.proposalId, txHash });
+        const {txHash} = await createVoteAction.execute(ctx, item.proposalId);
+        results.push({kind: item.kind, proposalId: item.proposalId, txHash});
       } else {
         const recheck = await closeAndSendVoteAction.check(ctx, item.proposalId);
         if (!recheck.ok) {
-          results.push({ kind: item.kind, proposalId: item.proposalId, error: recheck.reason });
+          results.push({kind: item.kind, proposalId: item.proposalId, error: recheck.reason});
           continue;
         }
-        const { txHash } = await closeAndSendVoteAction.execute(ctx, item.proposalId);
-        results.push({ kind: item.kind, proposalId: item.proposalId, txHash });
+        const {txHash} = await closeAndSendVoteAction.execute(ctx, item.proposalId);
+        results.push({kind: item.kind, proposalId: item.proposalId, txHash});
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -196,7 +213,7 @@ export const runVotingScan = async (
         kind: item.kind,
         error: msg,
       });
-      results.push({ kind: item.kind, proposalId: item.proposalId, error: msg });
+      results.push({kind: item.kind, proposalId: item.proposalId, error: msg});
     }
   }
 

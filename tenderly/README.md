@@ -135,12 +135,12 @@ in Tenderly as they do in the CLI.
 
 The actions registered in `tenderly.yaml`:
 
-| Spec | Trigger | Function |
-|---|---|---|
-| `governance-scan` | every 1m | `governanceAction` — scan governance chain, fire activate/execute/cancel |
-| `voting-activated-listener` | tx event on L1 governance | `votingActivatedListener` — fetch proofs and submit storage roots to the right voting chain |
-| `voting-scan-{chain}` | every 2m | scan voting chain, fire submitRoots/createVote/closeAndSend (catches anything the event listener missed) |
-| `exec-scan-{chain}` | every 2m | scan PayloadsController, fire executePayload |
+| Spec                        | Trigger                   | Function                                                                                                 |
+| --------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `governance-scan`           | every 1m                  | `governanceAction` — scan governance chain, fire activate/execute/cancel                                 |
+| `voting-activated-listener` | tx event on L1 governance | `votingActivatedListener` — fetch proofs and submit storage roots to the right voting chain              |
+| `voting-scan-{chain}`       | every 2m                  | scan voting chain, fire submitRoots/createVote/closeAndSend (catches anything the event listener missed) |
+| `exec-scan-{chain}`         | every 2m                  | scan PayloadsController, fire executePayload                                                             |
 
 ## How storage roots work (without RootsConsumer)
 
@@ -165,11 +165,11 @@ abort the batch.
 
 This was specifically designed for a deprecation period where both systems run.
 
-| Action | Race outcome |
-|---|---|
-| activateVoting / executeProposal / cancelProposal | second tx reverts on state guard. Wasted gas, no breakage. |
-| createVote / closeAndSendVote / executePayload | same — state guard. |
-| storage roots | both submit independently; `processStorageRoot` is idempotent (mapping write of the same root). aggregate3 with allowFailure=true tolerates partial overlap. Wasteful, not broken. |
+| Action                                            | Race outcome                                                                                                                                                                       |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| activateVoting / executeProposal / cancelProposal | second tx reverts on state guard. Wasted gas, no breakage.                                                                                                                         |
+| createVote / closeAndSendVote / executePayload    | same — state guard.                                                                                                                                                                |
+| storage roots                                     | both submit independently; `processStorageRoot` is idempotent (mapping write of the same root). aggregate3 with allowFailure=true tolerates partial overlap. Wasteful, not broken. |
 
 No state sharing between the two systems is required. Both observe on-chain truth.
 

@@ -1,4 +1,4 @@
-import { fromRlp, toRlp, type Hex } from 'viem';
+import {fromRlp, toRlp, type Hex} from 'viem';
 
 /**
  * Normalize a hex quantity for RLP encoding.

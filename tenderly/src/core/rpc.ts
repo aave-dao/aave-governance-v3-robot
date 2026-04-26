@@ -1,5 +1,5 @@
-import type { Address, Hex } from 'viem';
-import type { RawBlock } from './proofs';
+import type {Address, Hex} from 'viem';
+import type {RawBlock} from './proofs';
 
 /**
  * Direct JSON-RPC client. We don't use viem's typed RPC for these methods because:
@@ -13,12 +13,13 @@ export const jsonRpcCall = async <T>(
 ): Promise<T> => {
   const res = await fetch(rpcUrl, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({jsonrpc: '2.0', id: 1, method, params}),
   });
   if (!res.ok) throw new Error(`RPC ${method} failed with HTTP ${res.status}`);
-  const json = (await res.json()) as { result?: T; error?: { message: string; code: number } };
-  if (json.error) throw new Error(`RPC ${method} error: ${json.error.message} (${json.error.code})`);
+  const json = (await res.json()) as {result?: T; error?: {message: string; code: number}};
+  if (json.error)
+    throw new Error(`RPC ${method} error: ${json.error.message} (${json.error.code})`);
   return json.result as T;
 };
 
@@ -28,7 +29,7 @@ export const getRawBlockByHash = (rpcUrl: string, blockHash: Hex): Promise<RawBl
 
 export type EthGetProofResult = {
   accountProof: Hex[];
-  storageProof: Array<{ key: Hex; value: Hex; proof: Hex[] }>;
+  storageProof: Array<{key: Hex; value: Hex; proof: Hex[]}>;
 };
 
 /** Fetch the account + storage proofs at a given block via `eth_getProof`. */

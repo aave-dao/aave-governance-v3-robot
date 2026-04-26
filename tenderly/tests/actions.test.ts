@@ -1,11 +1,11 @@
-import { describe, expect, test } from 'bun:test';
-import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import { checkActivateVoting } from '../src/core/actions/activateVoting';
-import { checkExecuteProposal } from '../src/core/actions/executeProposal';
-import { checkCancelProposal } from '../src/core/actions/cancelProposal';
-import { checkExecutePayload } from '../src/core/actions/executePayload';
-import { ProposalState, PayloadState } from '../src/core/state';
-import { makeMockClient, silentLogger } from './helpers/mockClient';
+import {describe, expect, test} from 'bun:test';
+import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
+import {checkActivateVoting} from '../src/core/actions/activateVoting';
+import {checkExecuteProposal} from '../src/core/actions/executeProposal';
+import {checkCancelProposal} from '../src/core/actions/cancelProposal';
+import {checkExecutePayload} from '../src/core/actions/executePayload';
+import {ProposalState, PayloadState} from '../src/core/state';
+import {makeMockClient, silentLogger} from './helpers/mockClient';
 
 const GOV = GovernanceV3Ethereum.GOVERNANCE.toLowerCase();
 const POWER = GovernanceV3Ethereum.GOVERNANCE_POWER_STRATEGY.toLowerCase();
@@ -42,7 +42,7 @@ describe('checkActivateVoting', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${GOV}.getProposal`]: { ...baseProposal, state: ProposalState.Active },
+        [`${GOV}.getProposal`]: {...baseProposal, state: ProposalState.Active},
         [`${GOV}.getVotingConfig`]: baseVotingConfig,
       }),
     };
@@ -57,8 +57,8 @@ describe('checkActivateVoting', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${GOV}.getProposal`]: { ...baseProposal, creationTime: Number(now) - 30 },
-        [`${GOV}.getVotingConfig`]: { ...baseVotingConfig, coolDownBeforeVotingStart: 3600 },
+        [`${GOV}.getProposal`]: {...baseProposal, creationTime: Number(now) - 30},
+        [`${GOV}.getVotingConfig`]: {...baseVotingConfig, coolDownBeforeVotingStart: 3600},
       }),
     };
     const out = await checkActivateVoting(ctx, 1n);
@@ -72,8 +72,8 @@ describe('checkActivateVoting', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${GOV}.getProposal`]: { ...baseProposal, creationTime: Number(now) - 7200 },
-        [`${GOV}.getVotingConfig`]: { ...baseVotingConfig, coolDownBeforeVotingStart: 3600 },
+        [`${GOV}.getProposal`]: {...baseProposal, creationTime: Number(now) - 7200},
+        [`${GOV}.getVotingConfig`]: {...baseVotingConfig, coolDownBeforeVotingStart: 3600},
       }),
     };
     const out = await checkActivateVoting(ctx, 1n);
@@ -87,7 +87,7 @@ describe('checkExecuteProposal', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${GOV}.getProposal`]: { ...baseProposal, state: ProposalState.Active },
+        [`${GOV}.getProposal`]: {...baseProposal, state: ProposalState.Active},
         [`${GOV}.COOLDOWN_PERIOD`]: 86_400n,
       }),
     };
@@ -139,7 +139,7 @@ describe('checkCancelProposal', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${GOV}.getProposal`]: { ...baseProposal, state: ProposalState.Executed },
+        [`${GOV}.getProposal`]: {...baseProposal, state: ProposalState.Executed},
         [`${GOV}.getPowerStrategy`]: GovernanceV3Ethereum.GOVERNANCE_POWER_STRATEGY,
         [`${GOV}.PRECISION_DIVIDER`]: 10n ** 18n,
         [`${GOV}.getVotingConfig`]: baseVotingConfig,
@@ -155,7 +155,7 @@ describe('checkCancelProposal', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${GOV}.getProposal`]: { ...baseProposal, state: ProposalState.Active },
+        [`${GOV}.getProposal`]: {...baseProposal, state: ProposalState.Active},
         [`${GOV}.getPowerStrategy`]: GovernanceV3Ethereum.GOVERNANCE_POWER_STRATEGY,
         [`${GOV}.PRECISION_DIVIDER`]: 10n ** 18n,
         [`${GOV}.getVotingConfig`]: baseVotingConfig,
@@ -172,10 +172,10 @@ describe('checkCancelProposal', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${GOV}.getProposal`]: { ...baseProposal, state: ProposalState.Active },
+        [`${GOV}.getProposal`]: {...baseProposal, state: ProposalState.Active},
         [`${GOV}.getPowerStrategy`]: GovernanceV3Ethereum.GOVERNANCE_POWER_STRATEGY,
         [`${GOV}.PRECISION_DIVIDER`]: 10n ** 18n,
-        [`${GOV}.getVotingConfig`]: { ...baseVotingConfig, minPropositionPower: 80_000n },
+        [`${GOV}.getVotingConfig`]: {...baseVotingConfig, minPropositionPower: 80_000n},
         [`${POWER}.getFullPropositionPower`]: 0n,
       }),
     };
@@ -205,7 +205,7 @@ describe('checkExecutePayload', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${PC}.getPayloadById`]: { ...basePayload, state: PayloadState.Executed },
+        [`${PC}.getPayloadById`]: {...basePayload, state: PayloadState.Executed},
       }),
     };
     const out = await checkExecutePayload(ctx, 1n);
@@ -218,7 +218,7 @@ describe('checkExecutePayload', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${PC}.getPayloadById`]: { ...basePayload, queuedAt: now - 100, delay: 1000 },
+        [`${PC}.getPayloadById`]: {...basePayload, queuedAt: now - 100, delay: 1000},
       }),
     };
     const out = await checkExecutePayload(ctx, 1n);
@@ -232,7 +232,7 @@ describe('checkExecutePayload', () => {
       chainId: 1,
       logger: silentLogger,
       publicClient: makeMockClient({
-        [`${PC}.getPayloadById`]: { ...basePayload, queuedAt: now - 100_000, delay: 1000 },
+        [`${PC}.getPayloadById`]: {...basePayload, queuedAt: now - 100_000, delay: 1000},
       }),
     };
     const out = await checkExecutePayload(ctx, 1n);

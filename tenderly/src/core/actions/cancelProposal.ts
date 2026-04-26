@@ -1,9 +1,9 @@
-import type { Address } from 'viem';
-import { MULTICALL3_ADDRESS, governanceAbi, powerStrategyAbi } from '../abis';
-import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import type { ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
-import { formatAave } from '../format';
-import { ProposalState, proposalStateName, isProposalFinal } from '../state';
+import type {Address} from 'viem';
+import {MULTICALL3_ADDRESS, governanceAbi, powerStrategyAbi} from '../abis';
+import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
+import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {formatAave} from '../format';
+import {ProposalState, proposalStateName, isProposalFinal} from '../state';
 
 const GOVERNANCE = GovernanceV3Ethereum.GOVERNANCE as Address;
 
@@ -41,10 +41,10 @@ export const checkCancelProposal = async (
   });
 
   if (proposal.state === ProposalState.Null) {
-    return { ok: false, reason: `state=Null` };
+    return {ok: false, reason: `state=Null`};
   }
   if (isProposalFinal(proposal.state)) {
-    return { ok: false, reason: `state=${proposalStateName(proposal.state)} (final)` };
+    return {ok: false, reason: `state=${proposalStateName(proposal.state)} (final)`};
   }
 
   // Phase 2: votingConfig (depends on proposal.accessLevel) + propositionPower (depends on
@@ -76,14 +76,14 @@ export const checkCancelProposal = async (
     };
   }
 
-  return { ok: true };
+  return {ok: true};
 };
 
 const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteResult> => {
   const check = await checkCancelProposal(ctx, proposalId);
   if (!check.ok) throw new Error(`cancelProposal precheck failed: ${check.reason}`);
 
-  ctx.logger.info('cancelProposal: sending tx', { proposalId: proposalId.toString() });
+  ctx.logger.info('cancelProposal: sending tx', {proposalId: proposalId.toString()});
   const txHash = await ctx.walletClient.writeContract({
     address: GOVERNANCE,
     abi: governanceAbi,
@@ -92,8 +92,8 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
     account: ctx.walletClient.account!,
     chain: ctx.walletClient.chain!,
   });
-  ctx.logger.info('cancelProposal: submitted', { proposalId: proposalId.toString(), txHash });
-  return { txHash };
+  ctx.logger.info('cancelProposal: submitted', {proposalId: proposalId.toString(), txHash});
+  return {txHash};
 };
 
 export const cancelProposalAction: ActionModule<bigint> = {

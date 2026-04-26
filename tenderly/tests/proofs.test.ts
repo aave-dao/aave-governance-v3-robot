@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'bun:test';
-import { fromRlp, type Hex } from 'viem';
-import { formatToProofRLP, prepareBlockRLP } from '../src/core/proofs';
+import {describe, expect, test} from 'bun:test';
+import {fromRlp, type Hex} from 'viem';
+import {formatToProofRLP, prepareBlockRLP} from '../src/core/proofs';
 
 describe('prepareBlockRLP', () => {
   test('handles a post-merge / pre-Shanghai block (16 fields)', () => {

@@ -1,4 +1,4 @@
-import type { Hex } from 'viem';
+import type {Hex} from 'viem';
 
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
@@ -64,7 +64,7 @@ export type ProposalMetadata = {
  */
 export const parseProposalMarkdown = (raw: string): ProposalMetadata => {
   const fmMatch = raw.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
-  if (!fmMatch) return { body: raw, raw };
+  if (!fmMatch) return {body: raw, raw};
 
   const [, fmBlock, body] = fmMatch as [string, string, string];
   const fields: Record<string, string> = {};
@@ -91,14 +91,18 @@ export const parseProposalMarkdown = (raw: string): ProposalMetadata => {
     title: fields['title'],
     author: fields['author'],
     discussions: fields['discussions'],
-    shortDescription: fields['shortDescription'] ?? fields['short-description'] ?? fields['summary'],
+    shortDescription:
+      fields['shortDescription'] ?? fields['short-description'] ?? fields['summary'],
     body: body ?? '',
     raw,
   };
 };
 
 const stripQuotes = (s: string): string => {
-  if (s.length >= 2 && ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")))) {
+  if (
+    s.length >= 2 &&
+    ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")))
+  ) {
     return s.slice(1, -1);
   }
   return s;
@@ -122,7 +126,7 @@ export const fetchIpfsText = async (cid: string, opts: FetchIpfsOptions = {}): P
   let lastErr: unknown;
   for (const g of gateways) {
     try {
-      const res = await fetch(`${g}/${cid}`, { signal: AbortSignal.timeout(timeoutMs) });
+      const res = await fetch(`${g}/${cid}`, {signal: AbortSignal.timeout(timeoutMs)});
       if (!res.ok) {
         lastErr = new Error(`${g}: HTTP ${res.status}`);
         continue;

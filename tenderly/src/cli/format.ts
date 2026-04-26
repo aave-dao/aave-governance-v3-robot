@@ -1,6 +1,6 @@
-import type { ActionStatus, InspectorReport } from '../orchestration/proposalInspector';
-import { ProposalState, VotingMachineProposalState, PayloadState } from '../core/state';
-import { c, glyph } from './colors';
+import type {ActionStatus, InspectorReport} from '../orchestration/proposalInspector';
+import {ProposalState, VotingMachineProposalState, PayloadState} from '../core/state';
+import {c, glyph} from './colors';
 
 const fmtTimestamp = (sec: number): string => {
   if (!sec) return c.gray('not yet');
@@ -19,35 +19,54 @@ const humanDuration = (sec: number): string => {
 
 const colorProposalState = (n: number, name: string): string => {
   switch (n) {
-    case ProposalState.Created: return c.cyan(name);
-    case ProposalState.Active: return c.bold(c.cyan(name));
-    case ProposalState.Queued: return c.yellow(name);
-    case ProposalState.Executed: return c.green(name);
-    case ProposalState.Failed: return c.red(name);
-    case ProposalState.Cancelled: return c.gray(name);
-    case ProposalState.Expired: return c.gray(name);
-    default: return name;
+    case ProposalState.Created:
+      return c.cyan(name);
+    case ProposalState.Active:
+      return c.bold(c.cyan(name));
+    case ProposalState.Queued:
+      return c.yellow(name);
+    case ProposalState.Executed:
+      return c.green(name);
+    case ProposalState.Failed:
+      return c.red(name);
+    case ProposalState.Cancelled:
+      return c.gray(name);
+    case ProposalState.Expired:
+      return c.gray(name);
+    default:
+      return name;
   }
 };
 
 const colorVmState = (n: number, name: string): string => {
   switch (n) {
-    case VotingMachineProposalState.NotCreated: return c.gray(name);
-    case VotingMachineProposalState.Active: return c.bold(c.cyan(name));
-    case VotingMachineProposalState.Finished: return c.yellow(name);
-    case VotingMachineProposalState.SentToGovernance: return c.green(name);
-    default: return name;
+    case VotingMachineProposalState.NotCreated:
+      return c.gray(name);
+    case VotingMachineProposalState.Active:
+      return c.bold(c.cyan(name));
+    case VotingMachineProposalState.Finished:
+      return c.yellow(name);
+    case VotingMachineProposalState.SentToGovernance:
+      return c.green(name);
+    default:
+      return name;
   }
 };
 
 const colorPayloadState = (n: number, name: string): string => {
   switch (n) {
-    case PayloadState.Created: return c.cyan(name);
-    case PayloadState.Queued: return c.yellow(name);
-    case PayloadState.Executed: return c.green(name);
-    case PayloadState.Cancelled: return c.gray(name);
-    case PayloadState.Expired: return c.gray(name);
-    default: return name;
+    case PayloadState.Created:
+      return c.cyan(name);
+    case PayloadState.Queued:
+      return c.yellow(name);
+    case PayloadState.Executed:
+      return c.green(name);
+    case PayloadState.Cancelled:
+      return c.gray(name);
+    case PayloadState.Expired:
+      return c.gray(name);
+    default:
+      return name;
   }
 };
 
@@ -59,7 +78,20 @@ const fmtIST = (unixSec: number): string => {
   const d = new Date(unixSec * 1000);
   // Manually compute IST components to avoid depending on the runtime's locale tz.
   const ist = new Date(d.getTime() + (5 * 60 + 30) * 60_000);
-  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][ist.getUTCMonth()];
+  const month = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ][ist.getUTCMonth()];
   const day = ist.getUTCDate();
   const hh = String(ist.getUTCHours()).padStart(2, '0');
   const mm = String(ist.getUTCMinutes()).padStart(2, '0');
@@ -76,13 +108,15 @@ const fmtEta = (etaAt: number): string => {
 };
 
 const fmtAction = (a: ActionStatus): string => {
-  if (a.status === 'ready') return `${glyph.ready} ${c.bold(c.yellow(a.name))} ${c.gray('— ready')}`;
+  if (a.status === 'ready')
+    return `${glyph.ready} ${c.bold(c.yellow(a.name))} ${c.gray('— ready')}`;
   if (a.status === 'done') return `${glyph.done} ${c.green(a.name)} ${c.gray(`— ${a.reason}`)}`;
   const etaPart = a.etaAt ? ` ${fmtEta(a.etaAt)}` : '';
   return `${glyph.blocked} ${c.gray(a.name)}: ${c.dim(a.reason)}${etaPart}`;
 };
 
-const truncate = (s: string, max: number): string => (s.length <= max ? s : s.slice(0, max - 1) + '…');
+const truncate = (s: string, max: number): string =>
+  s.length <= max ? s : s.slice(0, max - 1) + '…';
 
 /** Maps internal action module names to the user-facing CLI command names. */
 const ACTION_TO_COMMAND: Record<string, string> = {
@@ -128,23 +162,23 @@ export const formatInspectorReport = (report: InspectorReport): string => {
 
   // Lifecycle: a single ordered list following the actual proposal flow.
   // activateVoting → submitStorageRoots → createVote → closeAndSendVote → executeProposal → executePayload(s).
-  const lifecycle: Array<{ status: ActionStatus; scope?: string }> = [];
+  const lifecycle: Array<{status: ActionStatus; scope?: string}> = [];
 
   const findGov = (name: string) => gov.actions.find((a) => a.name === name);
   const findVoting = (name: string) => report.voting?.actions.find((a) => a.name === name);
 
   const activate = findGov('activateVoting');
-  if (activate) lifecycle.push({ status: activate });
+  if (activate) lifecycle.push({status: activate});
 
   const submit = findVoting('submitStorageRoots');
-  if (submit) lifecycle.push({ status: submit });
+  if (submit) lifecycle.push({status: submit});
   const createVote = findVoting('createVote');
-  if (createVote) lifecycle.push({ status: createVote });
+  if (createVote) lifecycle.push({status: createVote});
   const closeVote = findVoting('closeAndSendVote');
-  if (closeVote) lifecycle.push({ status: closeVote });
+  if (closeVote) lifecycle.push({status: closeVote});
 
   const exec = findGov('executeProposal');
-  if (exec) lifecycle.push({ status: exec });
+  if (exec) lifecycle.push({status: exec});
 
   for (const p of report.payloads) {
     // The action's reason already carries the state ("state=Created, want Queued"); no need
@@ -156,7 +190,10 @@ export const formatInspectorReport = (report: InspectorReport): string => {
         ? ` ${c.dim('state=')}${colorPayloadState(p.stateNumber, p.state)}`
         : '';
     for (const a of p.actions) {
-      lifecycle.push({ status: a, scope: `${c.cyan(`[${p.chainName}]`)} #${p.payloadId}${stateBadge}` });
+      lifecycle.push({
+        status: a,
+        scope: `${c.cyan(`[${p.chainName}]`)} #${p.payloadId}${stateBadge}`,
+      });
     }
   }
 
@@ -183,7 +220,9 @@ export const formatInspectorReport = (report: InspectorReport): string => {
     if (n.stage === 'governance') cmd = `${cmdName} ${report.proposalId}`;
     else if (n.stage === 'voting') cmd = `${cmdName} ${report.proposalId}`;
     else {
-      const p = report.payloads.find((pp) => pp.chainId === n.chainId && BigInt(pp.payloadId) === n.id);
+      const p = report.payloads.find(
+        (pp) => pp.chainId === n.chainId && BigInt(pp.payloadId) === n.id,
+      );
       cmd = `execute-payload ${n.id} --chain ${p?.chainName}`;
     }
     lines.push(`${glyph.ready} ${c.yellow('next:')} ${c.bold(`bun run robot ${cmd}`)}`);

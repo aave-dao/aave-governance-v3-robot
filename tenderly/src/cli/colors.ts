@@ -7,10 +7,10 @@
 const ENABLED =
   process.env.NO_COLOR !== '1' &&
   process.env.NO_COLOR !== 'true' &&
-  Boolean((process.stdout as { isTTY?: boolean }).isTTY);
+  Boolean((process.stdout as {isTTY?: boolean}).isTTY);
 
-const wrap = (open: string, close: string) =>
-  (s: string | number) => (ENABLED ? `${open}${s}${close}` : `${s}`);
+const wrap = (open: string, close: string) => (s: string | number) =>
+  ENABLED ? `${open}${s}${close}` : `${s}`;
 
 export const c = {
   reset: '\x1b[0m',

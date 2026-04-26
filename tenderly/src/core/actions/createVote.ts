@@ -1,8 +1,8 @@
-import type { Address } from 'viem';
-import { dataWarehouseAbi, votingMachineAbi, votingStrategyAbi } from '../abis';
-import { VOTING_CHAINS, type VotingChainId, type VotingChainConfig } from '../chains';
-import type { ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
-import { VotingMachineProposalState, votingProposalStateName } from '../state';
+import type {Address} from 'viem';
+import {dataWarehouseAbi, votingMachineAbi, votingStrategyAbi} from '../abis';
+import {VOTING_CHAINS, type VotingChainId, type VotingChainConfig} from '../chains';
+import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {VotingMachineProposalState, votingProposalStateName} from '../state';
 
 /**
  * Mirrors VotingChainRobotKeeper._hasRequiredRoots:
@@ -53,7 +53,7 @@ export const checkCreateVote = async (
   });
 
   if (state !== VotingMachineProposalState.NotCreated) {
-    return { ok: false, reason: `vm state=${votingProposalStateName(state)}, want NotCreated` };
+    return {ok: false, reason: `vm state=${votingProposalStateName(state)}, want NotCreated`};
   }
 
   const voteConfig = await ctx.publicClient.readContract({
@@ -64,15 +64,15 @@ export const checkCreateVote = async (
   });
   const blockHash = voteConfig.l1ProposalBlockHash as `0x${string}`;
   if (blockHash === '0x0000000000000000000000000000000000000000000000000000000000000000') {
-    return { ok: false, reason: 'voteConfig not yet bridged from L1' };
+    return {ok: false, reason: 'voteConfig not yet bridged from L1'};
   }
 
   const ready = await hasRequiredRoots(ctx, config, blockHash);
   if (!ready) {
-    return { ok: false, reason: `roots not yet registered for ${blockHash}` };
+    return {ok: false, reason: `roots not yet registered for ${blockHash}`};
   }
 
-  return { ok: true };
+  return {ok: true};
 };
 
 const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteResult> => {
@@ -80,7 +80,7 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
   if (!check.ok) throw new Error(`createVote precheck failed: ${check.reason}`);
 
   const config = requireVotingChain(ctx.chainId);
-  ctx.logger.info('createVote: sending tx', { proposalId: proposalId.toString() });
+  ctx.logger.info('createVote: sending tx', {proposalId: proposalId.toString()});
   const txHash = await ctx.walletClient.writeContract({
     address: config.votingMachine,
     abi: votingMachineAbi,
@@ -89,8 +89,8 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
     account: ctx.walletClient.account!,
     chain: ctx.walletClient.chain!,
   });
-  ctx.logger.info('createVote: submitted', { proposalId: proposalId.toString(), txHash });
-  return { txHash };
+  ctx.logger.info('createVote: submitted', {proposalId: proposalId.toString(), txHash});
+  return {txHash};
 };
 
 export const createVoteAction: ActionModule<bigint> = {

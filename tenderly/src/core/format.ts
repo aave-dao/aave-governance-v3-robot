@@ -19,7 +19,7 @@ export const AAVE_DECIMALS = 18;
  */
 export const formatTokenAmount = (
   wei: bigint,
-  opts: { decimals?: number; fractionDigits?: number } = {},
+  opts: {decimals?: number; fractionDigits?: number} = {},
 ): string => {
   const decimals = opts.decimals ?? AAVE_DECIMALS;
   const fractionDigits = opts.fractionDigits ?? 2;
@@ -37,4 +37,4 @@ export const formatTokenAmount = (
 
 /** Convenience: format with the AAVE token symbol appended. */
 export const formatAave = (wei: bigint, fractionDigits = 2): string =>
-  `${formatTokenAmount(wei, { fractionDigits })} AAVE`;
+  `${formatTokenAmount(wei, {fractionDigits})} AAVE`;

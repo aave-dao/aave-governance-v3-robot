@@ -1,7 +1,7 @@
-import type { ActionFn, Context, Event } from '@tenderly/actions';
-import { GOVERNANCE_CHAIN_ID } from '../core/chains';
-import { runGovernanceScan } from '../orchestration/governanceScan';
-import { setupChain } from './runtime';
+import type {ActionFn, Context, Event} from '@tenderly/actions';
+import {GOVERNANCE_CHAIN_ID} from '../core/chains';
+import {runGovernanceScan} from '../orchestration/governanceScan';
+import {setupChain} from './runtime';
 
 /**
  * Periodic Tenderly Action for the governance chain.
@@ -10,7 +10,7 @@ import { setupChain } from './runtime';
  * proposals for any actionable item (activate/execute/cancel) and submits them.
  */
 export const governanceAction: ActionFn = async (ctx: Context, _event: Event) => {
-  const { write, logger } = await setupChain(ctx, GOVERNANCE_CHAIN_ID, 'ethereum');
+  const {write, logger} = await setupChain(ctx, GOVERNANCE_CHAIN_ID, 'ethereum');
   logger.info('governanceAction: scan start');
   const results = await runGovernanceScan(write);
   logger.info('governanceAction: scan done', {

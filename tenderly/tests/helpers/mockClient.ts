@@ -1,5 +1,5 @@
-import type { PublicClient } from 'viem';
-import type { Logger } from '../../src/core/logger';
+import type {PublicClient} from 'viem';
+import type {Logger} from '../../src/core/logger';
 
 /**
  * Tiny mock for PublicClient.readContract — looks up by `${address}.${functionName}` and returns
@@ -17,21 +17,21 @@ export const makeMockClient = (mocks: Mocks): PublicClient => {
   };
 
   return {
-    readContract: async ({ address, functionName, args }: any) =>
+    readContract: async ({address, functionName, args}: any) =>
       lookup(address as string, functionName, args),
 
     /**
      * Mock multicall — answers each contract entry from the same `mocks` table. The actions
      * batch reads via this; tests don't need to know the call shape.
      */
-    multicall: async ({ contracts, allowFailure }: any) => {
-      const results = contracts.map(({ address, functionName, args }: any) => {
+    multicall: async ({contracts, allowFailure}: any) => {
+      const results = contracts.map(({address, functionName, args}: any) => {
         try {
           const result = lookup(address as string, functionName, args);
-          return allowFailure === false ? result : { status: 'success', result };
+          return allowFailure === false ? result : {status: 'success', result};
         } catch (err) {
           if (allowFailure === false) throw err;
-          return { status: 'failure', error: err };
+          return {status: 'failure', error: err};
         }
       });
       return results;
@@ -45,5 +45,7 @@ export const silentLogger: Logger = {
   info() {},
   warn() {},
   error() {},
-  child() { return silentLogger; },
+  child() {
+    return silentLogger;
+  },
 };

@@ -1,8 +1,8 @@
-import type { Address } from 'viem';
-import { MULTICALL3_ADDRESS, governanceAbi } from '../abis';
-import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import type { ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
-import { ProposalState, proposalStateName } from '../state';
+import type {Address} from 'viem';
+import {MULTICALL3_ADDRESS, governanceAbi} from '../abis';
+import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
+import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {ProposalState, proposalStateName} from '../state';
 
 const GOVERNANCE = GovernanceV3Ethereum.GOVERNANCE as Address;
 
@@ -11,7 +11,7 @@ export const checkExecuteProposal = async (
   ctx: ReadContext,
   proposalId: bigint,
 ): Promise<CheckResult> => {
-  ctx.logger.trace('executeProposal: checking', { proposalId: proposalId.toString() });
+  ctx.logger.trace('executeProposal: checking', {proposalId: proposalId.toString()});
   // 2 reads → 1 multicall.
   const [proposal, cooldown] = await ctx.publicClient.multicall({
     contracts: [
@@ -37,7 +37,7 @@ export const checkExecuteProposal = async (
   });
 
   if (proposal.state !== ProposalState.Queued) {
-    return { ok: false, reason: `state=${proposalStateName(proposal.state)}, want Queued` };
+    return {ok: false, reason: `state=${proposalStateName(proposal.state)}, want Queued`};
   }
 
   const now = BigInt(Math.floor(Date.now() / 1000));
@@ -49,15 +49,15 @@ export const checkExecuteProposal = async (
     };
   }
 
-  ctx.logger.debug('executeProposal: ready', { proposalId: proposalId.toString() });
-  return { ok: true };
+  ctx.logger.debug('executeProposal: ready', {proposalId: proposalId.toString()});
+  return {ok: true};
 };
 
 const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteResult> => {
   const check = await checkExecuteProposal(ctx, proposalId);
   if (!check.ok) throw new Error(`executeProposal precheck failed: ${check.reason}`);
 
-  ctx.logger.info('executeProposal: sending tx', { proposalId: proposalId.toString() });
+  ctx.logger.info('executeProposal: sending tx', {proposalId: proposalId.toString()});
   const txHash = await ctx.walletClient.writeContract({
     address: GOVERNANCE,
     abi: governanceAbi,
@@ -66,8 +66,8 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
     account: ctx.walletClient.account!,
     chain: ctx.walletClient.chain!,
   });
-  ctx.logger.info('executeProposal: submitted', { proposalId: proposalId.toString(), txHash });
-  return { txHash };
+  ctx.logger.info('executeProposal: submitted', {proposalId: proposalId.toString(), txHash});
+  return {txHash};
 };
 
 export const executeProposalAction: ActionModule<bigint> = {

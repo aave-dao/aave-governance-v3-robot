@@ -8,13 +8,13 @@ import {
   type WalletClient,
 } from 'viem';
 import * as viemChains from 'viem/chains';
-import { privateKeyToAccount } from 'viem/accounts';
+import {privateKeyToAccount} from 'viem/accounts';
 import {
   getClient as toolboxGetClient,
   getRPCUrl as toolboxGetRpcUrl,
   getNetworkEnv,
 } from '@bgd-labs/toolbox/browser';
-import type { SupportedChainIds } from '@bgd-labs/toolbox';
+import type {SupportedChainIds} from '@bgd-labs/toolbox';
 
 /**
  * Chain reads use viem PublicClient via @bgd-labs/toolbox `getClient`, which respects:
@@ -56,7 +56,7 @@ export const describeRpcSource = (chainId: number, url: string): string => {
 
 export const getRpcUrl = (chainId: number): string => {
   const alchemyKey = process.env.ALCHEMY_API_KEY;
-  const url = toolboxGetRpcUrl(chainId as SupportedChainIds, { alchemyKey });
+  const url = toolboxGetRpcUrl(chainId as SupportedChainIds, {alchemyKey});
   if (url) return url;
 
   // Toolbox doesn't know about this chain; fall back to viem default if any.
@@ -75,7 +75,6 @@ export const getRpcUrl = (chainId: number): string => {
   );
 };
 
-
 export const getPublicClient = (chainId: number): PublicClient => {
   const hit = publicCache.get(chainId);
   if (hit) return hit;
@@ -84,16 +83,17 @@ export const getPublicClient = (chainId: number): PublicClient => {
   let client: PublicClient;
   try {
     client = toolboxGetClient(chainId as SupportedChainIds, {
-      providerConfig: { alchemyKey },
+      providerConfig: {alchemyKey},
     }) as unknown as PublicClient;
   } catch (toolboxErr) {
     // Chain isn't in toolbox's ChainList — build a viem client directly.
     const chain = viemChainByChainId(chainId);
     if (!chain) throw toolboxErr;
-    const rpcUrl = process.env[`RPC_${chain.name.replace(/[^A-Za-z0-9]/g, '').toUpperCase()}`]
-      ?? chain.rpcUrls.default.http[0];
+    const rpcUrl =
+      process.env[`RPC_${chain.name.replace(/[^A-Za-z0-9]/g, '').toUpperCase()}`] ??
+      chain.rpcUrls.default.http[0];
     if (!rpcUrl) throw toolboxErr;
-    client = createPublicClient({ chain, transport: http(rpcUrl) }) as unknown as PublicClient;
+    client = createPublicClient({chain, transport: http(rpcUrl)}) as unknown as PublicClient;
   }
   publicCache.set(chainId, client);
   return client;
@@ -113,8 +113,8 @@ export const getWalletClient = (chainId: number, privateKey: Hex): WalletClient 
     ({
       id: chainId,
       name: `chain-${chainId}`,
-      nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-      rpcUrls: { default: { http: [rpcUrl] } },
+      nativeCurrency: {name: 'Ether', symbol: 'ETH', decimals: 18},
+      rpcUrls: {default: {http: [rpcUrl]}},
     } as Chain);
 
   const client = createWalletClient({

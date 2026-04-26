@@ -1,10 +1,10 @@
-import type { ActionFn, Context, Event, TransactionEvent } from '@tenderly/actions';
-import { decodeEventLog, toEventSelector, type Hex } from 'viem';
-import { governanceAbi } from '../core/abis';
-import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import { findVotingChainByPortal, GOVERNANCE_CHAIN_ID } from '../core/chains';
-import { executeSubmitStorageRoots } from '../core/actions';
-import { setupChain } from './runtime';
+import type {ActionFn, Context, Event, TransactionEvent} from '@tenderly/actions';
+import {decodeEventLog, toEventSelector, type Hex} from 'viem';
+import {governanceAbi} from '../core/abis';
+import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
+import {findVotingChainByPortal, GOVERNANCE_CHAIN_ID} from '../core/chains';
+import {executeSubmitStorageRoots} from '../core/actions';
+import {setupChain} from './runtime';
 
 // Computed once at module load: keccak256("VotingActivated(uint256,bytes32,uint24)")
 const VOTING_ACTIVATED_TOPIC0 = toEventSelector(
@@ -24,9 +24,10 @@ export const votingActivatedListener: ActionFn = async (ctx: Context, event: Eve
   const logger = govSetup.logger;
 
   const matching = tx.logs.filter(
-    (l) => l.address.toLowerCase() === GOVERNANCE_ADDRESS && l.topics[0] === VOTING_ACTIVATED_TOPIC0,
+    (l) =>
+      l.address.toLowerCase() === GOVERNANCE_ADDRESS && l.topics[0] === VOTING_ACTIVATED_TOPIC0,
   );
-  logger.info('votingActivatedListener: tx received', { tx: tx.hash, matching: matching.length });
+  logger.info('votingActivatedListener: tx received', {tx: tx.hash, matching: matching.length});
 
   for (const log of matching) {
     let proposalId: bigint;
@@ -64,9 +65,9 @@ export const votingActivatedListener: ActionFn = async (ctx: Context, event: Eve
 
     const target = await setupChain(ctx, votingChain.chainId, votingChain.name);
     try {
-      const { txHash } = await executeSubmitStorageRoots(
-        { ...target.write, ethRpcUrl: govSetup.ethRpcUrl },
-        { proposalId, l1ProposalBlockHash: snapshotBlockHash },
+      const {txHash} = await executeSubmitStorageRoots(
+        {...target.write, ethRpcUrl: govSetup.ethRpcUrl},
+        {proposalId, l1ProposalBlockHash: snapshotBlockHash},
       );
       logger.info('votingActivatedListener: roots submitted', {
         proposalId: proposalId.toString(),

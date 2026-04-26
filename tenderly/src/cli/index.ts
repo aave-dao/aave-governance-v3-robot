@@ -1,6 +1,12 @@
 #!/usr/bin/env bun
-import { Command } from 'commander';
-import { GOVERNANCE_CHAIN_ID, VOTING_CHAINS, EXECUTION_CHAINS, findVotingChainByPortal, type VotingChainId } from '../core/chains';
+import {Command} from 'commander';
+import {
+  GOVERNANCE_CHAIN_ID,
+  VOTING_CHAINS,
+  EXECUTION_CHAINS,
+  findVotingChainByPortal,
+  type VotingChainId,
+} from '../core/chains';
 import {
   activateVotingAction,
   cancelProposalAction,
@@ -11,24 +17,21 @@ import {
   executeSubmitStorageRoots,
   submitStorageRootsForBlock,
 } from '../core/actions';
-import { createLogger } from '../core/logger';
-import { colorFormatter } from './logFormat';
-import {
-  inspectProposal,
-  type InspectorConfig,
-} from '../orchestration/proposalInspector';
-import { formatInspectorReport } from './format';
-import { decodeProposal, formatDecodeResult } from './decode';
-import { runGovernanceScan } from '../orchestration/governanceScan';
-import { runVotingScan } from '../orchestration/votingScan';
-import { runExecutionScan } from '../orchestration/executionScan';
-import { buildInspectorClients, ethRpcUrl, makeWriteContext } from './clientFactory';
-import { loadEnv, type Env } from './env';
-import type { Logger } from '../core/logger';
-import { governanceAbi, votingMachineAbi } from '../core/abis';
-import { jsonRpcCall } from '../core/rpc';
-import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import type { Address } from 'viem';
+import {createLogger} from '../core/logger';
+import {colorFormatter} from './logFormat';
+import {inspectProposal, type InspectorConfig} from '../orchestration/proposalInspector';
+import {formatInspectorReport} from './format';
+import {decodeProposal, formatDecodeResult} from './decode';
+import {runGovernanceScan} from '../orchestration/governanceScan';
+import {runVotingScan} from '../orchestration/votingScan';
+import {runExecutionScan} from '../orchestration/executionScan';
+import {buildInspectorClients, ethRpcUrl, makeWriteContext} from './clientFactory';
+import {loadEnv, type Env} from './env';
+import type {Logger} from '../core/logger';
+import {governanceAbi, votingMachineAbi} from '../core/abis';
+import {jsonRpcCall} from '../core/rpc';
+import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
+import type {Address} from 'viem';
 
 const program = new Command();
 program
@@ -77,7 +80,7 @@ const resolveVotingChainForProposal = async (
   logger: Logger,
   proposalId: bigint,
   override?: string,
-): Promise<{ chainId: VotingChainId; chainName: string; snapshotBlockHash: `0x${string}` }> => {
+): Promise<{chainId: VotingChainId; chainName: string; snapshotBlockHash: `0x${string}`}> => {
   if (override) {
     const chainId = resolveVotingChainByName(override);
     // Still read the proposal to surface the snapshot block hash.
@@ -119,11 +122,11 @@ program
   .command('inspect <proposalId>')
   .description('Walk a proposal through every lifecycle stage and report what is missing')
   .option('--no-metadata', 'skip the IPFS title/author fetch')
-  .action(async (idStr: string, opts: { metadata: boolean }) => {
+  .action(async (idStr: string, opts: {metadata: boolean}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const proposalId = BigInt(idStr);
-    const { govPublic, votingClients, executionClients } = buildInspectorClients(env);
+    const {govPublic, votingClients, executionClients} = buildInspectorClients(env);
     const config: InspectorConfig = {
       l1Public: govPublic,
       votingClients,
@@ -138,13 +141,15 @@ program
 // -------- decode --------
 program
   .command('decode <proposalId>')
-  .description('Fetch + decode a proposal: title, author, discussions, payloads, optionally full body')
+  .description(
+    'Fetch + decode a proposal: title, author, discussions, payloads, optionally full body',
+  )
   .option('--full', 'print the full proposal body from IPFS')
   .option('--no-metadata', 'skip the IPFS fetch (only print on-chain fields)')
-  .action(async (idStr: string, opts: { full?: boolean; metadata: boolean }) => {
+  .action(async (idStr: string, opts: {full?: boolean; metadata: boolean}) => {
     loadEnv();
-    const result = await decodeProposal(BigInt(idStr), { fetchMetadata: opts.metadata !== false });
-    process.stdout.write(formatDecodeResult(result, { full: opts.full }) + '\n');
+    const result = await decodeProposal(BigInt(idStr), {fetchMetadata: opts.metadata !== false});
+    process.stdout.write(formatDecodeResult(result, {full: opts.full}) + '\n');
   });
 
 // -------- per-action commands --------
@@ -155,8 +160,8 @@ program
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const ctx = makeWriteContext(env, GOVERNANCE_CHAIN_ID, logger, 'ethereum');
-    const { txHash } = await activateVotingAction.execute(ctx, BigInt(idStr));
-    logger.info('activate: done', { txHash });
+    const {txHash} = await activateVotingAction.execute(ctx, BigInt(idStr));
+    logger.info('activate: done', {txHash});
   });
 
 program
@@ -166,8 +171,8 @@ program
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const ctx = makeWriteContext(env, GOVERNANCE_CHAIN_ID, logger, 'ethereum');
-    const { txHash } = await executeProposalAction.execute(ctx, BigInt(idStr));
-    logger.info('execute: done', { txHash });
+    const {txHash} = await executeProposalAction.execute(ctx, BigInt(idStr));
+    logger.info('execute: done', {txHash});
   });
 
 program
@@ -177,43 +182,48 @@ program
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const ctx = makeWriteContext(env, GOVERNANCE_CHAIN_ID, logger, 'ethereum');
-    const { txHash } = await cancelProposalAction.execute(ctx, BigInt(idStr));
-    logger.info('cancel: done', { txHash });
+    const {txHash} = await cancelProposalAction.execute(ctx, BigInt(idStr));
+    logger.info('cancel: done', {txHash});
   });
 
 program
   .command('submit-roots <proposalId>')
-  .description('Submit storage roots to the voting chain DataWarehouse (chain auto-resolved from proposal)')
+  .description(
+    'Submit storage roots to the voting chain DataWarehouse (chain auto-resolved from proposal)',
+  )
   .option('--chain <name>', 'override voting chain (ethereum|polygon|avalanche)')
-  .action(async (idStr: string, opts: { chain?: string }) => {
+  .action(async (idStr: string, opts: {chain?: string}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const proposalId = BigInt(idStr);
-    const { chainId, chainName, snapshotBlockHash } = await resolveVotingChainForProposal(
+    const {chainId, chainName, snapshotBlockHash} = await resolveVotingChainForProposal(
       env,
       logger,
       proposalId,
       opts.chain,
     );
-    logger.info('submit-roots: resolved chain', { chain: chainName, chainId });
+    logger.info('submit-roots: resolved chain', {chain: chainName, chainId});
     const ctx = makeWriteContext(env, chainId, logger, chainName);
-    const { txHash } = await executeSubmitStorageRoots(
-      { ...ctx, ethRpcUrl: ethRpcUrl(env) },
-      { proposalId, l1ProposalBlockHash: snapshotBlockHash },
+    const {txHash} = await executeSubmitStorageRoots(
+      {...ctx, ethRpcUrl: ethRpcUrl(env)},
+      {proposalId, l1ProposalBlockHash: snapshotBlockHash},
     );
-    logger.info('submit-roots: done', { txHash });
+    logger.info('submit-roots: done', {txHash});
   });
 
 program
   .command('submit-roots-for-block <block>')
   .description(
-    "Submit storage roots for an L1 block to a voting chain. <block> accepts a 32-byte hash " +
+    'Submit storage roots for an L1 block to a voting chain. <block> accepts a 32-byte hash ' +
       'or a block number (decimal or 0xHEX) — numbers are resolved to a hash via eth_getBlockByNumber. ' +
       'Default chain is avalanche; --voting-machine <addr> overrides the DataWarehouse target.',
   )
   .option('--chain <name>', 'voting chain (ethereum|polygon|avalanche)', 'avalanche')
-  .option('--voting-machine <addr>', 'custom voting machine address (its DATA_WAREHOUSE() is queried)')
-  .action(async (block: string, opts: { chain: string; votingMachine?: string }) => {
+  .option(
+    '--voting-machine <addr>',
+    'custom voting machine address (its DATA_WAREHOUSE() is queried)',
+  )
+  .action(async (block: string, opts: {chain: string; votingMachine?: string}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
 
@@ -225,8 +235,8 @@ program
       const numHex = (
         block.startsWith('0x') ? block : `0x${BigInt(block).toString(16)}`
       ) as `0x${string}`;
-      logger.debug('submit-roots-for-block: resolving hash from number', { numHex });
-      const blockData = await jsonRpcCall<{ hash: `0x${string}` } | null>(
+      logger.debug('submit-roots-for-block: resolving hash from number', {numHex});
+      const blockData = await jsonRpcCall<{hash: `0x${string}`} | null>(
         ethRpcUrl(env),
         'eth_getBlockByNumber',
         [numHex, false],
@@ -235,7 +245,7 @@ program
         throw new Error(`block ${block} not found on L1`);
       }
       blockHash = blockData.hash;
-      logger.info('submit-roots-for-block: resolved', { number: block, hash: blockHash });
+      logger.info('submit-roots-for-block: resolved', {number: block, hash: blockHash});
     }
 
     const chainId = resolveVotingChainByName(opts.chain);
@@ -264,54 +274,64 @@ program
     }
 
     const ctx = makeWriteContext(env, chainId, logger, config.name);
-    const { txHash } = await submitStorageRootsForBlock(
-      { ...ctx, ethRpcUrl: ethRpcUrl(env) },
-      { l1BlockHash: blockHash, config },
+    const {txHash} = await submitStorageRootsForBlock(
+      {...ctx, ethRpcUrl: ethRpcUrl(env)},
+      {l1BlockHash: blockHash, config},
     );
-    logger.info('submit-roots-for-block: done', { txHash });
+    logger.info('submit-roots-for-block: done', {txHash});
   });
 
 program
   .command('create-vote <proposalId>')
   .description('startProposalVote on the voting chain (chain auto-resolved from proposal)')
   .option('--chain <name>', 'override voting chain (ethereum|polygon|avalanche)')
-  .action(async (idStr: string, opts: { chain?: string }) => {
+  .action(async (idStr: string, opts: {chain?: string}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const proposalId = BigInt(idStr);
-    const { chainId, chainName } = await resolveVotingChainForProposal(env, logger, proposalId, opts.chain);
-    logger.info('create-vote: resolved chain', { chain: chainName, chainId });
+    const {chainId, chainName} = await resolveVotingChainForProposal(
+      env,
+      logger,
+      proposalId,
+      opts.chain,
+    );
+    logger.info('create-vote: resolved chain', {chain: chainName, chainId});
     const ctx = makeWriteContext(env, chainId, logger, chainName);
-    const { txHash } = await createVoteAction.execute(ctx, proposalId);
-    logger.info('create-vote: done', { txHash });
+    const {txHash} = await createVoteAction.execute(ctx, proposalId);
+    logger.info('create-vote: done', {txHash});
   });
 
 program
   .command('close-vote <proposalId>')
   .description('closeAndSendVote on the voting chain (chain auto-resolved from proposal)')
   .option('--chain <name>', 'override voting chain (ethereum|polygon|avalanche)')
-  .action(async (idStr: string, opts: { chain?: string }) => {
+  .action(async (idStr: string, opts: {chain?: string}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const proposalId = BigInt(idStr);
-    const { chainId, chainName } = await resolveVotingChainForProposal(env, logger, proposalId, opts.chain);
-    logger.info('close-vote: resolved chain', { chain: chainName, chainId });
+    const {chainId, chainName} = await resolveVotingChainForProposal(
+      env,
+      logger,
+      proposalId,
+      opts.chain,
+    );
+    logger.info('close-vote: resolved chain', {chain: chainName, chainId});
     const ctx = makeWriteContext(env, chainId, logger, chainName);
-    const { txHash } = await closeAndSendVoteAction.execute(ctx, proposalId);
-    logger.info('close-vote: done', { txHash });
+    const {txHash} = await closeAndSendVoteAction.execute(ctx, proposalId);
+    logger.info('close-vote: done', {txHash});
   });
 
 program
   .command('execute-payload <payloadId>')
   .description('executePayload on a payload execution chain')
   .requiredOption('--chain <name>', 'execution chain name')
-  .action(async (idStr: string, opts: { chain: string }) => {
+  .action(async (idStr: string, opts: {chain: string}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const chainId = resolveExecutionChainByName(opts.chain);
     const ctx = makeWriteContext(env, chainId, logger, EXECUTION_CHAINS[chainId]!.name);
-    const { txHash } = await executePayloadAction.execute(ctx, BigInt(idStr));
-    logger.info('execute-payload: done', { txHash });
+    const {txHash} = await executePayloadAction.execute(ctx, BigInt(idStr));
+    logger.info('execute-payload: done', {txHash});
   });
 
 // -------- bulk scan commands --------
@@ -323,14 +343,16 @@ program
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const ctx = makeWriteContext(env, GOVERNANCE_CHAIN_ID, logger, 'ethereum');
     const results = await runGovernanceScan(ctx);
-    logger.info('run-governance: done', { results: JSON.stringify(results, replacer) });
+    logger.info('run-governance: done', {results: JSON.stringify(results, replacer)});
   });
 
 program
   .command('run-voting')
-  .description('Scan voting chain(s). With --chain runs only that chain; without, scans all (eth, polygon, avax).')
+  .description(
+    'Scan voting chain(s). With --chain runs only that chain; without, scans all (eth, polygon, avax).',
+  )
   .option('--chain <name>', 'voting chain (ethereum|polygon|avalanche). Omit to scan all.')
-  .action(async (opts: { chain?: string }) => {
+  .action(async (opts: {chain?: string}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const chainIds = opts.chain
@@ -340,8 +362,8 @@ program
       const name = VOTING_CHAINS[chainId]!.name;
       try {
         const ctx = makeWriteContext(env, chainId, logger, name);
-        const results = await runVotingScan({ ...ctx, ethRpcUrl: ethRpcUrl(env) });
-        logger.info('run-voting: done', { chain: name, results: JSON.stringify(results, replacer) });
+        const results = await runVotingScan({...ctx, ethRpcUrl: ethRpcUrl(env)});
+        logger.info('run-voting: done', {chain: name, results: JSON.stringify(results, replacer)});
       } catch (err) {
         logger.error('run-voting: chain failed', {
           chain: name,
@@ -353,9 +375,11 @@ program
 
 program
   .command('run-execution')
-  .description('Scan payload execution chain(s). With --chain runs only that chain; without, scans all.')
+  .description(
+    'Scan payload execution chain(s). With --chain runs only that chain; without, scans all.',
+  )
   .option('--chain <name>', 'execution chain name. Omit to scan every chain in EXECUTION_CHAINS.')
-  .action(async (opts: { chain?: string }) => {
+  .action(async (opts: {chain?: string}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const chainIds = opts.chain
@@ -366,7 +390,10 @@ program
       try {
         const ctx = makeWriteContext(env, chainId, logger, name);
         const results = await runExecutionScan(ctx);
-        logger.info('run-execution: done', { chain: name, results: JSON.stringify(results, replacer) });
+        logger.info('run-execution: done', {
+          chain: name,
+          results: JSON.stringify(results, replacer),
+        });
       } catch (err) {
         logger.error('run-execution: chain failed', {
           chain: name,

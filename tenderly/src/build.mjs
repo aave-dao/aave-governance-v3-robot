@@ -5,25 +5,25 @@
 // extensions in source. Output goes to `out/tenderly/index.js`, which is the path
 // Tenderly's runtime expects given the function paths in tenderly.yaml.
 
-import { build } from 'esbuild';
+import { build } from "esbuild";
 
 const externals = [
   // The Tenderly runtime provides this — keep it external so the cloud bundle uses
   // the runtime's copy and not whatever version we shipped.
-  '@tenderly/actions',
+  "@tenderly/actions",
 ];
 
 await build({
-  entryPoints: ['./tenderly/index.ts'],
-  outfile: './out/tenderly/index.js',
+  entryPoints: ["./tenderly/index.ts"],
+  outfile: "./out/tenderly/index.js",
   bundle: true,
-  platform: 'node',
-  target: 'node18',
-  format: 'cjs',
+  platform: "node",
+  target: "node18",
+  format: "cjs",
   sourcemap: true,
   external: externals,
   // Suppress noisy "this is undefined at top level" warnings from CJS interop wrappers.
-  logLevel: 'info',
+  logLevel: "info",
 });
 
-console.log('build: src/out/tenderly/index.js');
+console.log("build: src/out/tenderly/index.js");

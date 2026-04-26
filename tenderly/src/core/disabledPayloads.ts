@@ -33,7 +33,5 @@ export const isPayloadDisabled = (
   payloadId: bigint | number,
 ): DisabledPayload | undefined => {
   const idAsBigInt = BigInt(payloadId);
-  return DISABLED_PAYLOADS.find(
-    (p) => p.chainId === chainId && BigInt(p.payloadId) === idAsBigInt,
-  );
+  return DISABLED_PAYLOADS.find((p) => p.chainId === chainId && BigInt(p.payloadId) === idAsBigInt);
 };
