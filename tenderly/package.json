@@ -1,0 +1,26 @@
+{
+  "name": "aave-gov-v3-robot-tenderly",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Tenderly Web3 Actions + CLI replacement for Aave Governance V3 Robot keepers",
+  "scripts": {
+    "robot": "bun run src/cli/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@aave-dao/aave-address-book": "^4.49.7",
+    "@bgd-labs/toolbox": "^0.2.25",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "viem": "^2.21.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@tenderly/actions": "^0.0.10-beta.1",
+    "@types/bun": "^1.2.21",
+    "@types/node": "^22.5.0",
+    "typescript": "^5.6.3"
+  }
+}
