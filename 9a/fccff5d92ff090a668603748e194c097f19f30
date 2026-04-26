@@ -1,0 +1,87 @@
+tenderly/src/core/clients.ts
+  4c564b491e5e0468 40-56
+tenderly/src/cli/format.ts
+  4c564b491e5e0468 54-77,81-82,117-123,129-160,163-172,174-175,184
+tenderly/src/core/actions/activateVoting.ts
+  4c564b491e5e0468 14,21-25,47
+tenderly/src/tenderly/runtime.ts
+  4c564b491e5e0468 2-8,14-25,44-45,49
+tenderly/src/orchestration/executionScan.ts
+  4c564b491e5e0468 33-38,45,48-55,64-68,75,87
+tenderly/tenderly.yaml
+  h_c84ca9b512ee6d 25-26
+  4c564b491e5e0468 4-5,8-23,27-38,40-53,55-58,60-63
+tenderly/src/core/disabledPayloads.ts
+  4c564b491e5e0468 1-39
+tenderly/src/cli/env.ts
+  4c564b491e5e0468 24
+tenderly/src/build.mjs
+  4c564b491e5e0468 1-29
+tenderly/src/orchestration/proposalInspector.ts
+  4c564b491e5e0468 26-28,47,91-92,98,100,122-149,155-156,161-166,171,191,206-216,232-237,242,247,252-253,297-308,312-313
+tenderly/src/core/actions/index.ts
+  4c564b491e5e0468 10
+tenderly/src/core/actions/executeProposal.ts
+  4c564b491e5e0468 14,28-32,47
+tenderly/src/core/actions/cancelProposal.ts
+  4c564b491e5e0468 5,63
+tenderly/src/core/logger.ts
+  4c564b491e5e0468 1,4,12-23,25-28,35-38,44,49-50,53,60-65,69-73
+tenderly/src/tenderly/executionAction.ts
+  4c564b491e5e0468 4,6-33
+tenderly/src/tsconfig.json
+  4c564b491e5e0468 1-17
+tenderly/src/tenderly/votingChainAction.ts
+  4c564b491e5e0468 4,7-11,13-34
+tenderly/tests/helpers/mockClient.ts
+  4c564b491e5e0468 23
+tenderly/src/core/chains.ts
+  h_c84ca9b512ee6d 53
+tenderly/src/cli/clientFactory.ts
+  4c564b491e5e0468 5,21-25,28-31,40-49
+tenderly/src/orchestration/governanceScan.ts
+  4c564b491e5e0468 45-49,56,59-66,74-79,88-91,105
+tenderly/src/orchestration/votingScan.ts
+  4c564b491e5e0468 74,85,92-95,105
+tenderly/src/cli/logFormat.ts
+  4c564b491e5e0468 1-53
+tenderly/src/package.json
+  4c564b491e5e0468 1-20
+tenderly/src/cli/index.ts
+  4c564b491e5e0468 3,12,15,26-29,37-52,70-116,124,156,167,178,186-188,190,192-240,242-243,245-264,267,269,271,276-278,280-285,291-293,295-300,310,323,331-333,335-351,356-358,360-376
+tenderly/src/core/format.ts
+  4c564b491e5e0468 1-40
+tenderly/src/core/actions/submitStorageRoots.ts
+  4c564b491e5e0468 33,35,42-45,47,54-60,118-162,183-188,194-200
+tenderly/src/tenderly/index.ts
+  4c564b491e5e0468 3-4
+tenderly/src/core/actions/executePayload.ts
+  4c564b491e5e0468 4,23-25
+tenderly/src/.gitignore
+  4c564b491e5e0468 1-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "9afccff5d92ff090a668603748e194c097f19f30",
+  "prompts": {
+    "4c564b491e5e0468": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a66bf4ee-b508-44d3-b9ee-71925e7f599b",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 3677,
+      "total_deletions": 706,
+      "accepted_lines": 941,
+      "overriden_lines": 20
+    }
+  },
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
