@@ -2,6 +2,7 @@ import type {Address} from 'viem';
 import {MULTICALL3_ADDRESS, governanceAbi} from '../abis';
 import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {notifyTxSuccess} from '../notify';
 import {ProposalState, proposalStateName} from '../state';
 
 const GOVERNANCE = GovernanceV3Ethereum.GOVERNANCE as Address;
@@ -67,6 +68,14 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
     chain: ctx.walletClient.chain!,
   });
   ctx.logger.info('executeProposal: submitted', {proposalId: proposalId.toString(), txHash});
+  await notifyTxSuccess({
+    chainId: ctx.chainId,
+    chainName: 'ethereum',
+    action: 'executeProposal',
+    txHash,
+    meta: {proposalId: proposalId.toString()},
+    logger: ctx.logger,
+  });
   return {txHash};
 };
 

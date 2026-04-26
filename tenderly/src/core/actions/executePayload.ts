@@ -2,6 +2,7 @@ import {payloadsControllerAbi} from '../abis';
 import {EXECUTION_CHAINS} from '../chains';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
 import {isPayloadDisabled} from '../disabledPayloads';
+import {notifyTxSuccess} from '../notify';
 import {PayloadState, payloadStateName} from '../state';
 
 const requireExecutionChain = (chainId: number) => {
@@ -66,6 +67,14 @@ const execute = async (ctx: WriteContext, payloadId: bigint): Promise<ExecuteRes
     chain: ctx.walletClient.chain!,
   });
   ctx.logger.info('executePayload: submitted', {payloadId: payloadId.toString(), txHash});
+  await notifyTxSuccess({
+    chainId: ctx.chainId,
+    chainName: config.name,
+    action: 'executePayload',
+    txHash,
+    meta: {payloadId: payloadId.toString()},
+    logger: ctx.logger,
+  });
   return {txHash};
 };
 

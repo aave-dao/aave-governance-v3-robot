@@ -44,6 +44,17 @@ const RPC_ENV_NAMES = [
   'RPC_ZKSYNC',
 ];
 
+/**
+ * Optional notification channel secrets. All optional — if none are configured the
+ * notifier is a silent no-op. See src/core/notify.ts for the full channel-resolution rules.
+ */
+const NOTIFICATION_ENV_NAMES = [
+  'SLACK_WEBHOOK_URL',
+  'TELEGRAM_BOT_TOKEN',
+  'TELEGRAM_CHAT_ID',
+  'TELEGRAM_WEBHOOK_URL',
+];
+
 const trySecret = async (ctx: Context, key: string): Promise<string | undefined> => {
   try {
     return await ctx.secrets.get(key);
@@ -65,6 +76,12 @@ export const hydrateSecrets = async (ctx: Context): Promise<TenderlySecrets> => 
   if (alchemyKey) process.env.ALCHEMY_API_KEY = alchemyKey;
 
   for (const name of RPC_ENV_NAMES) {
+    const v = await trySecret(ctx, name);
+    if (v) process.env[name] = v;
+  }
+
+  // Notification channels — all optional. Missing = no notifications, no error.
+  for (const name of NOTIFICATION_ENV_NAMES) {
     const v = await trySecret(ctx, name);
     if (v) process.env[name] = v;
   }

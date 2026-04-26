@@ -22,6 +22,7 @@ import {colorFormatter} from './logFormat';
 import {inspectProposal, type InspectorConfig} from '../orchestration/proposalInspector';
 import {formatInspectorReport} from './format';
 import {decodeProposal, formatDecodeResult} from './decode';
+import {collectHealth, formatHealthReport} from './health';
 import {runGovernanceScan} from '../orchestration/governanceScan';
 import {runVotingScan} from '../orchestration/votingScan';
 import {runExecutionScan} from '../orchestration/executionScan';
@@ -138,6 +139,24 @@ program
     process.stdout.write(formatInspectorReport(report) + '\n');
   });
 
+// -------- health --------
+program
+  .command('health')
+  .description(
+    'Check signer EOA balance + gas price across every chain we sign on, and report ' +
+      'how many full action rounds the balance can cover. Flags chains below threshold.',
+  )
+  .option('--min-rounds <n>', 'warn when remaining rounds drops below this number', '10')
+  .action(async (opts: {minRounds: string}) => {
+    const env = loadEnv();
+    const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
+    const minRounds = Math.max(1, Number.parseInt(opts.minRounds, 10) || 10);
+    const rows = await collectHealth(env, logger, {minRounds});
+    process.stdout.write(formatHealthReport(rows, {minRounds}) + '\n');
+    const hasIssue = rows.some((r) => r.status === 'critical' || r.status === 'error');
+    if (hasIssue) process.exitCode = 1;
+  });
+
 // -------- decode --------
 program
   .command('decode <proposalId>')
@@ -204,11 +223,12 @@ program
     );
     logger.info('submit-roots: resolved chain', {chain: chainName, chainId});
     const ctx = makeWriteContext(env, chainId, logger, chainName);
-    const {txHash} = await executeSubmitStorageRoots(
+    const result = await executeSubmitStorageRoots(
       {...ctx, ethRpcUrl: ethRpcUrl(env)},
       {proposalId, l1ProposalBlockHash: snapshotBlockHash},
     );
-    logger.info('submit-roots: done', {txHash});
+    if (result.txHash) logger.info('submit-roots: done', {txHash: result.txHash});
+    else logger.info('submit-roots: skipped', {reason: result.skipped});
   });
 
 program
@@ -274,11 +294,12 @@ program
     }
 
     const ctx = makeWriteContext(env, chainId, logger, config.name);
-    const {txHash} = await submitStorageRootsForBlock(
+    const result = await submitStorageRootsForBlock(
       {...ctx, ethRpcUrl: ethRpcUrl(env)},
       {l1BlockHash: blockHash, config},
     );
-    logger.info('submit-roots-for-block: done', {txHash});
+    if (result.txHash) logger.info('submit-roots-for-block: done', {txHash: result.txHash});
+    else logger.info('submit-roots-for-block: skipped', {reason: result.skipped});
   });
 
 program
@@ -405,7 +426,44 @@ program
 
 const replacer = (_: string, v: unknown) => (typeof v === 'bigint' ? v.toString() : v);
 
-program.parseAsync(process.argv).catch((err) => {
-  process.stderr.write(`error: ${err instanceof Error ? err.message : String(err)}\n`);
+/**
+ * Top-level CLI error handler. Posts to Slack/Telegram (best-effort, won't itself throw)
+ * before exiting non-zero, so unattended cron jobs and manual runs both wake an operator
+ * up on failure. Survives even if notify itself errors out.
+ */
+const cliCommand = (() => {
+  // Best-effort sniff of which command was being run (process.argv[2..]) for the alert source.
+  const args = process.argv.slice(2).filter((a) => !a.startsWith('-')).join(' ') || 'cli';
+  return args.length > 80 ? args.slice(0, 77) + '…' : args;
+})();
+
+const handleCliFailure = async (err: unknown): Promise<never> => {
+  const msg = err instanceof Error ? err.message : String(err);
+  process.stderr.write(`error: ${msg}\n`);
+
+  // Surface the alert via Slack/Telegram if either is configured. notifyError is
+  // intentionally swallow-all-errors so a webhook outage can't mask the original failure.
+  try {
+    // Lazy import so the CLI's --help / --version paths don't pay the import cost.
+    const {notifyError} = await import('../core/notify');
+    await notifyError({source: `cli (${cliCommand})`, error: err});
+  } catch (notifyErr) {
+    process.stderr.write(
+      `notify itself failed: ${notifyErr instanceof Error ? notifyErr.message : String(notifyErr)}\n`,
+    );
+  }
+
   process.exit(1);
+};
+
+// All async failures funnel here — including individual command actions (commander
+// surfaces their throws via parseAsync's promise) and any top-level setup errors.
+program.parseAsync(process.argv).catch(handleCliFailure);
+
+// Catch synchronous throws and unhandled rejections that bypass commander entirely.
+process.on('unhandledRejection', (reason) => {
+  void handleCliFailure(reason);
+});
+process.on('uncaughtException', (err) => {
+  void handleCliFailure(err);
 });

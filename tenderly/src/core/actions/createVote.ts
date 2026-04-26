@@ -2,6 +2,7 @@ import type {Address} from 'viem';
 import {dataWarehouseAbi, votingMachineAbi, votingStrategyAbi} from '../abis';
 import {VOTING_CHAINS, type VotingChainId, type VotingChainConfig} from '../chains';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {notifyTxSuccess} from '../notify';
 import {VotingMachineProposalState, votingProposalStateName} from '../state';
 
 /**
@@ -90,6 +91,14 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
     chain: ctx.walletClient.chain!,
   });
   ctx.logger.info('createVote: submitted', {proposalId: proposalId.toString(), txHash});
+  await notifyTxSuccess({
+    chainId: ctx.chainId,
+    chainName: config.name,
+    action: 'createVote',
+    txHash,
+    meta: {proposalId: proposalId.toString()},
+    logger: ctx.logger,
+  });
   return {txHash};
 };
 

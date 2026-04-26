@@ -133,6 +133,37 @@ tenderly actions secret set ALCHEMY_API_KEY '...'
 each invocation, so `getPublicClient(chainId)` and `getRpcUrl(chainId)` work the same way
 in Tenderly as they do in the CLI.
 
+## Notifications (Slack / Telegram)
+
+Out-of-band alerts on every signed tx and every action failure. Best-effort — a failed
+channel POST never crashes the action; it logs a warning and moves on.
+
+Configure via env (CLI) or `tenderly actions secret set` (Tenderly):
+
+```bash
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+
+# Telegram (auto-detect):
+#   - if BOT_TOKEN + CHAT_ID are set, the bot API is used (HTML formatting, hyperlinks).
+#   - else if TELEGRAM_WEBHOOK_URL is set, we POST {text} to it (opaque relay).
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=-100...
+TELEGRAM_WEBHOOK_URL=
+```
+
+If none are set, the robot runs silently — nothing posted, no warnings, no errors.
+
+What gets posted:
+
+- **Tx submitted** by the robot (any action across CLI or Tenderly):
+  `✅ activateVoting on ethereum — proposal: 1234 — tx: <hyperlink to etherscan>`
+- **Tenderly Action failure** (governanceAction, votingActivatedListener, votingAll/per-chain,
+  executionAll/per-chain): `🚨 <source> failed (chain: ...) — Error: <message>` with a
+  short stack trace. The error is also re-thrown so Tenderly's own dashboard records it.
+
+Channel POSTs use a 5s timeout via `AbortSignal.timeout`. Slack and Telegram are POSTed
+in parallel via `Promise.allSettled` — neither blocks the other.
+
 The actions registered in `tenderly.yaml`:
 
 | Spec                        | Trigger                   | Function                                                                                                 |

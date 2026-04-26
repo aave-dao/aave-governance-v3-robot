@@ -12,9 +12,11 @@ export const encodeAggregate3 = (calls: Call3[]): Hex =>
   });
 
 /**
- * Send `aggregate3([...calls])` to the canonical Multicall3 deployment. Each call may individually
- * revert without aborting the batch (allowFailure=true is the default we use for storage roots,
- * since processStorageRoot is idempotent and may have already been submitted by another robot).
+ * Send `aggregate3([...calls])` to the canonical Multicall3 deployment. Each `Call3` carries
+ * its own `allowFailure` flag — `false` is the default we want for our writes, so any inner
+ * revert aborts the whole tx and surfaces via the caller's catch / notifyError pipeline.
+ * Setting `allowFailure: true` on a write makes Multicall3 silently absorb the revert and
+ * return `{success: false}` — only do that if you ACTUALLY plan to inspect each return.
  */
 export const sendAggregate3 = async (walletClient: WalletClient, calls: Call3[]): Promise<Hex> => {
   const account = walletClient.account;

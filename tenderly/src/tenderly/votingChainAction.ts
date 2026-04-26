@@ -1,5 +1,6 @@
 import type {ActionFn, Context, Event} from '@tenderly/actions';
 import {VOTING_CHAINS, type VotingChainId} from '../core/chains';
+import {notifyError} from '../core/notify';
 import {runVotingScan} from '../orchestration/votingScan';
 import {setupChain, tenderlyLogger} from './runtime';
 
@@ -8,7 +9,8 @@ import {setupChain, tenderlyLogger} from './runtime';
  * otherwise be one action per voting chain — Tenderly projects have a per-project action
  * limit and this keeps us comfortably under it.
  *
- * Each chain's failure is isolated (caught + logged) so one bad RPC doesn't stop the rest.
+ * Each chain's failure is isolated (caught + logged + notified) so one bad RPC doesn't
+ * stop the rest. The error is also pushed to Slack/Telegram if configured.
  */
 export const votingAll: ActionFn = async (ctx: Context, _event: Event) => {
   const logger = tenderlyLogger().child({action: 'votingAll'});
@@ -29,6 +31,13 @@ export const votingAll: ActionFn = async (ctx: Context, _event: Event) => {
         chain: config.name,
         chainId,
         error: err instanceof Error ? err.message : String(err),
+      });
+      await notifyError({
+        source: 'votingAll',
+        error: err,
+        chainId,
+        chainName: config.name,
+        logger,
       });
     }
   }

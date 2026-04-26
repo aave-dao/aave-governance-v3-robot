@@ -28,6 +28,12 @@ export const getRawBlockByHash = (rpcUrl: string, blockHash: Hex): Promise<RawBl
   jsonRpcCall<RawBlock>(rpcUrl, 'eth_getBlockByHash', [blockHash, false]);
 
 export type EthGetProofResult = {
+  /** Account state's storage trie root — the value DataWarehouse stores after verifying the proof. */
+  storageHash: Hex;
+  /** Account state's nonce, balance, codeHash — returned by every node, not used by us. */
+  nonce: Hex;
+  balance: Hex;
+  codeHash: Hex;
   accountProof: Hex[];
   storageProof: Array<{key: Hex; value: Hex; proof: Hex[]}>;
 };

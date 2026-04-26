@@ -184,11 +184,19 @@ export const runVotingScan = async (
   for (const item of items) {
     try {
       if (item.kind === 'submitStorageRoots') {
-        const {txHash} = await executeSubmitStorageRoots(ctx, {
+        const r = await executeSubmitStorageRoots(ctx, {
           proposalId: item.proposalId,
           l1ProposalBlockHash: item.l1ProposalBlockHash,
         });
-        results.push({kind: item.kind, proposalId: item.proposalId, txHash});
+        if (r.txHash) {
+          results.push({kind: item.kind, proposalId: item.proposalId, txHash: r.txHash});
+        } else {
+          ctx.logger.info('votingScan: submitStorageRoots skipped', {
+            proposalId: item.proposalId.toString(),
+            reason: r.skipped,
+          });
+          results.push({kind: item.kind, proposalId: item.proposalId, error: r.skipped});
+        }
       } else if (item.kind === 'createVote') {
         const recheck = await createVoteAction.check(ctx, item.proposalId);
         if (!recheck.ok) {
