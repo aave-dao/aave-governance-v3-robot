@@ -11,11 +11,17 @@ export const checkActivateVoting = async (
   ctx: ReadContext,
   proposalId: bigint,
 ): Promise<CheckResult> => {
+  ctx.logger.trace('activateVoting: checking', { proposalId: proposalId.toString() });
   const proposal = await ctx.publicClient.readContract({
     address: GOVERNANCE,
     abi: governanceAbi,
     functionName: 'getProposal',
     args: [proposalId],
+  });
+  ctx.logger.trace('activateVoting: proposal read', {
+    state: proposalStateName(proposal.state),
+    accessLevel: proposal.accessLevel,
+    creationTime: proposal.creationTime,
   });
 
   if (proposal.state !== ProposalState.Created) {
@@ -38,6 +44,7 @@ export const checkActivateVoting = async (
     };
   }
 
+  ctx.logger.debug('activateVoting: ready', { proposalId: proposalId.toString() });
   return { ok: true };
 };
 

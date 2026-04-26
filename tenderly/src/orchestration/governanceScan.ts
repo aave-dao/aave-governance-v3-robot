@@ -42,22 +42,40 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
     abi: governanceAbi,
     functionName: 'getProposalsCount',
   });
+  ctx.logger.debug('governanceScan: starting', {
+    totalProposals: total.toString(),
+    maxSkip: MAX_GOVERNANCE_SKIP,
+    maxActions: MAX_GOVERNANCE_ACTIONS,
+  });
 
   if (total === 0n) return [];
 
   const found: ScannedAction[] = [];
   let skipCount = 0;
   let i = total - 1n;
+  let examined = 0;
 
   while (true) {
-    if (skipCount > MAX_GOVERNANCE_SKIP) break;
-    if (found.length >= MAX_GOVERNANCE_ACTIONS) break;
+    if (skipCount > MAX_GOVERNANCE_SKIP) {
+      ctx.logger.debug('governanceScan: stop — skipCount exceeded', { skipCount, examined });
+      break;
+    }
+    if (found.length >= MAX_GOVERNANCE_ACTIONS) {
+      ctx.logger.debug('governanceScan: stop — actions cap reached', { found: found.length });
+      break;
+    }
 
     const proposal = await ctx.publicClient.readContract({
       address: GOVERNANCE,
       abi: governanceAbi,
       functionName: 'getProposal',
       args: [i],
+    });
+    examined += 1;
+    ctx.logger.trace('governanceScan: examined', {
+      proposalId: i.toString(),
+      state: proposal.state,
+      skipCount,
     });
 
     if (isProposalFinal(proposal.state)) {
@@ -67,6 +85,10 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
       for (const action of GOV_PRIORITY) {
         const check = await action.check(ctx, i);
         if (check.ok) {
+          ctx.logger.info('governanceScan: action ready', {
+            proposalId: i.toString(),
+            action: action.name,
+          });
           found.push({ proposalId: i, action, reason: action.name });
           skipCount = 0;
           matched = true;
@@ -80,6 +102,7 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
     i -= 1n;
   }
 
+  ctx.logger.debug('governanceScan: complete', { examined, found: found.length });
   return found;
 };
 

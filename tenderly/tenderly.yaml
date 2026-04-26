@@ -1,118 +1,63 @@
 # Tenderly Web3 Actions configuration for Aave Governance V3 robot.
 #
 # Replaces (in parallel, then deprecates) the on-chain Chainlink Automation keepers.
-# Every action function lives under src/tenderly/. Helpers live under src/core/ and
-# src/orchestration/ — they are imported by both Tenderly Actions and the CLI.
+# Action functions live under src/tenderly/. Shared logic lives under src/core/ and
+# src/orchestration/ — those modules are also used by the CLI in src/cli/.
 #
 # Required secrets (configured via Tenderly UI or `tenderly actions secret set`):
-#   PRIVATE_KEY           Hex private key for the signer EOA.
-#   ALCHEMY_API_KEY       (recommended) Auto-builds RPC URLs for every chain via Alchemy.
-#                         The L1 RPC must support eth_getProof — Alchemy does.
-#   RPC_<NETWORK>         (optional) Per-chain override; names match @bgd-labs/toolbox
-#                         getNetworkEnv() (e.g. RPC_MAINNET, RPC_POLYGON, RPC_AVALANCHE).
+#   PRIVATE_KEY        Hex private key for the signer EOA.
+#   ALCHEMY_API_KEY    (recommended) Auto-builds RPC URLs for every chain via Alchemy.
+#                      The L1 RPC must support eth_getProof — Alchemy does.
+#   RPC_<NETWORK>      (optional) Per-chain override; names match @bgd-labs/toolbox
+#                      getNetworkEnv() (e.g. RPC_MAINNET, RPC_POLYGON, RPC_AVALANCHE).
+#
+# Deploy:
+#   tenderly login                          # one-time
+#   tenderly actions build                  # local build (esbuild bundle)
+#   tenderly actions deploy                 # upload + activate
+#
+# We use 4 actions total to stay under Tenderly's per-project action limit:
+#   - governance-scan          — periodic L1 scan
+#   - voting-activated-listener — event-driven storage-roots submission
+#   - voting-all                — periodic backup scan across every voting chain
+#   - execution-all             — periodic scan across every execution chain
 
-account_id: "aave" # Tenderly account/org slug — fill in before deploy
-project_slug: "governance-v3" # Tenderly project slug — fill in before deploy
+account_id: "aave"
+project_slug: "governance-v3"
+actions:
+  aave/governance-v3:
+    runtime: v2
+    sources: src
+    specs:
+      governance-scan:
+        description: "Scan Aave governance on Ethereum for activate/execute/cancel"
+        function: tenderly/index:governanceAction
+        trigger:
+          type: periodic
+          periodic:
+            interval: 5m
 
-specs:
-  governance-scan:
-    description: "Scan Aave governance on Ethereum for activate/execute/cancel"
-    function: src/tenderly/index:governanceAction
-    trigger:
-      type: periodic
-      periodic:
-        interval: 1m
+      voting-activated-listener:
+        description: "On L1 VotingActivated event, fetch proofs and submit to voting chain"
+        function: tenderly/index:votingActivatedListener
+        trigger:
+          type: transaction
+          transaction:
+            status:
+              - mined
+            filters:
+              - network: 1
+                eventEmitted:
+                  contract:
+                    address: "0x9AEE0B04504CeF83A65AC3f0e838D0593BCb2BC7"
+                  name: "VotingActivated"
 
-  voting-activated-listener:
-    description: "On L1 VotingActivated event, fetch proofs and submit to voting chain"
-    function: src/tenderly/index:votingActivatedListener
-    trigger:
-      type: transaction
-      transaction:
-        status:
-          - mined
-        filters:
-          - network: 1
-            # Aave Governance V3 on Ethereum
-            to: "0x9AEE0B04504CeF83A65AC3f0e838D0593BCb2BC7"
-            eventEmitted:
-              # keccak256("VotingActivated(uint256,bytes32,uint24)")
-              contract:
-                address: "0x9AEE0B04504CeF83A65AC3f0e838D0593BCb2BC7"
-              name: "VotingActivated"
+      voting-all:
+        description: "Periodic backup scan across every voting chain (eth/polygon/avax) for submitRoots/createVote/closeAndSend"
+        function: tenderly/index:votingAll
+        trigger: { type: periodic, periodic: { interval: 5m } }
 
-  voting-scan-ethereum:
-    description: "Scan voting machine on Ethereum (catches anything the event listener missed)"
-    function: src/tenderly/index:votingEthereum
-    trigger: { type: periodic, periodic: { interval: 2m } }
-
-  voting-scan-polygon:
-    description: "Scan voting machine on Polygon"
-    function: src/tenderly/index:votingPolygon
-    trigger: { type: periodic, periodic: { interval: 2m } }
-
-  voting-scan-avalanche:
-    description: "Scan voting machine on Avalanche"
-    function: src/tenderly/index:votingAvalanche
-    trigger: { type: periodic, periodic: { interval: 2m } }
-
-  exec-scan-ethereum:
-    function: src/tenderly/index:execEthereum
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-polygon:
-    function: src/tenderly/index:execPolygon
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-avalanche:
-    function: src/tenderly/index:execAvalanche
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-arbitrum:
-    function: src/tenderly/index:execArbitrum
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-optimism:
-    function: src/tenderly/index:execOptimism
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-base:
-    function: src/tenderly/index:execBase
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-bnb:
-    function: src/tenderly/index:execBnb
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-gnosis:
-    function: src/tenderly/index:execGnosis
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-metis:
-    function: src/tenderly/index:execMetis
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-scroll:
-    function: src/tenderly/index:execScroll
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-celo:
-    function: src/tenderly/index:execCelo
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-linea:
-    function: src/tenderly/index:execLinea
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-mantle:
-    function: src/tenderly/index:execMantle
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-ink:
-    function: src/tenderly/index:execInk
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-plasma:
-    function: src/tenderly/index:execPlasma
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-megaeth:
-    function: src/tenderly/index:execMegaeth
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-soneium:
-    function: src/tenderly/index:execSoneium
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-sonic:
-    function: src/tenderly/index:execSonic
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-xlayer:
-    function: src/tenderly/index:execXlayer
-    trigger: { type: periodic, periodic: { interval: 2m } }
-  exec-scan-zksync:
-    function: src/tenderly/index:execZksync
-    trigger: { type: periodic, periodic: { interval: 2m } }
+      execution-all:
+        description: "Periodic scan across every execution chain for executePayload"
+        function: tenderly/index:executionAll
+        trigger: { type: periodic, periodic: { interval: 5m } }

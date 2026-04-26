@@ -20,7 +20,7 @@ import {
   GovernanceV3XLayer,
   GovernanceV3ZkSync,
 } from '@aave-dao/aave-address-book';
-import type { Address, Hex } from 'viem';
+import type {Address, Hex} from 'viem';
 
 /** Identifier for the governance chain (only Ethereum mainnet today). */
 export const GOVERNANCE_CHAIN_ID = GovernanceV3Ethereum.CHAIN_ID;
@@ -34,14 +34,23 @@ export type VotingChainId = 1 | 137 | 43114;
 export type VotingChainConfig = {
   chainId: VotingChainId;
   name: string;
-  governance: Address;          // L1 governance contract address (constant across voting chains)
-  votingPortal: Address;        // Voting portal on L1 that routes to this voting machine
-  votingMachine: Address;       // VotingMachineWithProofs on the voting chain
-  dataWarehouse: Address;       // DataWarehouse on the voting chain
-  votingStrategy: Address;      // VotingStrategy on the voting chain
+  governance: Address; // L1 governance contract address (constant across voting chains)
+  votingPortal: Address; // Voting portal on L1 that routes to this voting machine
+  votingMachine: Address; // VotingMachineWithProofs on the voting chain
+  dataWarehouse: Address; // DataWarehouse on the voting chain
+  votingStrategy: Address; // VotingStrategy on the voting chain
 };
 
 export const VOTING_CHAINS: Record<VotingChainId, VotingChainConfig> = {
+  43114: {
+    chainId: 43114,
+    name: 'avalanche',
+    governance: GovernanceV3Ethereum.GOVERNANCE as Address,
+    votingPortal: GovernanceV3Ethereum.VOTING_PORTAL_ETH_AVAX as Address,
+    votingMachine: GovernanceV3Avalanche.VOTING_MACHINE as Address,
+    dataWarehouse: GovernanceV3Avalanche.DATA_WAREHOUSE as Address,
+    votingStrategy: GovernanceV3Avalanche.VOTING_STRATEGY as Address,
+  },
   1: {
     chainId: 1,
     name: 'ethereum',
@@ -59,15 +68,6 @@ export const VOTING_CHAINS: Record<VotingChainId, VotingChainConfig> = {
     votingMachine: GovernanceV3Polygon.VOTING_MACHINE as Address,
     dataWarehouse: GovernanceV3Polygon.DATA_WAREHOUSE as Address,
     votingStrategy: GovernanceV3Polygon.VOTING_STRATEGY as Address,
-  },
-  43114: {
-    chainId: 43114,
-    name: 'avalanche',
-    governance: GovernanceV3Ethereum.GOVERNANCE as Address,
-    votingPortal: GovernanceV3Ethereum.VOTING_PORTAL_ETH_AVAX as Address,
-    votingMachine: GovernanceV3Avalanche.VOTING_MACHINE as Address,
-    dataWarehouse: GovernanceV3Avalanche.DATA_WAREHOUSE as Address,
-    votingStrategy: GovernanceV3Avalanche.VOTING_STRATEGY as Address,
   },
 };
 

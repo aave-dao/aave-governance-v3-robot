@@ -71,6 +71,7 @@ const decideAction = async (
 
 export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAction[]> => {
   const config = requireVotingChain(ctx.chainId);
+  ctx.logger.debug('votingScan: starting', { chain: config.name, pageSize: VOTING_SCAN_PAGE_SIZE.toString() });
   const collected: VotingScannedAction[] = [];
   let skip = 0n;
 
@@ -81,12 +82,17 @@ export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAc
       functionName: 'getProposalsVoteConfigurationIds',
       args: [skip, VOTING_SCAN_PAGE_SIZE],
     });
+    ctx.logger.trace('votingScan: page fetched', { skip: skip.toString(), count: ids.length });
     if (ids.length === 0) break;
 
     let foundInBatch = 0;
     for (const id of ids) {
       const decision = await decideAction(ctx, id);
       if (decision) {
+        ctx.logger.info('votingScan: action selected', {
+          proposalId: id.toString(),
+          kind: decision.kind,
+        });
         collected.push(decision);
         foundInBatch += 1;
       }
@@ -96,6 +102,7 @@ export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAc
     skip += VOTING_SCAN_PAGE_SIZE;
   }
 
+  ctx.logger.debug('votingScan: complete', { found: collected.length });
   return collected;
 };
 

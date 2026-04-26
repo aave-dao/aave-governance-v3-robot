@@ -2,6 +2,7 @@ import type { PublicClient } from 'viem';
 import { GOVERNANCE_CHAIN_ID, EXECUTION_CHAINS, VOTING_CHAINS, type VotingChainId } from '../core/chains';
 import {
   accountFromPrivateKey,
+  describeRpcSource,
   getPublicClient,
   getRpcUrl,
   getWalletClient,
@@ -17,14 +18,17 @@ export const makeWriteContext = (
   chainName?: string,
 ): WriteContext => {
   const privateKey = requirePrivateKey(env);
-  const publicClient = getPublicClient(chainId);
-  const walletClient = getWalletClient(chainId, privateKey);
+  const child = logger.child({ chainId, chain: chainName });
+  const url = getRpcUrl(chainId);
+  child.debug('rpc resolved', { source: describeRpcSource(chainId, url) });
+  const account = accountFromPrivateKey(privateKey);
+  child.trace('write context built', { account });
   return {
     chainId,
-    publicClient,
-    walletClient,
-    account: accountFromPrivateKey(privateKey),
-    logger: logger.child({ chainId, chain: chainName }),
+    publicClient: getPublicClient(chainId),
+    walletClient: getWalletClient(chainId, privateKey),
+    account,
+    logger: child,
   };
 };
 
@@ -33,11 +37,16 @@ export const makeReadContext = (
   chainId: number,
   logger: Logger,
   chainName?: string,
-): ReadContext => ({
-  chainId,
-  publicClient: getPublicClient(chainId),
-  logger: logger.child({ chainId, chain: chainName }),
-});
+): ReadContext => {
+  const child = logger.child({ chainId, chain: chainName });
+  const url = getRpcUrl(chainId);
+  child.debug('rpc resolved', { source: describeRpcSource(chainId, url) });
+  return {
+    chainId,
+    publicClient: getPublicClient(chainId),
+    logger: child,
+  };
+};
 
 /** Lazy factories for the inspector — only spin up clients for chains we have an RPC for. */
 export const buildInspectorClients = (_env: Env) => {

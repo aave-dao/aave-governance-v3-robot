@@ -2,6 +2,7 @@ import type { Address } from 'viem';
 import { governanceAbi, powerStrategyAbi } from '../abis';
 import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
 import type { ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
+import { formatAave } from '../format';
 import { ProposalState, proposalStateName, isProposalFinal } from '../state';
 
 const GOVERNANCE = GovernanceV3Ethereum.GOVERNANCE as Address;
@@ -59,7 +60,7 @@ export const checkCancelProposal = async (
   if (propositionPower >= minRequired) {
     return {
       ok: false,
-      reason: `creator power ${propositionPower} >= min ${minRequired}`,
+      reason: `creator power ${formatAave(propositionPower)} >= min ${formatAave(minRequired)}`,
     };
   }
 

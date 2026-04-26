@@ -1,0 +1,20 @@
+{
+  "name": "aave-gov-robot-actions",
+  "private": true,
+  "type": "module",
+  "description": "Tenderly Web3 Actions sources for the Aave Governance V3 robot. Bundled with esbuild to a single CJS file per entry to sidestep the ESM/CJS mismatch with @bgd-labs/toolbox/browser.",
+  "scripts": {
+    "build": "node ./build.mjs"
+  },
+  "dependencies": {
+    "@aave-dao/aave-address-book": "^4.49.7",
+    "@bgd-labs/toolbox": "^0.2.25",
+    "@tenderly/actions": "^0.2.0",
+    "viem": "^2.21.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.3"
+  }
+}

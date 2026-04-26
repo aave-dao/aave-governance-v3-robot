@@ -1,6 +1,7 @@
 import { payloadsControllerAbi } from '../abis';
 import { EXECUTION_CHAINS } from '../chains';
 import type { ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
+import { isPayloadDisabled } from '../disabledPayloads';
 import { PayloadState, payloadStateName } from '../state';
 
 const requireExecutionChain = (chainId: number) => {
@@ -19,6 +20,9 @@ export const checkExecutePayload = async (
   ctx: ReadContext,
   payloadId: bigint,
 ): Promise<CheckResult> => {
+  const disabled = isPayloadDisabled(ctx.chainId, payloadId);
+  if (disabled) return { ok: false, reason: `disabled: ${disabled.reason}` };
+
   const config = requireExecutionChain(ctx.chainId);
   const payload = await ctx.publicClient.readContract({
     address: config.payloadsController,

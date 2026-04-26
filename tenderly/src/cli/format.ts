@@ -51,10 +51,35 @@ const colorPayloadState = (n: number, name: string): string => {
   }
 };
 
+/**
+ * IST = UTC + 5h30m. Used for the bracketed absolute timestamp on long ETAs.
+ * Format: "Apr 27 22:00 IST".
+ */
+const fmtIST = (unixSec: number): string => {
+  const d = new Date(unixSec * 1000);
+  // Manually compute IST components to avoid depending on the runtime's locale tz.
+  const ist = new Date(d.getTime() + (5 * 60 + 30) * 60_000);
+  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][ist.getUTCMonth()];
+  const day = ist.getUTCDate();
+  const hh = String(ist.getUTCHours()).padStart(2, '0');
+  const mm = String(ist.getUTCMinutes()).padStart(2, '0');
+  return `${month} ${day} ${hh}:${mm} IST`;
+};
+
+const fmtEta = (etaAt: number): string => {
+  const remaining = etaAt - Math.floor(Date.now() / 1000);
+  if (remaining <= 0) return c.yellow('eta now');
+  const dur = humanDuration(remaining);
+  // For long ETAs, the absolute date is more useful than reading "3d4h12m".
+  if (remaining > 6 * 3600) return `${c.yellow(`eta ${dur}`)} ${c.gray(`(${fmtIST(etaAt)})`)}`;
+  return c.yellow(`eta ${dur}`);
+};
+
 const fmtAction = (a: ActionStatus): string => {
   if (a.status === 'ready') return `${glyph.ready} ${c.bold(c.yellow(a.name))} ${c.gray('— ready')}`;
   if (a.status === 'done') return `${glyph.done} ${c.green(a.name)} ${c.gray(`— ${a.reason}`)}`;
-  return `${glyph.blocked} ${c.gray(a.name)}: ${c.dim(a.reason)}`;
+  const etaPart = a.etaAt ? ` ${fmtEta(a.etaAt)}` : '';
+  return `${glyph.blocked} ${c.gray(a.name)}: ${c.dim(a.reason)}${etaPart}`;
 };
 
 const truncate = (s: string, max: number): string => (s.length <= max ? s : s.slice(0, max - 1) + '…');
@@ -89,37 +114,65 @@ export const formatInspectorReport = (report: InspectorReport): string => {
   }
   lines.push('');
 
-  // Governance section.
-  lines.push(`  ${c.dim('state:        ')} ${colorProposalState(gov.stateNumber, gov.state)}`);
+  // Compact status header.
+  lines.push(`  ${c.dim('gov state:    ')} ${colorProposalState(gov.stateNumber, gov.state)}`);
+  if (report.voting) {
+    lines.push(
+      `  ${c.dim('voting state: ')} ${colorVmState(report.voting.stateNumber, report.voting.state)} ${c.gray(`(${report.voting.chain})`)}`,
+    );
+  }
   lines.push(`  ${c.dim('creator:      ')} ${gov.creator}`);
   lines.push(`  ${c.dim('createdAt:    ')} ${fmtTimestamp(gov.creationTime)}`);
   if (gov.queuingTime) lines.push(`  ${c.dim('queuedAt:     ')} ${fmtTimestamp(gov.queuingTime)}`);
-  lines.push(`  ${c.dim('votingPortal: ')} ${gov.votingPortal}`);
-  lines.push(`  ${c.dim('snapshot:     ')} ${c.gray(gov.snapshotBlockHash)}`);
   lines.push(`  ${c.dim('ipfsHash:     ')} ${c.gray(gov.ipfsHash)}`);
-  lines.push('');
-  lines.push(`  ${c.bold('governance actions:')}`);
-  for (const a of gov.actions) lines.push(`    ${fmtAction(a)}`);
 
-  if (report.voting) {
-    lines.push('');
-    lines.push(
-      `  ${c.bold('voting')} ${c.dim(`(${report.voting.chain}, chainId ${report.voting.chainId})`)}:`,
-    );
-    lines.push(`    ${c.dim('state:        ')} ${colorVmState(report.voting.stateNumber, report.voting.state)}`);
-    lines.push(`    ${c.dim('l1BlockHash:  ')} ${c.gray(report.voting.l1ProposalBlockHash)}`);
-    for (const a of report.voting.actions) lines.push(`    ${fmtAction(a)}`);
+  // Lifecycle: a single ordered list following the actual proposal flow.
+  // activateVoting → submitStorageRoots → createVote → closeAndSendVote → executeProposal → executePayload(s).
+  const lifecycle: Array<{ status: ActionStatus; scope?: string }> = [];
+
+  const findGov = (name: string) => gov.actions.find((a) => a.name === name);
+  const findVoting = (name: string) => report.voting?.actions.find((a) => a.name === name);
+
+  const activate = findGov('activateVoting');
+  if (activate) lifecycle.push({ status: activate });
+
+  const submit = findVoting('submitStorageRoots');
+  if (submit) lifecycle.push({ status: submit });
+  const createVote = findVoting('createVote');
+  if (createVote) lifecycle.push({ status: createVote });
+  const closeVote = findVoting('closeAndSendVote');
+  if (closeVote) lifecycle.push({ status: closeVote });
+
+  const exec = findGov('executeProposal');
+  if (exec) lifecycle.push({ status: exec });
+
+  for (const p of report.payloads) {
+    // The action's reason already carries the state ("state=Created, want Queued"); no need
+    // to repeat it in the per-payload prefix. For *done* payloads (where the action has no
+    // reason mentioning state), append the colored state to the prefix so the user still sees it.
+    const showStateInPrefix = p.actions.every((a) => a.status === 'done' || a.status === 'ready');
+    const stateBadge =
+      showStateInPrefix && p.stateNumber >= 0
+        ? ` ${c.dim('state=')}${colorPayloadState(p.stateNumber, p.state)}`
+        : '';
+    for (const a of p.actions) {
+      lifecycle.push({ status: a, scope: `${c.cyan(`[${p.chainName}]`)} #${p.payloadId}${stateBadge}` });
+    }
   }
 
-  if (report.payloads.length > 0) {
+  lines.push('');
+  lines.push(`  ${c.bold('lifecycle:')}`);
+  for (const item of lifecycle) {
+    const action = fmtAction(item.status);
+    lines.push(`    ${item.scope ? `${item.scope} ` : ''}${action}`);
+  }
+
+  // Cancellation is a side path — render it separately so it doesn't muddy the timeline.
+  const cancel = findGov('cancelProposal');
+  if (cancel) {
     lines.push('');
-    lines.push(`  ${c.bold('payloads:')}`);
-    for (const p of report.payloads) {
-      const stateColored = p.stateNumber >= 0 ? colorPayloadState(p.stateNumber, p.state) : c.gray(p.state);
-      const meta = p.actionCount > 0 ? c.gray(`(${p.actionCount} action${p.actionCount === 1 ? '' : 's'})`) : '';
-      lines.push(`    ${c.cyan(`[${p.chainName}]`)} payload ${c.bold(`#${p.payloadId}`)} ${c.dim('state=')}${stateColored} ${meta}`);
-      for (const a of p.actions) lines.push(`      ${fmtAction(a)}`);
-    }
+    lines.push(`  ${c.dim('cancellation:')}`);
+    lines.push(`    ${fmtAction(cancel)}`);
   }
 
   lines.push('');
@@ -128,7 +181,7 @@ export const formatInspectorReport = (report: InspectorReport): string => {
     const cmdName = ACTION_TO_COMMAND[n.action] ?? n.action;
     let cmd: string;
     if (n.stage === 'governance') cmd = `${cmdName} ${report.proposalId}`;
-    else if (n.stage === 'voting') cmd = `${cmdName} ${report.proposalId} --chain ${report.voting?.chain}`;
+    else if (n.stage === 'voting') cmd = `${cmdName} ${report.proposalId}`;
     else {
       const p = report.payloads.find((pp) => pp.chainId === n.chainId && BigInt(pp.payloadId) === n.id);
       cmd = `execute-payload ${n.id} --chain ${p?.chainName}`;

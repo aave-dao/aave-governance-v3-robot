@@ -20,6 +20,7 @@ export const makeMockClient = (mocks: Mocks): PublicClient => {
 };
 
 export const silentLogger: Logger = {
+  trace() {},
   debug() {},
   info() {},
   warn() {},

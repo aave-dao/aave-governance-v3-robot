@@ -21,7 +21,7 @@ const EnvSchema = z
   .object({
     PRIVATE_KEY: HexKey.optional(),
     ALCHEMY_API_KEY: z.string().optional(),
-    LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+    LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
   })
   .passthrough(); // tolerate any RPC_<NETWORK>=… lines in .env
 

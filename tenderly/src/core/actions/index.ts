@@ -7,5 +7,6 @@ export {
   buildStorageRootCalls,
   checkSubmitStorageRoots,
   executeSubmitStorageRoots,
+  submitStorageRootsForBlock,
 } from './submitStorageRoots';
 export { executePayloadAction, checkExecutePayload } from './executePayload';

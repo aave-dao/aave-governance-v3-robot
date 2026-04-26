@@ -11,6 +11,7 @@ export const checkExecuteProposal = async (
   ctx: ReadContext,
   proposalId: bigint,
 ): Promise<CheckResult> => {
+  ctx.logger.trace('executeProposal: checking', { proposalId: proposalId.toString() });
   const [proposal, cooldown] = await Promise.all([
     ctx.publicClient.readContract({
       address: GOVERNANCE,
@@ -24,6 +25,11 @@ export const checkExecuteProposal = async (
       functionName: 'COOLDOWN_PERIOD',
     }),
   ]);
+  ctx.logger.trace('executeProposal: state read', {
+    state: proposalStateName(proposal.state),
+    queuingTime: proposal.queuingTime,
+    cooldown: cooldown.toString(),
+  });
 
   if (proposal.state !== ProposalState.Queued) {
     return { ok: false, reason: `state=${proposalStateName(proposal.state)}, want Queued` };
@@ -38,6 +44,7 @@ export const checkExecuteProposal = async (
     };
   }
 
+  ctx.logger.debug('executeProposal: ready', { proposalId: proposalId.toString() });
   return { ok: true };
 };
 

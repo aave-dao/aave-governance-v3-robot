@@ -30,16 +30,29 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
     abi: payloadsControllerAbi,
     functionName: 'getPayloadsCount',
   });
+  ctx.logger.debug('executionScan: starting', {
+    chain: config.name,
+    totalPayloads: total,
+    maxSkip: MAX_EXECUTION_SKIP,
+    maxActions: MAX_EXECUTION_ACTIONS,
+  });
 
   if (total === 0) return [];
 
   const found: ScannedPayload[] = [];
   let skipCount = 0;
   let i = total - 1;
+  let examined = 0;
 
   while (true) {
-    if (skipCount > MAX_EXECUTION_SKIP) break;
-    if (found.length >= MAX_EXECUTION_ACTIONS) break;
+    if (skipCount > MAX_EXECUTION_SKIP) {
+      ctx.logger.debug('executionScan: stop — skipCount exceeded', { skipCount, examined });
+      break;
+    }
+    if (found.length >= MAX_EXECUTION_ACTIONS) {
+      ctx.logger.debug('executionScan: stop — actions cap reached', { found: found.length });
+      break;
+    }
 
     const id = BigInt(i);
     const payload = await ctx.publicClient.readContract({
@@ -48,12 +61,18 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
       functionName: 'getPayloadById',
       args: [i],
     });
+    examined += 1;
+    ctx.logger.trace('executionScan: examined', {
+      payloadId: i,
+      state: payload.state,
+    });
 
     if (payload.state !== PayloadState.Queued) {
       skipCount += 1;
     } else {
       const check = await executePayloadAction.check(ctx, id);
       if (check.ok) {
+        ctx.logger.info('executionScan: payload ready', { payloadId: i });
         found.push({ payloadId: id });
         skipCount = 0;
       } else {
@@ -65,6 +84,7 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
     i -= 1;
   }
 
+  ctx.logger.debug('executionScan: complete', { examined, found: found.length });
   return found;
 };
 

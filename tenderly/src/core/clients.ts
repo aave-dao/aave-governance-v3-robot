@@ -37,6 +37,23 @@ const viemChainByChainId = (chainId: number): Chain | undefined => {
   return undefined;
 };
 
+/**
+ * Identify which provider returned a URL for a given chain — surfaced by callers at debug
+ * level so we can tell at a glance whether toolbox routed to Alchemy, an explicit env var,
+ * or the public-RPC fallback.
+ */
+export const describeRpcSource = (chainId: number, url: string): string => {
+  if (url.includes('alchemy')) return 'alchemy';
+  let envName: string | undefined;
+  try {
+    envName = getNetworkEnv(chainId as SupportedChainIds);
+    if (envName && process.env[envName] === url) return `env ${envName}`;
+  } catch {
+    /* chain not in toolbox list */
+  }
+  return 'public/fallback';
+};
+
 export const getRpcUrl = (chainId: number): string => {
   const alchemyKey = process.env.ALCHEMY_API_KEY;
   const url = toolboxGetRpcUrl(chainId as SupportedChainIds, { alchemyKey });
@@ -57,6 +74,7 @@ export const getRpcUrl = (chainId: number): string => {
     `No RPC available for chainId=${chainId}. Set ALCHEMY_API_KEY or ${envName} in the environment.`,
   );
 };
+
 
 export const getPublicClient = (chainId: number): PublicClient => {
   const hit = publicCache.get(chainId);

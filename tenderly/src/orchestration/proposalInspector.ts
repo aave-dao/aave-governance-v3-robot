@@ -23,6 +23,9 @@ import {
 import { fetchProposalMetadataSafe, type ProposalMetadata } from '../core/ipfs';
 import type { Logger } from '../core/logger';
 import {
+  PayloadState,
+  ProposalState,
+  VotingMachineProposalState,
   payloadStateName,
   proposalStateName,
   votingProposalStateName,
@@ -41,7 +44,7 @@ export type InspectorConfig = {
 
 export type ActionStatus =
   | { name: string; status: 'ready' }
-  | { name: string; status: 'blocked'; reason: string }
+  | { name: string; status: 'blocked'; reason: string; etaAt?: number }
   | { name: string; status: 'done'; reason: string };
 
 export type InspectorReport = {
@@ -85,14 +88,16 @@ const buildActionStatus = async (
   name: string,
   fn: () => Promise<{ ok: true } | { ok: false; reason: string }>,
   doneReason?: string,
+  /** Unix-seconds timestamp when this blocked action would become ready (best-effort). */
+  etaAt?: number,
 ): Promise<ActionStatus> => {
   try {
     const result = await fn();
     if (result.ok) return { name, status: 'ready' };
     if (doneReason) return { name, status: 'done', reason: doneReason };
-    return { name, status: 'blocked', reason: result.reason };
+    return { name, status: 'blocked', reason: result.reason, etaAt };
   } catch (err) {
-    return { name, status: 'blocked', reason: err instanceof Error ? err.message : String(err) };
+    return { name, status: 'blocked', reason: err instanceof Error ? err.message : String(err), etaAt };
   }
 };
 
@@ -114,19 +119,56 @@ export const inspectProposal = async (
       ? Promise.resolve(undefined)
       : fetchProposalMetadataSafe(proposal.ipfsHash as Hex);
 
+  // "Done" = the proposal has moved past the lifecycle stage this action targets.
+  // Mark these in the report with the same ✓ glyph so the user sees what's already settled.
+  const isPastActivate = proposal.state >= ProposalState.Active;
+  const isExecuted = proposal.state === ProposalState.Executed;
+  const isCancelled = proposal.state === ProposalState.Cancelled;
+  const isFailedOrExpired =
+    proposal.state === ProposalState.Failed || proposal.state === ProposalState.Expired;
+
+  // ETA inputs — fetched once from L1, reused across each blocked action.
+  const [cooldownPeriod, votingConfig] = await Promise.all([
+    l1Public.readContract({ address: GOVERNANCE, abi: governanceAbi, functionName: 'COOLDOWN_PERIOD' }),
+    l1Public.readContract({
+      address: GOVERNANCE,
+      abi: governanceAbi,
+      functionName: 'getVotingConfig',
+      args: [proposal.accessLevel],
+    }),
+  ]);
+
+  const activateEtaAt =
+    proposal.state === ProposalState.Created
+      ? proposal.creationTime + Number(votingConfig.coolDownBeforeVotingStart)
+      : undefined;
+  const executeEtaAt =
+    proposal.state === ProposalState.Queued
+      ? proposal.queuingTime + Number(cooldownPeriod)
+      : undefined;
+
   const [govActions] = await Promise.all([
     Promise.all([
       buildActionStatus(
         'activateVoting',
         () => checkActivateVoting({ chainId: 1, publicClient: l1Public, logger }, proposalId),
+        isPastActivate ? `proposal ${proposalStateName(proposal.state).toLowerCase()}` : undefined,
+        activateEtaAt,
       ),
       buildActionStatus(
         'executeProposal',
         () => checkExecuteProposal({ chainId: 1, publicClient: l1Public, logger }, proposalId),
+        isExecuted
+          ? 'proposal executed'
+          : isFailedOrExpired || isCancelled
+            ? `proposal ${proposalStateName(proposal.state).toLowerCase()} — execution skipped`
+            : undefined,
+        executeEtaAt,
       ),
       buildActionStatus(
         'cancelProposal',
         () => checkCancelProposal({ chainId: 1, publicClient: l1Public, logger }, proposalId),
+        isCancelled ? 'proposal cancelled' : undefined,
       ),
     ]),
   ]);
@@ -146,6 +188,7 @@ export const inspectProposal = async (
       const ctx = { chainId: votingChain.chainId, publicClient: vmClient, logger };
       let vmState = -1;
       let vmBridgedHash: Hex = '0x0000000000000000000000000000000000000000000000000000000000000000';
+      let vmEndTime: number | undefined;
       try {
         vmState = await vmClient.readContract({
           address: votingChain.votingMachine,
@@ -160,6 +203,17 @@ export const inspectProposal = async (
           args: [proposalId],
         });
         vmBridgedHash = voteConfig.l1ProposalBlockHash as Hex;
+
+        // Need endTime for the closeAndSendVote ETA. getProposalById has it once voting started.
+        if (vmState >= VotingMachineProposalState.Active) {
+          const vmProposal = await vmClient.readContract({
+            address: votingChain.votingMachine,
+            abi: votingMachineAbi,
+            functionName: 'getProposalById',
+            args: [proposalId],
+          });
+          vmEndTime = vmProposal.endTime;
+        }
       } catch (err) {
         logger.warn('inspector: voting machine read failed', {
           chain: votingChain.name,
@@ -175,19 +229,28 @@ export const inspectProposal = async (
         proposal.snapshotBlockHash !== ZERO ? (proposal.snapshotBlockHash as Hex) : vmBridgedHash;
       const rootsReady = l1Hash !== ZERO ? await hasRequiredRoots(ctx, votingChain, l1Hash) : false;
 
+      const isPastNotCreated = vmState > VotingMachineProposalState.NotCreated;
+      const isVoteSent = vmState === VotingMachineProposalState.SentToGovernance;
+
+      const closeEtaAt =
+        vmState === VotingMachineProposalState.Active && vmEndTime ? vmEndTime : undefined;
+
       const votingActions: ActionStatus[] = [
         await buildActionStatus(
           'submitStorageRoots',
           () => checkSubmitStorageRoots(ctx, { proposalId, l1ProposalBlockHash: l1Hash }),
-          rootsReady ? 'roots already registered' : undefined,
+          rootsReady ? 'roots registered' : undefined,
         ),
         await buildActionStatus(
           'createVote',
           () => checkCreateVote(ctx, proposalId),
+          isPastNotCreated ? 'voting started' : undefined,
         ),
         await buildActionStatus(
           'closeAndSendVote',
           () => checkCloseAndSendVote(ctx, proposalId),
+          isVoteSent ? 'results sent to L1' : undefined,
+          closeEtaAt,
         ),
       ];
 
@@ -231,9 +294,23 @@ export const inspectProposal = async (
         functionName: 'getPayloadById',
         args: [payloadId],
       });
+      const payloadDoneReason =
+        payload.state === PayloadState.Executed
+          ? 'payload executed'
+          : payload.state === PayloadState.Cancelled
+            ? 'payload cancelled'
+            : payload.state === PayloadState.Expired
+              ? 'payload expired'
+              : undefined;
+      // ETA only known once the payload is queued — before that, it depends on the L1
+      // proposal executing + cross-chain bridging + queue, none of which has a fixed clock.
+      const payloadEtaAt =
+        payload.state === PayloadState.Queued ? payload.queuedAt + payload.delay : undefined;
       const action = await buildActionStatus(
         'executePayload',
         () => checkExecutePayload({ chainId: Number(ref.chain), publicClient: client, logger }, BigInt(payloadId)),
+        payloadDoneReason,
+        payloadEtaAt,
       );
       payloads.push({
         chainId: Number(ref.chain),
