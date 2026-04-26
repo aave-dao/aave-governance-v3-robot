@@ -1,6 +1,7 @@
 import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
 import type { Address, Hex, PublicClient } from 'viem';
 import {
+  MULTICALL3_ADDRESS,
   governanceAbi,
   payloadsControllerAbi,
   votingMachineAbi,
@@ -127,16 +128,20 @@ export const inspectProposal = async (
   const isFailedOrExpired =
     proposal.state === ProposalState.Failed || proposal.state === ProposalState.Expired;
 
-  // ETA inputs — fetched once from L1, reused across each blocked action.
-  const [cooldownPeriod, votingConfig] = await Promise.all([
-    l1Public.readContract({ address: GOVERNANCE, abi: governanceAbi, functionName: 'COOLDOWN_PERIOD' }),
-    l1Public.readContract({
-      address: GOVERNANCE,
-      abi: governanceAbi,
-      functionName: 'getVotingConfig',
-      args: [proposal.accessLevel],
-    }),
-  ]);
+  // ETA inputs — fetched once from L1 in a single multicall, reused across each blocked action.
+  const [cooldownPeriod, votingConfig] = await l1Public.multicall({
+    contracts: [
+      { address: GOVERNANCE, abi: governanceAbi, functionName: 'COOLDOWN_PERIOD' as const },
+      {
+        address: GOVERNANCE,
+        abi: governanceAbi,
+        functionName: 'getVotingConfig' as const,
+        args: [proposal.accessLevel] as const,
+      },
+    ],
+    allowFailure: false,
+    multicallAddress: MULTICALL3_ADDRESS,
+  });
 
   const activateEtaAt =
     proposal.state === ProposalState.Created
@@ -190,29 +195,39 @@ export const inspectProposal = async (
       let vmBridgedHash: Hex = '0x0000000000000000000000000000000000000000000000000000000000000000';
       let vmEndTime: number | undefined;
       try {
-        vmState = await vmClient.readContract({
-          address: votingChain.votingMachine,
-          abi: votingMachineAbi,
-          functionName: 'getProposalState',
-          args: [proposalId],
+        // Single multicall: state + voteConfig + getProposalById. allowFailure=true because
+        // getProposalById reverts on NotCreated (we don't care, we just won't get endTime).
+        const [stateResult, voteConfigResult, vmProposalResult] = await vmClient.multicall({
+          contracts: [
+            {
+              address: votingChain.votingMachine,
+              abi: votingMachineAbi,
+              functionName: 'getProposalState' as const,
+              args: [proposalId] as const,
+            },
+            {
+              address: votingChain.votingMachine,
+              abi: votingMachineAbi,
+              functionName: 'getProposalVoteConfiguration' as const,
+              args: [proposalId] as const,
+            },
+            {
+              address: votingChain.votingMachine,
+              abi: votingMachineAbi,
+              functionName: 'getProposalById' as const,
+              args: [proposalId] as const,
+            },
+          ],
+          allowFailure: true,
+          multicallAddress: MULTICALL3_ADDRESS,
         });
-        const voteConfig = await vmClient.readContract({
-          address: votingChain.votingMachine,
-          abi: votingMachineAbi,
-          functionName: 'getProposalVoteConfiguration',
-          args: [proposalId],
-        });
-        vmBridgedHash = voteConfig.l1ProposalBlockHash as Hex;
 
-        // Need endTime for the closeAndSendVote ETA. getProposalById has it once voting started.
-        if (vmState >= VotingMachineProposalState.Active) {
-          const vmProposal = await vmClient.readContract({
-            address: votingChain.votingMachine,
-            abi: votingMachineAbi,
-            functionName: 'getProposalById',
-            args: [proposalId],
-          });
-          vmEndTime = vmProposal.endTime;
+        if (stateResult.status === 'success') vmState = stateResult.result;
+        if (voteConfigResult.status === 'success') {
+          vmBridgedHash = voteConfigResult.result.l1ProposalBlockHash as Hex;
+        }
+        if (vmProposalResult.status === 'success' && vmState >= VotingMachineProposalState.Active) {
+          vmEndTime = vmProposalResult.result.endTime;
         }
       } catch (err) {
         logger.warn('inspector: voting machine read failed', {

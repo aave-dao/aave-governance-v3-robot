@@ -1,5 +1,5 @@
 import type { Address } from 'viem';
-import { governanceAbi } from '../abis';
+import { MULTICALL3_ADDRESS, governanceAbi } from '../abis';
 import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
 import type { ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
 import { ProposalState, proposalStateName } from '../state';
@@ -12,19 +12,24 @@ export const checkExecuteProposal = async (
   proposalId: bigint,
 ): Promise<CheckResult> => {
   ctx.logger.trace('executeProposal: checking', { proposalId: proposalId.toString() });
-  const [proposal, cooldown] = await Promise.all([
-    ctx.publicClient.readContract({
-      address: GOVERNANCE,
-      abi: governanceAbi,
-      functionName: 'getProposal',
-      args: [proposalId],
-    }),
-    ctx.publicClient.readContract({
-      address: GOVERNANCE,
-      abi: governanceAbi,
-      functionName: 'COOLDOWN_PERIOD',
-    }),
-  ]);
+  // 2 reads → 1 multicall.
+  const [proposal, cooldown] = await ctx.publicClient.multicall({
+    contracts: [
+      {
+        address: GOVERNANCE,
+        abi: governanceAbi,
+        functionName: 'getProposal' as const,
+        args: [proposalId] as const,
+      },
+      {
+        address: GOVERNANCE,
+        abi: governanceAbi,
+        functionName: 'COOLDOWN_PERIOD' as const,
+      },
+    ],
+    allowFailure: false,
+    multicallAddress: MULTICALL3_ADDRESS,
+  });
   ctx.logger.trace('executeProposal: state read', {
     state: proposalStateName(proposal.state),
     queuingTime: proposal.queuingTime,

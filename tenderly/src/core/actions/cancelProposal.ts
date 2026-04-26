@@ -1,5 +1,5 @@
 import type { Address } from 'viem';
-import { governanceAbi, powerStrategyAbi } from '../abis';
+import { MULTICALL3_ADDRESS, governanceAbi, powerStrategyAbi } from '../abis';
 import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
 import type { ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext } from '../context';
 import { formatAave } from '../format';
@@ -16,24 +16,29 @@ export const checkCancelProposal = async (
   ctx: ReadContext,
   proposalId: bigint,
 ): Promise<CheckResult> => {
-  const [proposal, powerStrategyAddr, precisionDivider] = await Promise.all([
-    ctx.publicClient.readContract({
-      address: GOVERNANCE,
-      abi: governanceAbi,
-      functionName: 'getProposal',
-      args: [proposalId],
-    }),
-    ctx.publicClient.readContract({
-      address: GOVERNANCE,
-      abi: governanceAbi,
-      functionName: 'getPowerStrategy',
-    }),
-    ctx.publicClient.readContract({
-      address: GOVERNANCE,
-      abi: governanceAbi,
-      functionName: 'PRECISION_DIVIDER',
-    }),
-  ]);
+  // Phase 1: read proposal + governance constants in one multicall (3 reads → 1).
+  const [proposal, powerStrategyAddr, precisionDivider] = await ctx.publicClient.multicall({
+    contracts: [
+      {
+        address: GOVERNANCE,
+        abi: governanceAbi,
+        functionName: 'getProposal' as const,
+        args: [proposalId] as const,
+      },
+      {
+        address: GOVERNANCE,
+        abi: governanceAbi,
+        functionName: 'getPowerStrategy' as const,
+      },
+      {
+        address: GOVERNANCE,
+        abi: governanceAbi,
+        functionName: 'PRECISION_DIVIDER' as const,
+      },
+    ],
+    allowFailure: false,
+    multicallAddress: MULTICALL3_ADDRESS,
+  });
 
   if (proposal.state === ProposalState.Null) {
     return { ok: false, reason: `state=Null` };
@@ -42,18 +47,25 @@ export const checkCancelProposal = async (
     return { ok: false, reason: `state=${proposalStateName(proposal.state)} (final)` };
   }
 
-  const config = await ctx.publicClient.readContract({
-    address: GOVERNANCE,
-    abi: governanceAbi,
-    functionName: 'getVotingConfig',
-    args: [proposal.accessLevel],
-  });
-
-  const propositionPower = await ctx.publicClient.readContract({
-    address: powerStrategyAddr as Address,
-    abi: powerStrategyAbi,
-    functionName: 'getFullPropositionPower',
-    args: [proposal.creator],
+  // Phase 2: votingConfig (depends on proposal.accessLevel) + propositionPower (depends on
+  // powerStrategy address). Batched together (2 reads → 1).
+  const [config, propositionPower] = await ctx.publicClient.multicall({
+    contracts: [
+      {
+        address: GOVERNANCE,
+        abi: governanceAbi,
+        functionName: 'getVotingConfig' as const,
+        args: [proposal.accessLevel] as const,
+      },
+      {
+        address: powerStrategyAddr as Address,
+        abi: powerStrategyAbi,
+        functionName: 'getFullPropositionPower' as const,
+        args: [proposal.creator] as const,
+      },
+    ],
+    allowFailure: false,
+    multicallAddress: MULTICALL3_ADDRESS,
   });
 
   const minRequired = BigInt(config.minPropositionPower) * precisionDivider;

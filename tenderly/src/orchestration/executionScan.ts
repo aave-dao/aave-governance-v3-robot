@@ -1,4 +1,4 @@
-import { payloadsControllerAbi } from '../core/abis';
+import { MULTICALL3_ADDRESS, payloadsControllerAbi } from '../core/abis';
 import { EXECUTION_CHAINS } from '../core/chains';
 import { executePayloadAction } from '../core/actions';
 import type { ReadContext, WriteContext } from '../core/context';
@@ -23,6 +23,9 @@ const requireExecutionChain = (chainId: number) => {
 
 export type ScannedPayload = { payloadId: bigint };
 
+/** Same window-sizing rationale as governanceScan: covers any realistic scan in one RPC. */
+const SCAN_WINDOW = MAX_EXECUTION_ACTIONS * (MAX_EXECUTION_SKIP + 1) + MAX_EXECUTION_SKIP + 1;
+
 export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPayload[]> => {
   const config = requireExecutionChain(ctx.chainId);
   const total = await ctx.publicClient.readContract({
@@ -39,12 +42,28 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
 
   if (total === 0) return [];
 
+  // Latest first, capped at the window or total — fetched in one multicall.
+  const ids: number[] = [];
+  for (let n = 0; n < SCAN_WINDOW && n < total; n++) {
+    ids.push(total - 1 - n);
+  }
+  ctx.logger.debug('executionScan: multicall fetch', { chain: config.name, count: ids.length });
+  const payloads = await ctx.publicClient.multicall({
+    contracts: ids.map((id) => ({
+      address: config.payloadsController,
+      abi: payloadsControllerAbi,
+      functionName: 'getPayloadById' as const,
+      args: [id] as const,
+    })),
+    allowFailure: false,
+    multicallAddress: MULTICALL3_ADDRESS,
+  });
+
   const found: ScannedPayload[] = [];
   let skipCount = 0;
-  let i = total - 1;
   let examined = 0;
 
-  while (true) {
+  for (let idx = 0; idx < ids.length; idx++) {
     if (skipCount > MAX_EXECUTION_SKIP) {
       ctx.logger.debug('executionScan: stop — skipCount exceeded', { skipCount, examined });
       break;
@@ -54,34 +73,25 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
       break;
     }
 
+    const i = ids[idx]!;
+    const payload = payloads[idx]!;
     const id = BigInt(i);
-    const payload = await ctx.publicClient.readContract({
-      address: config.payloadsController,
-      abi: payloadsControllerAbi,
-      functionName: 'getPayloadById',
-      args: [i],
-    });
     examined += 1;
-    ctx.logger.trace('executionScan: examined', {
-      payloadId: i,
-      state: payload.state,
-    });
+    ctx.logger.trace('executionScan: examined', { payloadId: i, state: payload.state });
 
     if (payload.state !== PayloadState.Queued) {
       skipCount += 1;
-    } else {
-      const check = await executePayloadAction.check(ctx, id);
-      if (check.ok) {
-        ctx.logger.info('executionScan: payload ready', { payloadId: i });
-        found.push({ payloadId: id });
-        skipCount = 0;
-      } else {
-        skipCount += 1;
-      }
+      continue;
     }
 
-    if (i === 0) break;
-    i -= 1;
+    const check = await executePayloadAction.check(ctx, id);
+    if (check.ok) {
+      ctx.logger.info('executionScan: payload ready', { payloadId: i });
+      found.push({ payloadId: id });
+      skipCount = 0;
+    } else {
+      skipCount += 1;
+    }
   }
 
   ctx.logger.debug('executionScan: complete', { examined, found: found.length });

@@ -1,6 +1,6 @@
 import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
 import type { Address } from 'viem';
-import { governanceAbi } from '../core/abis';
+import { MULTICALL3_ADDRESS, governanceAbi } from '../core/abis';
 import {
   activateVotingAction,
   cancelProposalAction,
@@ -36,6 +36,14 @@ const GOV_PRIORITY: ActionModule<bigint>[] = [
   executeProposalAction,
 ];
 
+/**
+ * Worst-case examined count: MAX_ACTIONS finds each separated by MAX_SKIP non-actionable
+ * items + a final MAX_SKIP+1 trailing skip allowance. We multicall up front for the latest
+ * `SCAN_WINDOW` proposals (covers any realistic scan in one RPC) and rely on existing skip
+ * logic to terminate inside the window.
+ */
+const SCAN_WINDOW = MAX_GOVERNANCE_ACTIONS * (MAX_GOVERNANCE_SKIP + 1) + MAX_GOVERNANCE_SKIP + 1;
+
 export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedAction[]> => {
   const total = await ctx.publicClient.readContract({
     address: GOVERNANCE,
@@ -50,12 +58,28 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
 
   if (total === 0n) return [];
 
+  // Latest first, capped at SCAN_WINDOW or total — whichever is smaller.
+  const ids: bigint[] = [];
+  for (let n = 0; n < SCAN_WINDOW && BigInt(n) < total; n++) {
+    ids.push(total - 1n - BigInt(n));
+  }
+  ctx.logger.debug('governanceScan: multicall fetch', { count: ids.length });
+  const proposals = await ctx.publicClient.multicall({
+    contracts: ids.map((id) => ({
+      address: GOVERNANCE,
+      abi: governanceAbi,
+      functionName: 'getProposal' as const,
+      args: [id] as const,
+    })),
+    allowFailure: false,
+    multicallAddress: MULTICALL3_ADDRESS,
+  });
+
   const found: ScannedAction[] = [];
   let skipCount = 0;
-  let i = total - 1n;
   let examined = 0;
 
-  while (true) {
+  for (let idx = 0; idx < ids.length; idx++) {
     if (skipCount > MAX_GOVERNANCE_SKIP) {
       ctx.logger.debug('governanceScan: stop — skipCount exceeded', { skipCount, examined });
       break;
@@ -65,12 +89,8 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
       break;
     }
 
-    const proposal = await ctx.publicClient.readContract({
-      address: GOVERNANCE,
-      abi: governanceAbi,
-      functionName: 'getProposal',
-      args: [i],
-    });
+    const i = ids[idx]!;
+    const proposal = proposals[idx]!;
     examined += 1;
     ctx.logger.trace('governanceScan: examined', {
       proposalId: i.toString(),
@@ -80,26 +100,27 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
 
     if (isProposalFinal(proposal.state)) {
       skipCount += 1;
-    } else {
-      let matched = false;
-      for (const action of GOV_PRIORITY) {
-        const check = await action.check(ctx, i);
-        if (check.ok) {
-          ctx.logger.info('governanceScan: action ready', {
-            proposalId: i.toString(),
-            action: action.name,
-          });
-          found.push({ proposalId: i, action, reason: action.name });
-          skipCount = 0;
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) skipCount += 1;
+      continue;
     }
 
-    if (i === 0n) break;
-    i -= 1n;
+    let matched = false;
+    for (const action of GOV_PRIORITY) {
+      // The action's check() does its own multicall — we don't have its full predicate state
+      // here so we re-issue the read. This is still cheap because it only fires for
+      // non-final proposals (rare).
+      const check = await action.check(ctx, i);
+      if (check.ok) {
+        ctx.logger.info('governanceScan: action ready', {
+          proposalId: i.toString(),
+          action: action.name,
+        });
+        found.push({ proposalId: i, action, reason: action.name });
+        skipCount = 0;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) skipCount += 1;
   }
 
   ctx.logger.debug('governanceScan: complete', { examined, found: found.length });
