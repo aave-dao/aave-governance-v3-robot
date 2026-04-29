@@ -1,10 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { StateBadge } from './StateBadge';
+import { ChevronRight, Copy, ExternalLink, Zap, ShieldAlert, Coins } from 'lucide-react';
+import { fmtAbsolute } from '@/lib/format';
+import { Card, CardBody, CardHeader, CardTitle } from './ui/Card';
+import { Badge, stateBadgeTone } from './ui/Badge';
 import { ActionButton } from './ActionButton';
 import { AddressLink } from './AddressLink';
-import { fmtAbsolute } from '@/lib/format';
+import { Button } from './ui/Button';
+import { useToast } from './ui/Toast';
+import { cn } from './ui/cn';
 
 type ExecutionAction = {
   target: string;
@@ -49,105 +54,178 @@ const accessLevelLabel = (a: number): string => {
   }
 };
 
-const Timestamp = ({ label, ts }: { label: string; ts: number | null | undefined }) => {
-  if (!ts || ts === 0) return null;
-  return (
-    <div className="kv-grid" style={{ gridTemplateColumns: '90px 1fr' }}>
-      <div className="k">{label}</div>
-      <div className="v" suppressHydrationWarning>
-        {fmtAbsolute(ts)}
-      </div>
-    </div>
-  );
-};
-
 export function PayloadCard({ payload }: { payload: PayloadShape }) {
   const [expanded, setExpanded] = useState(false);
   const raw = payload.raw;
   const actions = raw?.executionActions ?? [];
 
   return (
-    <div className="card">
-      <div className="payload-card-header">
-        <div className="mono dim">
-          {payload.chainName} · chainId {payload.chainId}
+    <Card>
+      <CardHeader>
+        <CardTitle eyebrow={`${payload.chainName} · chainId ${payload.chainId}`}>
+          Payload <span className="font-mono tabular-nums text-fg-muted">#{payload.payloadId}</span>
+        </CardTitle>
+        <div className="flex items-center gap-2">
+          <Badge tone={stateBadgeTone(payload.stateName)}>{payload.stateName}</Badge>
         </div>
-        <StateBadge state={payload.stateName} />
-      </div>
-      <div className="bigid" style={{ fontSize: 18, marginTop: 4 }}>
-        payload #{payload.payloadId}
-      </div>
-      <div className="mono dim" style={{ marginTop: 4 }}>
-        {payload.actionCount} action{payload.actionCount === 1 ? '' : 's'} · controller{' '}
-        <AddressLink address={payload.payloadsController} chainId={payload.chainId} />
-      </div>
+      </CardHeader>
+      <CardBody className="space-y-4 px-4 sm:px-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+          <span className="text-fg-dim">{payload.actionCount} action{payload.actionCount === 1 ? '' : 's'}</span>
+          <span className="text-fg-dim hidden sm:inline">·</span>
+          <span className="text-fg-dim">controller</span>
+          <AddressLink address={payload.payloadsController} chainId={payload.chainId} showIcon />
+        </div>
 
-      {raw && (
-        <div className="payload-timing" style={{ marginTop: 10 }}>
-          <Timestamp label="created" ts={raw.createdAt} />
-          <Timestamp label="queued" ts={raw.queuedAt} />
-          <Timestamp label="executed" ts={raw.executedAt} />
-          <Timestamp label="cancelled" ts={raw.cancelledAt} />
-          {raw.delay && raw.delay > 0 && (
-            <div className="kv-grid" style={{ gridTemplateColumns: '90px 1fr' }}>
-              <div className="k">delay</div>
-              <div className="v">{raw.delay}s</div>
-            </div>
-          )}
+        {raw && (
+          <PayloadTiming raw={raw} />
+        )}
+
+        {actions.length > 0 && (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-surface-elev px-2.5 text-[12px] font-medium text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
+            >
+              <ChevronRight
+                size={12}
+                strokeWidth={2.5}
+                className={cn('transition-transform duration-150', expanded && 'rotate-90')}
+              />
+              {actions.length} action{actions.length === 1 ? '' : 's'}
+            </button>
+            {expanded && (
+              <div className="space-y-3">
+                {actions.map((a, i) => (
+                  <ActionRow key={i} index={i} action={a} chainId={payload.chainId} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="pt-2">
+          <ActionButton
+            action="executePayload"
+            id={String(payload.payloadId)}
+            chainId={payload.chainId}
+            eligibility={payload.executable}
+            variant="payload"
+          />
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+function PayloadTiming({ raw }: { raw: NonNullable<PayloadRaw> }) {
+  const items = [
+    { label: 'created', ts: raw.createdAt },
+    { label: 'queued', ts: raw.queuedAt },
+    { label: 'executed', ts: raw.executedAt },
+    { label: 'cancelled', ts: raw.cancelledAt },
+  ].filter((i) => i.ts && i.ts > 0) as Array<{ label: string; ts: number }>;
+  if (items.length === 0 && !raw.delay) return null;
+  return (
+    <dl className="grid grid-cols-[80px_1fr] gap-y-1 gap-x-3 text-[12px]">
+      {items.map((it) => (
+        <div key={it.label} className="contents">
+          <dt className="text-fg-dim">{it.label}</dt>
+          <dd className="font-mono text-fg" suppressHydrationWarning>
+            {fmtAbsolute(it.ts)}
+          </dd>
+        </div>
+      ))}
+      {raw.delay && raw.delay > 0 && (
+        <div className="contents">
+          <dt className="text-fg-dim">delay</dt>
+          <dd className="font-mono text-fg">{(raw.delay / 3600).toFixed(0)}h ({raw.delay}s)</dd>
         </div>
       )}
+    </dl>
+  );
+}
 
-      {actions.length > 0 && (
-        <div style={{ marginTop: 14 }}>
+function ActionRow({
+  index,
+  action,
+  chainId,
+}: {
+  index: number;
+  action: ExecutionAction;
+  chainId: number;
+}) {
+  const toast = useToast();
+  const [copied, setCopied] = useState<'target' | 'data' | null>(null);
+
+  const copy = async (what: 'target' | 'data', value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(what);
+      setTimeout(() => setCopied((c) => (c === what ? null : c)), 1500);
+    } catch {
+      toast.error('Copy failed');
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-border bg-surface-elev/50 p-3">
+      <div className="flex items-center gap-2.5">
+        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-border bg-surface font-mono text-[10px] font-medium text-fg-muted">
+          {index}
+        </span>
+        <span className="flex-1 truncate font-mono text-[12px] font-semibold text-fg">
+          {action.signature || <span className="italic text-fg-dim">(no signature)</span>}
+        </span>
+        <div className="flex items-center gap-1">
+          {action.withDelegateCall && (
+            <Badge tone="warn" size="xs" icon={<ShieldAlert size={10} strokeWidth={2.5} />}>
+              delegate
+            </Badge>
+          )}
+          <Badge tone="accent" size="xs" icon={<Zap size={10} strokeWidth={2.5} />}>
+            {accessLevelLabel(action.accessLevel)}
+          </Badge>
+          {action.value !== '0' && (
+            <Badge tone="success" size="xs" icon={<Coins size={10} strokeWidth={2.5} />}>
+              {action.value}
+            </Badge>
+          )}
+        </div>
+      </div>
+      <dl className="mt-3 grid grid-cols-[80px_1fr] gap-y-2 gap-x-3 text-[12px]">
+        <dt className="text-fg-dim">target</dt>
+        <dd className="flex items-center gap-2 font-mono break-all">
+          <AddressLink address={action.target} chainId={chainId} full showIcon />
           <button
             type="button"
-            className="payload-toggle"
-            onClick={() => setExpanded((v) => !v)}
+            onClick={() => copy('target', action.target)}
+            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-fg-dim hover:bg-surface hover:text-fg"
+            aria-label="Copy target"
           >
-            {expanded ? '▼' : '▶'} {actions.length} action{actions.length === 1 ? '' : 's'}
+            <Copy size={11} strokeWidth={2.25} />
           </button>
-          {expanded && (
-            <div className="payload-actions-list">
-              {actions.map((a, i) => (
-                <div key={i} className="payload-action">
-                  <div className="payload-action-header">
-                    <span className="action-index dim">#{i}</span>
-                    <span className="payload-action-sig">
-                      {a.signature || <span className="dim">(no signature)</span>}
-                    </span>
-                    <span className="action-tags">
-                      {a.withDelegateCall && (
-                        <span className="action-tag tag-delegate">DELEGATECALL</span>
-                      )}
-                      <span className="action-tag tag-access">{accessLevelLabel(a.accessLevel)}</span>
-                      {a.value !== '0' && (
-                        <span className="action-tag tag-value">value {a.value}</span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="kv-grid" style={{ gridTemplateColumns: '90px 1fr', marginTop: 6 }}>
-                    <div className="k">target</div>
-                    <div className="v">
-                      <AddressLink address={a.target} chainId={payload.chainId} full />
-                    </div>
-                    <div className="k">callData</div>
-                    <div className="v calldata">{a.callData || '0x'}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="action-row" style={{ marginTop: 12 }}>
-        <ActionButton
-          action="executePayload"
-          id={String(payload.payloadId)}
-          chainId={payload.chainId}
-          eligibility={payload.executable}
-        />
-      </div>
+          {copied === 'target' && <span className="text-[10px] text-success">copied</span>}
+        </dd>
+        <dt className="text-fg-dim">callData</dt>
+        <dd className="font-mono text-[11px] text-fg break-all rounded bg-surface px-2 py-1.5 max-h-24 overflow-y-auto leading-relaxed">
+          <div className="flex items-start justify-between gap-2">
+            <span className="flex-1 break-all">{action.callData || '0x'}</span>
+            <button
+              type="button"
+              onClick={() => copy('data', action.callData)}
+              className="sticky top-0 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-fg-dim hover:bg-surface-elev hover:text-fg"
+              aria-label="Copy callData"
+            >
+              <Copy size={11} strokeWidth={2.25} />
+            </button>
+          </div>
+          {copied === 'data' && <span className="text-[10px] text-success">copied</span>}
+        </dd>
+      </dl>
     </div>
   );
 }
+
+void ExternalLink; // suppress unused-import lint when chevron-only branches used

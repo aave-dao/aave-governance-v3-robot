@@ -3,6 +3,7 @@ import { db } from '@/db/client';
 import { proposals } from '@/db/schema';
 import { jsonSafe } from '@/lib/serialize';
 import { ProposalList, type ProposalRow } from '@/components/ProposalList';
+import { ExecutorHealthBar } from '@/components/ExecutorHealthBar';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -20,14 +21,9 @@ async function loadInitial(): Promise<ProposalRow[]> {
 export default async function Home() {
   const initial = await loadInitial();
   return (
-    <main>
-      <header className="app-header">
-        <div>
-          <h1>Aave Governance V3 — Robot</h1>
-          <div className="sub">operator interface · cached every minute</div>
-        </div>
-      </header>
+    <div className="flex flex-col gap-5">
+      <ExecutorHealthBar />
       <ProposalList initial={initial} />
-    </main>
+    </div>
   );
 }

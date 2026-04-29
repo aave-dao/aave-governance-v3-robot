@@ -1,6 +1,5 @@
-type Props = { state: string };
+import { Badge, stateBadgeTone } from './ui/Badge';
 
-export function StateBadge({ state }: Props) {
-  const cls = state.toLowerCase();
-  return <span className={`state-badge ${cls}`}>{state}</span>;
+export function StateBadge({ state }: { state: string }) {
+  return <Badge tone={stateBadgeTone(state)}>{state}</Badge>;
 }

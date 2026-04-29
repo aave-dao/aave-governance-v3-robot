@@ -14,6 +14,8 @@ export type EligibilityCheck = {
   eligible: boolean;
   reason?: string;
   etaAt?: number;
+  /** True when the action's lifecycle stage is already past — render as a check, not a lock. */
+  done?: boolean;
 };
 
 export type EligibilityBlob = {
@@ -171,6 +173,15 @@ export const cursors = pgTable('cursors', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const ensNames = pgTable('ens_names', {
+  /** Lowercased Ethereum address. */
+  address: text('address').primaryKey(),
+  /** ENS name resolved (and reverse-verified) for this address. NULL means "no ENS". */
+  name: text('name'),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+});
+
 export const votes = pgTable(
   'votes',
   {
@@ -197,3 +208,4 @@ export type Execution = typeof executions.$inferSelect;
 export type CronRun = typeof cronRuns.$inferSelect;
 export type Cursor = typeof cursors.$inferSelect;
 export type Vote = typeof votes.$inferSelect;
+export type EnsName = typeof ensNames.$inferSelect;

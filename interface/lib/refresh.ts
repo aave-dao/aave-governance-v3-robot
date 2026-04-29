@@ -25,7 +25,7 @@ const N_PROPOSALS = 20;
 const toCheck = (a: ActionStatus | undefined): EligibilityCheck => {
   if (!a) return { eligible: false, reason: 'no status' };
   if (a.status === 'ready') return { eligible: true };
-  if (a.status === 'done') return { eligible: false, reason: a.reason };
+  if (a.status === 'done') return { eligible: false, reason: a.reason, done: true };
   return { eligible: false, reason: a.reason, etaAt: a.etaAt };
 };
 

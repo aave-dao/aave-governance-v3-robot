@@ -28,6 +28,7 @@ import { votingMachineAbi } from '@robot/core/abis';
 import type { Logger } from '@robot/core/logger';
 import { db } from '@/db/client';
 import { proposals, votes } from '@/db/schema';
+import { getEnsForAddresses } from './ens-resolve';
 
 const VOTE_EMITTED = parseAbiItem(
   'event VoteEmitted(uint256 indexed proposalId, address indexed voter, bool indexed support, uint256 votingPower)',
@@ -146,6 +147,16 @@ export const syncVotesForProposal = async (args: Args): Promise<VotesSyncSummary
       // need a best-effort count for telemetry.
       const rc = (result as unknown as { rowCount?: number }).rowCount;
       inserted += typeof rc === 'number' ? rc : rows.length;
+
+      // Warm the ENS cache for any new voters. Best-effort — failures don't block the sync.
+      try {
+        const uniqueVoters = Array.from(new Set(rows.map((r) => r.voter)));
+        await getEnsForAddresses(uniqueVoters);
+      } catch (err) {
+        args.logger.warn('votes-sync: ens warm-up failed', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
 

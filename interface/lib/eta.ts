@@ -12,6 +12,8 @@ export type NextAction = {
   label: string;
   /** Tone used by the UI to color the label. */
   tone: 'pending' | 'ready' | 'final' | 'failed';
+  /** Unix-seconds timestamp of the next event (so callers can drive a live countdown). */
+  nextEventAt?: number;
 };
 
 type ProposalForEta = {
@@ -20,6 +22,8 @@ type ProposalForEta = {
   creationTime: number;
   eligibility: EligibilityBlob;
 };
+
+const rel = (etaAt: number, now?: number) => fmtRelative(etaAt, now);
 
 const earliestPayloadEta = (payloads: EligibilityBlob['payloads']): number | undefined => {
   let best: number | undefined;
@@ -38,7 +42,7 @@ const allPayloadsTerminal = (payloads: EligibilityBlob['payloads']): boolean =>
 const anyPayloadReady = (payloads: EligibilityBlob['payloads']): boolean =>
   payloads.some((p) => p.executable.eligible);
 
-export const nextActionLabel = (p: ProposalForEta): NextAction => {
+export const nextActionLabel = (p: ProposalForEta, now?: number): NextAction => {
   const elig = p.eligibility;
   const vmState = elig.voting?.stateNumber;
 
@@ -51,7 +55,11 @@ export const nextActionLabel = (p: ProposalForEta): NextAction => {
   if (p.state === 1) {
     if (elig.activate.eligible) return { label: 'Ready to activate voting', tone: 'ready' };
     if (elig.activate.etaAt) {
-      return { label: `Voting starts ${fmtRelative(elig.activate.etaAt)}`, tone: 'pending' };
+      return {
+        label: `Voting starts ${rel(elig.activate.etaAt, now)}`,
+        tone: 'pending',
+        nextEventAt: elig.activate.etaAt,
+      };
     }
     return { label: 'Awaiting cooldown', tone: 'pending' };
   }
@@ -62,8 +70,9 @@ export const nextActionLabel = (p: ProposalForEta): NextAction => {
       // Active on L2
       if (elig.voting?.closeAndSendVote.etaAt) {
         return {
-          label: `Voting ends ${fmtRelative(elig.voting.closeAndSendVote.etaAt)}`,
+          label: `Voting ends ${rel(elig.voting.closeAndSendVote.etaAt, now)}`,
           tone: 'pending',
+          nextEventAt: elig.voting.closeAndSendVote.etaAt,
         };
       }
       return { label: 'Voting in progress', tone: 'pending' };
@@ -83,7 +92,11 @@ export const nextActionLabel = (p: ProposalForEta): NextAction => {
   if (p.state === 3) {
     if (elig.execute.eligible) return { label: 'Ready to execute on L1', tone: 'ready' };
     if (elig.execute.etaAt) {
-      return { label: `L1 executes ${fmtRelative(elig.execute.etaAt)}`, tone: 'pending' };
+      return {
+        label: `L1 executes ${rel(elig.execute.etaAt, now)}`,
+        tone: 'pending',
+        nextEventAt: elig.execute.etaAt,
+      };
     }
     return { label: 'Awaiting L1 cooldown', tone: 'pending' };
   }
@@ -98,7 +111,11 @@ export const nextActionLabel = (p: ProposalForEta): NextAction => {
     }
     const earliest = earliestPayloadEta(elig.payloads);
     if (earliest !== undefined) {
-      return { label: `Payloads execute ${fmtRelative(earliest)}`, tone: 'pending' };
+      return {
+        label: `Payloads execute ${rel(earliest, now)}`,
+        tone: 'pending',
+        nextEventAt: earliest,
+      };
     }
     return { label: 'Payloads queueing', tone: 'pending' };
   }

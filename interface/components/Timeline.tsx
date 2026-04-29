@@ -1,7 +1,10 @@
 'use client';
 
+import { Check, Circle, Clock, AlertTriangle } from 'lucide-react';
 import { fmtAbsolute, fmtRelative } from '@/lib/format';
+import { useNow } from '@/lib/use-now';
 import type { EligibilityBlob } from '@/db/schema';
+import { cn } from './ui/cn';
 
 type Proposal = {
   state: number;
@@ -15,27 +18,20 @@ type Proposal = {
   eligibility: EligibilityBlob;
 };
 
-// ProposalState: Null=0, Created=1, Active=2, Queued=3, Executed=4, Failed=5, Cancelled=6, Expired=7
-// PayloadState:  None=0,  Created=1, Queued=2, Executed=3, Cancelled=4, Expired=5
 const PAYLOAD_TERMINAL: Record<number, true> = { 3: true, 4: true, 5: true };
 
 type Step = {
   key: string;
   label: string;
   status: 'done' | 'current' | 'upcoming' | 'terminal';
-  /** Concrete past timestamp, or "—". */
   at?: number;
-  /** Estimated future timestamp; chained from earlier stages when not yet known. */
   eta?: number;
-  /** Marker that the eta was chained (predicted) rather than read from chain state. */
   predicted?: boolean;
 };
 
 const buildL1Steps = (p: Proposal): Step[] => {
   const elig = p.eligibility;
   const steps: Step[] = [];
-
-  // Created
   const createdAt = p.creationTime > 0 ? p.creationTime : undefined;
   steps.push({
     key: 'created',
@@ -44,7 +40,6 @@ const buildL1Steps = (p: Proposal): Step[] => {
     at: createdAt,
   });
 
-  // Active
   const activeAt = p.votingActivationTime > 0 ? p.votingActivationTime : undefined;
   let activeEta: number | undefined;
   let activePredicted = false;
@@ -64,7 +59,6 @@ const buildL1Steps = (p: Proposal): Step[] => {
     predicted: activePredicted,
   });
 
-  // Queued — voting ends → forVotes counted → cross-chain results land here.
   const queuedAt = p.queuingTime > 0 ? p.queuingTime : undefined;
   let queuedEta: number | undefined;
   let queuedPredicted = false;
@@ -88,7 +82,6 @@ const buildL1Steps = (p: Proposal): Step[] => {
     predicted: queuedPredicted,
   });
 
-  // Executed (L1)
   let executedEta: number | undefined;
   let executedPredicted = false;
   if (p.state < 4) {
@@ -100,8 +93,15 @@ const buildL1Steps = (p: Proposal): Step[] => {
   }
   steps.push({
     key: 'executed',
-    label: 'L1 executed (cross-chain msg sent)',
-    status: p.state >= 4 && p.state < 5 ? 'done' : p.state >= 5 ? 'terminal' : p.state === 3 ? 'current' : 'upcoming',
+    label: 'L1 executed',
+    status:
+      p.state >= 4 && p.state < 5
+        ? 'done'
+        : p.state >= 5
+          ? 'terminal'
+          : p.state === 3
+            ? 'current'
+            : 'upcoming',
     eta: executedEta,
     predicted: executedPredicted,
   });
@@ -109,74 +109,111 @@ const buildL1Steps = (p: Proposal): Step[] => {
   return steps;
 };
 
-const buildPayloadSteps = (p: Proposal): Step[] => {
-  return p.eligibility.payloads.map((pl): Step => {
+const buildPayloadSteps = (p: Proposal): Step[] =>
+  p.eligibility.payloads.map((pl): Step => {
     const settled = PAYLOAD_TERMINAL[pl.stateNumber] === true;
     return {
       key: `payload-${pl.chainId}-${pl.payloadId}`,
-      label: `Payload #${pl.payloadId} on ${pl.chainName} (${pl.state})`,
+      label: `Payload #${pl.payloadId} · ${pl.chainName} (${pl.state})`,
       status: settled ? 'done' : pl.executable.eligible ? 'current' : 'upcoming',
       eta: settled ? undefined : pl.executable.etaAt,
     };
   });
-};
-
-const formatTime = (s: Step): string => {
-  if (s.at) return fmtAbsolute(s.at);
-  if (s.eta) {
-    const prefix = s.predicted ? '~' : '';
-    return `${prefix}${fmtAbsolute(s.eta)} (${fmtRelative(s.eta)})`;
-  }
-  if (s.status === 'done') return 'completed';
-  if (s.status === 'terminal') return 'terminal';
-  return '—';
-};
 
 export function Timeline({ proposal }: { proposal: Proposal }) {
   const isFinalAbnormal = proposal.state >= 5;
   const l1Steps = buildL1Steps(proposal);
   const payloadSteps = buildPayloadSteps(proposal);
+  const allSteps: Step[] = [
+    ...l1Steps,
+    ...(isFinalAbnormal
+      ? [
+          {
+            key: 'terminal',
+            label: proposal.stateName,
+            status: 'terminal' as const,
+            at: proposal.creationTime,
+          },
+        ]
+      : []),
+    ...payloadSteps,
+  ];
+
+  // Sync the live clock cadence to the next pending step.
+  const nextEvent = allSteps.find((s) => s.status === 'current')?.eta
+    ?? allSteps.find((s) => s.status === 'upcoming')?.eta
+    ?? null;
+  const now = useNow(nextEvent);
 
   return (
-    <div className="timeline">
-      {l1Steps.map((s) => (
-        <div key={s.key} className="timeline-step">
-          <div
-            className={`timeline-dot ${
-              s.status === 'done' ? 'done' : s.status === 'current' ? 'current' : ''
-            }`}
-            style={s.status === 'terminal' ? { background: 'var(--red)' } : undefined}
-          />
-          <div className="label">{s.label}</div>
-          <div className="eta" suppressHydrationWarning>
-            {formatTime(s)}
-          </div>
-        </div>
+    <ol className="relative flex flex-col gap-0">
+      {allSteps.map((s, i) => (
+        <TimelineStep
+          key={s.key}
+          step={s}
+          isLast={i === allSteps.length - 1}
+          now={now}
+        />
       ))}
-      {isFinalAbnormal && (
-        <div className="timeline-step">
-          <div className="timeline-dot" style={{ background: 'var(--red)' }} />
-          <div className="label">{proposal.stateName}</div>
-          <div className="eta">terminal</div>
+    </ol>
+  );
+}
+
+function TimelineStep({
+  step,
+  isLast,
+  now,
+}: {
+  step: Step;
+  isLast: boolean;
+  now: number;
+}) {
+  const dotClasses = cn(
+    'relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full border',
+    step.status === 'done' && 'border-success bg-success-bg text-success',
+    step.status === 'current' && 'border-accent bg-accent-bg text-accent',
+    step.status === 'upcoming' && 'border-border bg-surface text-fg-dim',
+    step.status === 'terminal' && 'border-danger bg-danger-bg text-danger',
+  );
+  const Icon =
+    step.status === 'done'
+      ? Check
+      : step.status === 'terminal'
+        ? AlertTriangle
+        : step.status === 'current'
+          ? Clock
+          : Circle;
+  const time = step.at
+    ? fmtAbsolute(step.at)
+    : step.eta
+      ? `${step.predicted ? '~' : ''}${fmtAbsolute(step.eta)} (${fmtRelative(step.eta, now)})`
+      : step.status === 'done'
+        ? 'completed'
+        : step.status === 'terminal'
+          ? 'terminal'
+          : '—';
+
+  return (
+    <li className="flex items-start gap-3 pb-4 last:pb-0">
+      <div className="flex flex-col items-center self-stretch">
+        <span className={dotClasses}>
+          <Icon size={11} strokeWidth={2.5} />
+        </span>
+        {!isLast && <span className="mt-0 w-px flex-1 bg-border" aria-hidden />}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5 -mt-px pt-0.5">
+        <div
+          className={cn(
+            'text-[13px] font-medium leading-snug',
+            step.status === 'upcoming' ? 'text-fg-muted' : 'text-fg',
+          )}
+        >
+          {step.label}
         </div>
-      )}
-      {payloadSteps.length > 0 && (
-        <div style={{ borderTop: '1px solid var(--border)', margin: '8px 0', paddingTop: 8 }}>
-          {payloadSteps.map((s) => (
-            <div key={s.key} className="timeline-step">
-              <div
-                className={`timeline-dot ${
-                  s.status === 'done' ? 'done' : s.status === 'current' ? 'current' : ''
-                }`}
-              />
-              <div className="label">{s.label}</div>
-              <div className="eta" suppressHydrationWarning>
-                {formatTime(s)}
-              </div>
-            </div>
-          ))}
+        <div className="font-mono text-[11px] text-fg-dim" suppressHydrationWarning>
+          {time}
         </div>
-      )}
-    </div>
+      </div>
+    </li>
   );
 }
