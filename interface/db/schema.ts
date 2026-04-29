@@ -72,6 +72,21 @@ export const proposals = pgTable(
     snapshotBlockHash: text('snapshot_block_hash').notNull(),
     ipfsHash: text('ipfs_hash').notNull(),
     votingPortal: text('voting_portal').notNull(),
+    /** Final L1 forVotes (decimal string of uint128 wei). Null until proposal is Queued+. */
+    forVotes: text('for_votes'),
+    /** Final L1 againstVotes (decimal string of uint128 wei). */
+    againstVotes: text('against_votes'),
+    /** Live voting-machine forVotes during Active state (decimal string of uint128 wei). */
+    vmForVotes: text('vm_for_votes'),
+    /** Live voting-machine againstVotes during Active state (decimal string of uint128 wei). */
+    vmAgainstVotes: text('vm_against_votes'),
+    /** Convenience: voting-machine state name (NotCreated/Active/Finished/SentToGovernance). */
+    vmStateName: text('vm_state_name'),
+    /** Per-access-level vote thresholds — raw uint56 from the contract (AAVE units, not wei). */
+    yesThreshold: text('yes_threshold'),
+    yesNoDifferential: text('yes_no_differential'),
+    /** Last L2 voting-chain block scanned for VoteEmitted events for this proposal. */
+    votesSyncedToBlock: bigint('votes_synced_to_block', { mode: 'bigint' }),
     metadata: jsonb('metadata').$type<ProposalMetadataBlob | null>(),
     metadataError: text('metadata_error'),
     eligibility: jsonb('eligibility').$type<EligibilityBlob>().notNull(),
@@ -156,8 +171,29 @@ export const cursors = pgTable('cursors', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const votes = pgTable(
+  'votes',
+  {
+    proposalId: bigint('proposal_id', { mode: 'bigint' }).notNull(),
+    votingChainId: integer('voting_chain_id').notNull(),
+    voter: text('voter').notNull(),
+    support: boolean('support').notNull(),
+    /** Raw uint128 voting power as decimal string (18 decimals). */
+    votingPower: text('voting_power').notNull(),
+    txHash: text('tx_hash').notNull(),
+    blockNumber: bigint('block_number', { mode: 'bigint' }).notNull(),
+    logIndex: integer('log_index').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: uniqueIndex('votes_pk').on(t.proposalId, t.votingChainId, t.txHash, t.logIndex),
+    proposalIdx: index('votes_proposal_idx').on(t.proposalId),
+  }),
+);
+
 export type Proposal = typeof proposals.$inferSelect;
 export type Payload = typeof payloads.$inferSelect;
 export type Execution = typeof executions.$inferSelect;
 export type CronRun = typeof cronRuns.$inferSelect;
 export type Cursor = typeof cursors.$inferSelect;
+export type Vote = typeof votes.$inferSelect;

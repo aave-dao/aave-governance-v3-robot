@@ -6,6 +6,7 @@ import { executions } from '@/db/schema';
 import { dispatchExecute, type ActionName } from '@/lib/execute-action';
 import { ulid } from '@/lib/ulid';
 import { getLogger } from '@/lib/logger';
+import { formatError } from '@/lib/format-error';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
       .where(eq(executions.id, executionId));
     return NextResponse.json({ executionId, txHash, chainId: usedChainId });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = formatError(err);
     getLogger().warn('execute: dispatch failed', { action, id, error: message });
     await db
       .update(executions)

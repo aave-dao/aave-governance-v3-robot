@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { notifyError } from '@robot/core/notify';
 import { requireCronAuth } from './cron-auth';
 import { recordCronRun } from './cron-runs';
+import { formatError } from './format-error';
 import { getLogger } from './logger';
 import { jsonSafe } from './serialize';
 
@@ -20,7 +21,7 @@ export const wrapCron = <T>(name: string, body: () => Promise<T>) => {
       return NextResponse.json({ ok: true, summary: jsonSafe(summary) });
     } catch (err) {
       const durationMs = Date.now() - started;
-      const message = err instanceof Error ? err.message : String(err);
+      const message = formatError(err);
       await recordCronRun({ name, ok: false, durationMs, error: message });
       await notifyError({ source: name, error: err, logger: getLogger() });
       return NextResponse.json({ ok: false, error: message }, { status: 500 });

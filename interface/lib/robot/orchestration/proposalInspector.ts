@@ -58,6 +58,13 @@ export type InspectorReport = {
     cooldownPeriod: number;
     /** Per-access-level: gap between Created and Active. From getVotingConfig(). */
     coolDownBeforeVotingStart: number;
+    /** Final L1 vote tally — populated only after `queueProposal` runs (state >= Queued). */
+    forVotes: bigint;
+    againstVotes: bigint;
+    /** Per-access-level: minimum forVotes required (uint56, in raw AAVE units, not wei). */
+    yesThreshold: bigint;
+    /** Per-access-level: minimum (forVotes - againstVotes) differential required. */
+    yesNoDifferential: bigint;
     creator: Address;
     snapshotBlockHash: Hex;
     ipfsHash: Hex;
@@ -72,6 +79,11 @@ export type InspectorReport = {
     state: string;
     stateNumber: number;
     l1ProposalBlockHash: Hex;
+    /** Live running tally on the voting machine (state >= Active), 18-decimal AAVE wei. */
+    forVotes: bigint;
+    againstVotes: bigint;
+    /** Voting end time (unix seconds), only set once vmState >= Active. */
+    endTime?: number;
     actions: ActionStatus[];
   };
   payloads: Array<{
@@ -82,6 +94,23 @@ export type InspectorReport = {
     state: string;
     stateNumber: number;
     actionCount: number;
+    /** On-chain timing fields from the payload struct. 0 when not yet reached. */
+    createdAt?: number;
+    queuedAt?: number;
+    executedAt?: number;
+    cancelledAt?: number;
+    expirationTime?: number;
+    delay?: number;
+    gracePeriod?: number;
+    /** The actual contract calls this payload executes. */
+    executionActions?: Array<{
+      target: Address;
+      withDelegateCall: boolean;
+      accessLevel: number;
+      value: string; // uint256 as decimal string
+      signature: string;
+      callData: Hex;
+    }>;
     actions: ActionStatus[];
   }>;
   nextRecommended?: {
@@ -208,6 +237,8 @@ export const inspectProposal = async (
       let vmState = -1;
       let vmBridgedHash: Hex = '0x0000000000000000000000000000000000000000000000000000000000000000';
       let vmEndTime: number | undefined;
+      let vmForVotes = 0n;
+      let vmAgainstVotes = 0n;
       try {
         // Single multicall: state + voteConfig + getProposalById. allowFailure=true because
         // getProposalById reverts on NotCreated (we don't care, we just won't get endTime).
@@ -242,6 +273,8 @@ export const inspectProposal = async (
         }
         if (vmProposalResult.status === 'success' && vmState >= VotingMachineProposalState.Active) {
           vmEndTime = vmProposalResult.result.endTime;
+          vmForVotes = vmProposalResult.result.forVotes;
+          vmAgainstVotes = vmProposalResult.result.againstVotes;
         }
       } catch (err) {
         logger.warn('inspector: voting machine read failed', {
@@ -289,6 +322,9 @@ export const inspectProposal = async (
         state: votingProposalStateName(vmState),
         stateNumber: vmState,
         l1ProposalBlockHash: l1Hash,
+        forVotes: vmForVotes,
+        againstVotes: vmAgainstVotes,
+        endTime: vmEndTime,
         actions: votingActions,
       };
     }
@@ -353,6 +389,21 @@ export const inspectProposal = async (
         state: payloadStateName(payload.state),
         stateNumber: payload.state,
         actionCount: payload.actions.length,
+        createdAt: payload.createdAt,
+        queuedAt: payload.queuedAt,
+        executedAt: payload.executedAt,
+        cancelledAt: payload.cancelledAt,
+        expirationTime: payload.expirationTime,
+        delay: payload.delay,
+        gracePeriod: payload.gracePeriod,
+        executionActions: payload.actions.map((a) => ({
+          target: a.target as Address,
+          withDelegateCall: a.withDelegateCall,
+          accessLevel: a.accessLevel,
+          value: a.value.toString(),
+          signature: a.signature,
+          callData: a.callData as Hex,
+        })),
         actions: [action],
       });
     } catch (err) {
@@ -393,6 +444,10 @@ export const inspectProposal = async (
       votingDuration: Number(proposal.votingDuration),
       cooldownPeriod: Number(cooldownPeriod),
       coolDownBeforeVotingStart: Number(votingConfig.coolDownBeforeVotingStart),
+      forVotes: proposal.forVotes,
+      againstVotes: proposal.againstVotes,
+      yesThreshold: BigInt(votingConfig.yesThreshold),
+      yesNoDifferential: BigInt(votingConfig.yesNoDifferential),
       creator: proposal.creator,
       snapshotBlockHash: proposal.snapshotBlockHash as Hex,
       ipfsHash: proposal.ipfsHash as Hex,

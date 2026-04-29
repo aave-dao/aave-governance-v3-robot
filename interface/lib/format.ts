@@ -64,3 +64,23 @@ export const fmtDate = (unixSeconds: number): string => {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
+
+/**
+ * Format a uint128-wei AAVE amount in compact form: 383.73K, 1.04M, 12.4. Mirrors the way the
+ * official Aave UI renders vote tallies. Drops decimals once we cross 1k.
+ */
+export const fmtCompactAave = (wei: bigint, decimals = 18): string => {
+  if (wei === 0n) return '0';
+  const divisor = 10n ** BigInt(decimals);
+  const whole = wei / divisor;
+  const fractionalWei = wei - whole * divisor;
+  // Convert to a plain number for display only (loses precision past ~1e15 but we only render
+  // 2-3 sig figs).
+  const wholeNum = Number(whole);
+  const fracNum = Number(fractionalWei) / Number(divisor);
+  const total = wholeNum + fracNum;
+  if (total >= 1_000_000) return `${(total / 1_000_000).toFixed(2)}M`;
+  if (total >= 1_000) return `${(total / 1_000).toFixed(2)}K`;
+  if (total >= 1) return total.toFixed(2);
+  return total.toFixed(4);
+};

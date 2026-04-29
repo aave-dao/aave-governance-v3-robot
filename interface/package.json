@@ -15,7 +15,8 @@
     "db:seed": "tsx db/seed.ts",
     "cron:all": "tsx scripts/run-all-crons.ts",
     "cron:cache": "tsx scripts/run-all-crons.ts --only=cache",
-    "cron:safe": "tsx scripts/run-all-crons.ts --skip-tx"
+    "cron:safe": "tsx scripts/run-all-crons.ts --skip-tx",
+    "backfill": "tsx scripts/backfill-all.ts"
   },
   "dependencies": {
     "@aave-dao/aave-address-book": "^4.49.7",

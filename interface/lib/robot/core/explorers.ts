@@ -38,6 +38,12 @@ export const txUrl = (chainId: number, txHash: string): string | undefined => {
   return base ? `${base}/tx/${txHash}` : undefined;
 };
 
+/** Build an address URL on the right explorer for `chainId`, or undefined if unknown. */
+export const addressUrl = (chainId: number, address: string): string | undefined => {
+  const base = explorerBaseUrl(chainId);
+  return base ? `${base}/address/${address}` : undefined;
+};
+
 /** First N + last M chars, separated by ellipsis — for compact display in messages. */
 export const shortHash = (hash: string, head = 6, tail = 4): string =>
   hash.length <= head + tail + 1 ? hash : `${hash.slice(0, head)}…${hash.slice(-tail)}`;

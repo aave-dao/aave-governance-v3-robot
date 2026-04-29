@@ -75,8 +75,8 @@ header.app-header .sub {
 
 .proposal-row {
   display: grid;
-  grid-template-columns: 60px 1fr 140px 140px;
-  gap: 12px;
+  grid-template-columns: 60px minmax(0, 1fr) 220px 220px 110px;
+  gap: 16px;
   align-items: center;
   background: var(--bg-elev);
   border: 1px solid var(--border);
@@ -254,8 +254,113 @@ header.app-header .sub {
 
 .payload-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
+}
+
+.payload-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payload-timing {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.payload-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.payload-toggle:hover {
+  background: var(--bg-elev-2);
+  border-color: var(--accent);
+}
+
+.payload-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.payload-action {
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.payload-action-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.action-index {
+  font-family: var(--mono);
+  font-size: 11px;
+  min-width: 24px;
+}
+
+.payload-action-sig {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--fg);
+  flex: 1;
+  word-break: break-word;
+}
+
+.action-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.action-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+.action-tag.tag-delegate {
+  background: var(--yellow-bg);
+  color: var(--yellow);
+}
+.action-tag.tag-access {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.action-tag.tag-value {
+  background: var(--green-bg);
+  color: var(--green);
+  text-transform: none;
+}
+
+.calldata {
+  font-family: var(--mono);
+  font-size: 11px;
+  word-break: break-all;
+  white-space: pre-wrap;
+  background: var(--bg);
+  padding: 6px 8px;
+  border-radius: 4px;
+  max-height: 120px;
+  overflow-y: auto;
 }
 
 .tx-status {
@@ -370,4 +475,155 @@ header.app-header .sub {
 }
 .exec-row:last-child {
   border-bottom: none;
+}
+
+.voter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 100px;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  align-items: center;
+}
+.voter-row:last-child {
+  border-bottom: none;
+}
+.voter-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--fg-dim);
+  font-weight: 600;
+}
+
+/* ─── Vote bar (compact + full variants) ──────────────────────────────────── */
+
+.vote-bar-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.vote-bar-compact-track {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg-elev-2);
+}
+.vote-bar-compact-text {
+  font-family: var(--mono);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vote-bar-for {
+  background: var(--green);
+  height: 100%;
+}
+.vote-bar-against {
+  background: var(--red);
+  height: 100%;
+}
+.vote-for-text {
+  color: var(--green);
+}
+.vote-against-text {
+  color: var(--red);
+}
+.vote-empty {
+  font-size: 11px;
+  color: var(--fg-mute);
+  font-family: var(--mono);
+  font-style: italic;
+}
+
+.vote-bar-full {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.vote-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vote-row-label {
+  font-size: 13px;
+  font-family: var(--mono);
+}
+.vote-bar-track {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--bg-elev-2);
+  overflow: hidden;
+}
+.vote-bar-track .vote-bar-for,
+.vote-bar-track .vote-bar-against {
+  height: 100%;
+}
+.vote-threshold-line {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--fg);
+  opacity: 0.85;
+  border-radius: 1px;
+  pointer-events: none;
+}
+.vote-caption {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* ─── ETA tones ───────────────────────────────────────────────────────────── */
+
+.eta-cell {
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tone-pending {
+  color: var(--accent);
+}
+.tone-ready {
+  color: var(--green);
+}
+.tone-final {
+  color: var(--fg-dim);
+}
+.tone-failed {
+  color: var(--red);
+}
+
+.vote-cell {
+  min-width: 0;
+}
+
+.load-more {
+  margin-top: 8px;
+  align-self: center;
+  padding: 10px 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.load-more:hover:not(:disabled) {
+  background: var(--bg-elev-2);
+  border-color: var(--accent);
+}
+.load-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

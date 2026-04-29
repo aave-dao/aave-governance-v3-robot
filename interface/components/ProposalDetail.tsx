@@ -15,7 +15,11 @@ import type {
 } from '@/db/schema';
 import { ipfsHashToCidV0 } from '@robot/core/ipfs';
 import { displayStateName } from '@/lib/display-state';
+import { nextActionLabel, pickVoteSource } from '@/lib/eta';
 import { fmtAbsolute } from '@/lib/format';
+import { VoteBar, thresholdWei } from './VoteBar';
+import { VoterList, type VoteRow } from './VoterList';
+import { AddressLink } from './AddressLink';
 
 type ProposalShape = {
   id: string;
@@ -28,6 +32,13 @@ type ProposalShape = {
   votingDuration: number;
   cooldownPeriod: number;
   coolDownBeforeVotingStart: number;
+  forVotes: string | null;
+  againstVotes: string | null;
+  vmForVotes: string | null;
+  vmAgainstVotes: string | null;
+  vmStateName: string | null;
+  yesThreshold: string | null;
+  yesNoDifferential: string | null;
   ipfsHash: string;
   votingPortal: string;
   snapshotBlockHash: string;
@@ -50,12 +61,30 @@ type PayloadShape = {
   stateName: string;
   actionCount: number;
   executable: { eligible: boolean; reason?: string; etaAt?: number };
+  raw: {
+    createdAt: number | null;
+    queuedAt: number | null;
+    executedAt: number | null;
+    cancelledAt: number | null;
+    expirationTime: number | null;
+    delay: number | null;
+    gracePeriod: number | null;
+    executionActions: Array<{
+      target: string;
+      withDelegateCall: boolean;
+      accessLevel: number;
+      value: string;
+      signature: string;
+      callData: string;
+    }>;
+  } | null;
 };
 
 type Props = {
   initialProposal: ProposalShape;
   initialPayloads: PayloadShape[];
   initialExecutions: ExecutionRow[];
+  initialVotes: VoteRow[];
 };
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -67,16 +96,23 @@ const fmtTs = (raw: unknown): string => {
   return fmtAbsolute(Math.floor(d.getTime() / 1000));
 };
 
-export function ProposalDetail({ initialProposal, initialPayloads, initialExecutions }: Props) {
+export function ProposalDetail({
+  initialProposal,
+  initialPayloads,
+  initialExecutions,
+  initialVotes,
+}: Props) {
   const { data } = useSWR<{
     proposal: ProposalShape;
     payloads: PayloadShape[];
     recentExecutions: ExecutionRow[];
+    votes: VoteRow[];
   }>(`/api/proposals/${initialProposal.id}`, fetcher, {
     fallbackData: {
       proposal: initialProposal,
       payloads: initialPayloads,
       recentExecutions: initialExecutions,
+      votes: initialVotes,
     },
     refreshInterval: 15_000,
     keepPreviousData: true,
@@ -86,7 +122,14 @@ export function ProposalDetail({ initialProposal, initialPayloads, initialExecut
   const proposal = data?.proposal ?? initialProposal;
   const payloads = data?.payloads ?? initialPayloads;
   const executions = data?.recentExecutions ?? initialExecutions;
+  const proposalVotes = data?.votes ?? initialVotes;
   const elig = proposal.eligibility;
+  const next = nextActionLabel(proposal);
+  const votes = pickVoteSource(proposal);
+  const thresholds = {
+    yesThresholdWei: thresholdWei(proposal.yesThreshold),
+    yesNoDifferentialWei: thresholdWei(proposal.yesNoDifferential),
+  };
 
   const ipfsLink = (() => {
     try {
@@ -110,6 +153,9 @@ export function ProposalDetail({ initialProposal, initialPayloads, initialExecut
           <div className="dim mono" style={{ marginTop: 4 }}>
             {proposal.metadata?.title ?? '(no metadata yet)'}
           </div>
+          <div className={`tone-${next.tone} mono`} style={{ marginTop: 8, fontSize: 13 }} suppressHydrationWarning>
+            {next.label}
+          </div>
         </div>
         <div style={{ textAlign: 'right' }} className="mono dim" suppressHydrationWarning>
           refreshed {fmtTs(proposal.refreshedAt)}
@@ -117,13 +163,29 @@ export function ProposalDetail({ initialProposal, initialPayloads, initialExecut
       </header>
 
       <section className="section">
+        <h2>Votes</h2>
+        <div className="card">
+          <VoteBar snapshot={votes} variant="full" thresholds={thresholds} />
+        </div>
+      </section>
+
+      <section className="section">
+        <h2>Voters {proposalVotes.length > 0 ? `(${proposalVotes.length})` : ''}</h2>
+        <VoterList votes={proposalVotes} />
+      </section>
+
+      <section className="section">
         <h2>Overview</h2>
         <div className="card">
           <div className="kv-grid">
             <div className="k">creator</div>
-            <div className="v">{proposal.creator}</div>
+            <div className="v">
+              <AddressLink address={proposal.creator} chainId={1} full />
+            </div>
             <div className="k">voting portal</div>
-            <div className="v">{proposal.votingPortal}</div>
+            <div className="v">
+              <AddressLink address={proposal.votingPortal} chainId={1} full />
+            </div>
             <div className="k">snapshot block</div>
             <div className="v">{proposal.snapshotBlockHash}</div>
             <div className="k">ipfs hash</div>
