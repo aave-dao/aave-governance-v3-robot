@@ -1,0 +1,132 @@
+interface/lib/robot/core/actions/closeAndSendVote.ts
+  973ea4bfbb3fb085 1-67
+interface/tsconfig.json
+  973ea4bfbb3fb085 21,24
+interface/lib/robot/core/abis/powerStrategy.ts
+  973ea4bfbb3fb085 1-16
+interface/components/Timeline.tsx
+  973ea4bfbb3fb085 12-14,18-20,22-31,34-56,58-71,73-79,82-98,101-132,137-139,142-152,154-155,163-177
+interface/lib/robot/cli/clientFactory.ts
+  973ea4bfbb3fb085 1-82
+interface/lib/robot/cli/colors.ts
+  973ea4bfbb3fb085 1-40
+interface/lib/robot/core/chains.ts
+  973ea4bfbb3fb085 1-209
+interface/lib/robot/core/logger.ts
+  973ea4bfbb3fb085 1-85
+interface/db/schema.ts
+  973ea4bfbb3fb085 68-70
+interface/lib/robot/core/actions/index.ts
+  973ea4bfbb3fb085 1-14
+interface/lib/robot/core/explorers.ts
+  973ea4bfbb3fb085 1-43
+interface/lib/robot/core/actions/submitStorageRoots.ts
+  973ea4bfbb3fb085 1-491
+interface/lib/robot/orchestration/executionScan.ts
+  973ea4bfbb3fb085 1-125
+interface/lib/robot/core/state.ts
+  973ea4bfbb3fb085 1-40
+interface/lib/robot/core/multicall.ts
+  973ea4bfbb3fb085 1-34
+interface/lib/robot/core/abis/governance.ts
+  973ea4bfbb3fb085 1-118
+interface/lib/refresh.ts
+  973ea4bfbb3fb085 135-137,167-169
+interface/lib/robot/core/actions/activateVoting.ts
+  973ea4bfbb3fb085 1-81
+interface/app/globals.css
+  973ea4bfbb3fb085 131-134
+interface/lib/robot/core/abis/dataWarehouse.ts
+  973ea4bfbb3fb085 1-47
+interface/README.md
+  973ea4bfbb3fb085 23-26,31-33,66
+interface/lib/format.ts
+  973ea4bfbb3fb085 1-3,30-66
+interface/lib/robot/core/clients.ts
+  973ea4bfbb3fb085 1-135
+interface/lib/robot/core/actions/executePayload.ts
+  973ea4bfbb3fb085 1-85
+interface/lib/robot/core/disabledPayloads.ts
+  973ea4bfbb3fb085 1-37
+interface/lib/robot/core/context.ts
+  973ea4bfbb3fb085 1-34
+interface/scripts/run-all-crons.ts
+  973ea4bfbb3fb085 1-196
+interface/lib/robot/orchestration/votingScan.ts
+  973ea4bfbb3fb085 1-229
+interface/lib/robot/core/abis/multicall3.ts
+  973ea4bfbb3fb085 1-30
+interface/lib/robot/core/proofs.ts
+  973ea4bfbb3fb085 1-60
+interface/lib/robot/cli/health.ts
+  973ea4bfbb3fb085 1-440
+interface/lib/robot/core/abis/index.ts
+  973ea4bfbb3fb085 1-7
+interface/lib/serialize.ts
+  973ea4bfbb3fb085 3,9
+interface/lib/robot/core/notify.ts
+  973ea4bfbb3fb085 1-275
+interface/lib/robot/core/actions/executeProposal.ts
+  973ea4bfbb3fb085 1-86
+interface/package.json
+  973ea4bfbb3fb085 15-18,23
+interface/components/ProposalDetail.tsx
+  973ea4bfbb3fb085 17-18,28-30,63-69,106-108,114-115
+interface/lib/robot/core/rpc.ts
+  973ea4bfbb3fb085 1-48
+interface/db/migrations/0002_proposal_timing.sql
+  973ea4bfbb3fb085 1-4
+interface/lib/robot/core/format.ts
+  973ea4bfbb3fb085 1-40
+interface/lib/robot/orchestration/proposalInspector.ts
+  973ea4bfbb3fb085 1-435
+interface/lib/robot/orchestration/governanceScan.ts
+  973ea4bfbb3fb085 1-164
+interface/lib/robot/core/abis/votingStrategy.ts
+  973ea4bfbb3fb085 1-23
+interface/lib/display-state.ts
+  973ea4bfbb3fb085 1-28
+interface/lib/robot/core/actions/createVote.ts
+  973ea4bfbb3fb085 1-109
+interface/lib/robot/core/abis/votingMachine.ts
+  973ea4bfbb3fb085 1-86
+interface/lib/robot/cli/env.ts
+  973ea4bfbb3fb085 1-51
+interface/components/ProposalList.tsx
+  973ea4bfbb3fb085 6-8,17,39-53
+interface/lib/robot/core/actions/cancelProposal.ts
+  973ea4bfbb3fb085 1-112
+interface/lib/env.ts
+  973ea4bfbb3fb085 9-19,23,26-29
+interface/lib/robot/core/abis/payloadsController.ts
+  973ea4bfbb3fb085 1-52
+interface/next.config.mjs
+  973ea4bfbb3fb085 8-9
+interface/lib/robot/core/ipfs.ts
+  973ea4bfbb3fb085 1-162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "67e932fe635a2edb6ddbb24eda7c79f5cd30494b",
+  "prompts": {
+    "973ea4bfbb3fb085": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d65e8abb-e691-47e6-9e88-4248a44b42f7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 8495,
+      "total_deletions": 667,
+      "accepted_lines": 8809,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
