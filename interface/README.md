@@ -20,13 +20,17 @@ interface/
 │   │   └── execute/                 POST → tx, GET [id] → status
 │   ├── proposal/[id]/page.tsx       Detail page with timeline + payloads + action buttons
 │   └── page.tsx                     Latest 20 proposals
-├── lib/                              Server-only: env, dispatcher, refresh, listener, cron-handler
+├── lib/
+│   ├── robot/                       Vendored copy of the tenderly orchestration + actions, accessed via @robot/*
+│   ├── env.ts, cron-auth.ts, cron-handler.ts, context-factory.ts, ...
+│   └── ...                           Server-only adapters
 ├── db/                               Drizzle schema + SQL migrations + seed
 └── components/                       React UI
 ```
 
-All state-changing logic comes from `../tenderly/src/core/actions` and `../tenderly/src/orchestration`.
-The interface is a thin adapter — no re-implementation of check/execute logic.
+State-changing logic lives under `lib/robot/core/actions` and `lib/robot/orchestration` — vendored from
+`../tenderly/src/` so the interface deploys self-contained (no parent-folder dependencies). Update the
+vendor copy when the upstream tenderly modules change.
 
 ## Local dev
 
@@ -59,7 +63,7 @@ curl -X POST http://localhost:3000/api/execute \
 
 ## Vercel deploy
 
-1. Vercel project: **Root Directory** = repo root (`/`), **Build Command** = `cd interface && bun install && bun run build`, **Output Directory** = `interface/.next`.
+1. Vercel project: **Root Directory** = `interface/`, **Build Command** = `bun install && bun run build`, **Output Directory** = `.next`.
 2. Set env vars in Vercel dashboard (production + preview):
    - `PRIVATE_KEY`, `ALCHEMY_API_KEY`, `DATABASE_URL`, `CRON_SECRET`, `SLACK_WEBHOOK_URL` (optional), `TELEGRAM_*` (optional).
 3. Apply migration once against the production DB: `DATABASE_URL=… bun run db:migrate`.

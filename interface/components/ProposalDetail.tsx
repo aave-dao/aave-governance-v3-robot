@@ -14,6 +14,8 @@ import type {
   ProposalMetadataBlob,
 } from '@/db/schema';
 import { ipfsHashToCidV0 } from '@robot/core/ipfs';
+import { displayStateName } from '@/lib/display-state';
+import { fmtAbsolute } from '@/lib/format';
 
 type ProposalShape = {
   id: string;
@@ -23,6 +25,9 @@ type ProposalShape = {
   creationTime: number;
   votingActivationTime: number;
   queuingTime: number;
+  votingDuration: number;
+  cooldownPeriod: number;
+  coolDownBeforeVotingStart: number;
   ipfsHash: string;
   votingPortal: string;
   snapshotBlockHash: string;
@@ -54,6 +59,13 @@ type Props = {
 };
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+const fmtTs = (raw: unknown): string => {
+  if (typeof raw !== 'string' || !raw) return '—';
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '—';
+  return fmtAbsolute(Math.floor(d.getTime() / 1000));
+};
 
 export function ProposalDetail({ initialProposal, initialPayloads, initialExecutions }: Props) {
   const { data } = useSWR<{
@@ -91,14 +103,16 @@ export function ProposalDetail({ initialProposal, initialPayloads, initialExecut
           <Link href="/" className="dim">← all proposals</Link>
           <div style={{ marginTop: 8 }} className="bigid">
             #{proposal.id}{' '}
-            <StateBadge state={proposal.stateName} />
+            <StateBadge
+              state={displayStateName(proposal.state, proposal.stateName, elig.payloads)}
+            />
           </div>
           <div className="dim mono" style={{ marginTop: 4 }}>
             {proposal.metadata?.title ?? '(no metadata yet)'}
           </div>
         </div>
-        <div style={{ textAlign: 'right' }} className="mono dim">
-          refreshed {new Date(proposal.refreshedAt).toISOString().slice(0, 19).replace('T', ' ')} UTC
+        <div style={{ textAlign: 'right' }} className="mono dim" suppressHydrationWarning>
+          refreshed {fmtTs(proposal.refreshedAt)}
         </div>
       </header>
 

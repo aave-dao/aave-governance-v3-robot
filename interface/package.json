@@ -12,11 +12,15 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx db/migrate.ts",
-    "db:seed": "tsx db/seed.ts"
+    "db:seed": "tsx db/seed.ts",
+    "cron:all": "tsx scripts/run-all-crons.ts",
+    "cron:cache": "tsx scripts/run-all-crons.ts --only=cache",
+    "cron:safe": "tsx scripts/run-all-crons.ts --skip-tx"
   },
   "dependencies": {
     "@aave-dao/aave-address-book": "^4.49.7",
     "@bgd-labs/toolbox": "^0.2.25",
+    "dotenv": "^16.4.5",
     "drizzle-orm": "^0.36.4",
     "next": "^15.0.3",
     "postgres": "^3.4.5",
@@ -24,7 +28,6 @@
     "react-dom": "^19.0.0-rc-66855b96-20241106",
     "react-markdown": "^9.0.1",
     "remark-gfm": "^4.0.0",
-    "server-only": "^0.0.1",
     "swr": "^2.2.5",
     "viem": "^2.21.0",
     "zod": "^3.23.8"

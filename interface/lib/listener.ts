@@ -1,4 +1,3 @@
-import 'server-only';
 import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
 import { eq } from 'drizzle-orm';
 import {

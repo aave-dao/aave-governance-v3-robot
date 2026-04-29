@@ -1,4 +1,3 @@
-import 'server-only';
 import { db } from '@/db/client';
 import { cronRuns } from '@/db/schema';
 import { ulid } from './ulid';

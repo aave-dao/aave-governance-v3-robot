@@ -1,4 +1,3 @@
-import 'server-only';
 import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
 import { eq } from 'drizzle-orm';
 import type { Address } from 'viem';
@@ -133,6 +132,9 @@ export const runCacheRefresh = async (): Promise<RefreshSummary> => {
       creationTime: rep.governance.creationTime,
       votingActivationTime: rep.governance.votingActivationTime,
       queuingTime: rep.governance.queuingTime,
+      votingDuration: rep.governance.votingDuration,
+      cooldownPeriod: rep.governance.cooldownPeriod,
+      coolDownBeforeVotingStart: rep.governance.coolDownBeforeVotingStart,
       accessLevel: 0,
       snapshotBlockHash: rep.governance.snapshotBlockHash,
       ipfsHash: rep.governance.ipfsHash,
@@ -162,6 +164,9 @@ export const runCacheRefresh = async (): Promise<RefreshSummary> => {
           creationTime: proposalRow.creationTime,
           votingActivationTime: proposalRow.votingActivationTime,
           queuingTime: proposalRow.queuingTime,
+          votingDuration: proposalRow.votingDuration,
+          cooldownPeriod: proposalRow.cooldownPeriod,
+          coolDownBeforeVotingStart: proposalRow.coolDownBeforeVotingStart,
           accessLevel: proposalRow.accessLevel,
           snapshotBlockHash: proposalRow.snapshotBlockHash,
           ipfsHash: proposalRow.ipfsHash,

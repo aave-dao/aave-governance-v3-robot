@@ -18,9 +18,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@robot/*": ["../tenderly/src/*"]
+      "@robot/*": ["./lib/robot/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../tenderly/src/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", ".next"]
 }

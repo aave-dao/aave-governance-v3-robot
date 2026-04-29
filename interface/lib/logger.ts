@@ -1,4 +1,3 @@
-import 'server-only';
 import { createLogger, type LogLevel, type Logger } from '@robot/core/logger';
 import { loadServerEnv } from './env';
 

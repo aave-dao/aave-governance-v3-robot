@@ -1,4 +1,3 @@
-import 'server-only';
 import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
 import type { Address, Hex } from 'viem';
 import { governanceAbi } from '@robot/core/abis';

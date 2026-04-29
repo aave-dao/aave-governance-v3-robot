@@ -1,4 +1,3 @@
-import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { notifyError } from '@robot/core/notify';
 import { requireCronAuth } from './cron-auth';

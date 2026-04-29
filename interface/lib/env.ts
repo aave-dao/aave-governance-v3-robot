@@ -1,4 +1,3 @@
-import 'server-only';
 import type { Hex } from 'viem';
 import { z } from 'zod';
 
@@ -7,16 +6,27 @@ const HexKey = z
   .regex(/^0x[0-9a-fA-F]{64}$/, 'PRIVATE_KEY must be a 0x-prefixed 32-byte hex string')
   .transform((s) => s as Hex);
 
+// Treat empty strings (common in .env files) as "not set". Zod `.url().optional()` would
+// otherwise reject `KEY=` lines.
+const optionalUrl = z.preprocess(
+  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  z.string().url().optional(),
+);
+const optionalString = z.preprocess(
+  (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+  z.string().optional(),
+);
+
 const Schema = z
   .object({
     PRIVATE_KEY: HexKey,
-    ALCHEMY_API_KEY: z.string().optional(),
+    ALCHEMY_API_KEY: optionalString,
     DATABASE_URL: z.string().min(1),
     CRON_SECRET: z.string().min(8),
-    SLACK_WEBHOOK_URL: z.string().url().optional(),
-    TELEGRAM_BOT_TOKEN: z.string().optional(),
-    TELEGRAM_CHAT_ID: z.string().optional(),
-    TELEGRAM_WEBHOOK_URL: z.string().url().optional(),
+    SLACK_WEBHOOK_URL: optionalUrl,
+    TELEGRAM_BOT_TOKEN: optionalString,
+    TELEGRAM_CHAT_ID: optionalString,
+    TELEGRAM_WEBHOOK_URL: optionalUrl,
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
   })
   .passthrough();

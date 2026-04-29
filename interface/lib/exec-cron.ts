@@ -1,4 +1,3 @@
-import 'server-only';
 import { runExecutionScan } from '@robot/orchestration/executionScan';
 import { makeWriteContextFromEnv } from './context-factory';
 import { wrapCron } from './cron-handler';
