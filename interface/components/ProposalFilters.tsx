@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { Input } from './ui/Input';
@@ -22,33 +22,40 @@ const STATE_OPTIONS = [
 ] as const;
 
 /**
- * Hook: keep filter state synced with URL query (`?q=foo&state=active,queued`) so back/forward
- * + bookmarking work as expected.
+ * Hook: filter state lives in local React state for snappy input. URL is updated on a 250ms
+ * debounce so back/forward + bookmarking still work, but each keystroke does NOT trigger a
+ * router transition (which would cascade through useSearchParams and re-render the whole tree).
  */
 export function useFilterState(): [FilterState, (next: FilterState) => void] {
   const router = useRouter();
   const params = useSearchParams();
 
-  const value: FilterState = {
+  // Initialize from URL exactly once.
+  const [value, setLocal] = useState<FilterState>(() => ({
     q: params.get('q') ?? '',
     states: (params.get('state') ?? '')
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
-  };
+  }));
 
-  const setValue = useCallback(
-    (next: FilterState) => {
-      const search = new URLSearchParams();
-      if (next.q) search.set('q', next.q);
-      if (next.states.length > 0) search.set('state', next.states.join(','));
-      const qs = search.toString();
+  const lastSyncedRef = useRef<string>('');
+  useEffect(() => {
+    const search = new URLSearchParams();
+    if (value.q) search.set('q', value.q);
+    if (value.states.length > 0) search.set('state', value.states.join(','));
+    const qs = search.toString();
+    // Only push if the URL actually changes — avoids an extra effect on initial mount.
+    if (qs === lastSyncedRef.current) return;
+    const id = window.setTimeout(() => {
+      lastSyncedRef.current = qs;
       router.replace(qs ? `/?${qs}` : '/', { scroll: false });
-    },
-    [router],
-  );
+    }, 250);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.q, value.states.join(',')]);
 
-  return [value, setValue];
+  return [value, setLocal];
 }
 
 type Props = {

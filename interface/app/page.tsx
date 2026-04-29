@@ -3,7 +3,7 @@ import { db } from '@/db/client';
 import { proposals } from '@/db/schema';
 import { jsonSafe } from '@/lib/serialize';
 import { ProposalList, type ProposalRow } from '@/components/ProposalList';
-import { ExecutorHealthBar } from '@/components/ExecutorHealthBar';
+import { HomeStatusBar } from '@/components/HomeStatusBar';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -22,7 +22,7 @@ export default async function Home() {
   const initial = await loadInitial();
   return (
     <div className="flex flex-col gap-5">
-      <ExecutorHealthBar />
+      <HomeStatusBar />
       <ProposalList initial={initial} />
     </div>
   );

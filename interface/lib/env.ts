@@ -19,7 +19,13 @@ const optionalString = z.preprocess(
 
 const Schema = z
   .object({
-    PRIVATE_KEY: HexKey,
+    /**
+     * When set, the server holds the signer and can execute txs end-to-end (cron + UI).
+     * When empty/unset, the UI runs in "client signer" mode: actions are prepared on the
+     * server but signed/sent from the operator's browser wallet. Crons that need to write
+     * (governance/voting/exec scans, listener-poll) will fail loudly until a key is set.
+     */
+    PRIVATE_KEY: HexKey.optional(),
     ALCHEMY_API_KEY: optionalString,
     DATABASE_URL: z.string().min(1),
     CRON_SECRET: z.string().min(8),
@@ -55,4 +61,14 @@ export const loadServerEnv = (): ServerEnv => {
   return env;
 };
 
-export const requirePrivateKey = (): Hex => loadServerEnv().PRIVATE_KEY;
+export const hasServerSigner = (): boolean => Boolean(loadServerEnv().PRIVATE_KEY);
+
+export const requirePrivateKey = (): Hex => {
+  const key = loadServerEnv().PRIVATE_KEY;
+  if (!key) {
+    throw new Error(
+      'PRIVATE_KEY is not configured — the server cannot sign transactions in this mode. Use the browser-wallet flow from the UI, or set PRIVATE_KEY in env.',
+    );
+  }
+  return key;
+};
