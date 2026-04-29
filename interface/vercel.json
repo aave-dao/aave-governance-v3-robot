@@ -1,0 +1,35 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/cron/governance-scan", "schedule": "* * * * *" },
+    { "path": "/api/cron/voting-all", "schedule": "* * * * *" },
+    { "path": "/api/cron/listener-poll", "schedule": "* * * * *" },
+    { "path": "/api/cron/cache-refresh", "schedule": "* * * * *" },
+    { "path": "/api/cron/health-daily", "schedule": "17 9 * * *" },
+    { "path": "/api/cron/exec-scan/ethereum", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/polygon", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/avalanche", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/arbitrum", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/optimism", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/base", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/bnb", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/gnosis", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/metis", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/scroll", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/celo", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/linea", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/mantle", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/ink", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/plasma", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/megaeth", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/soneium", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/sonic", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/xlayer", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/zksync", "schedule": "* * * * *" }
+  ],
+  "functions": {
+    "app/api/cron/cache-refresh/route.ts": { "maxDuration": 300 },
+    "app/api/cron/voting-all/route.ts": { "maxDuration": 120 },
+    "app/api/execute/route.ts": { "maxDuration": 60 }
+  }
+}
