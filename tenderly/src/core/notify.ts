@@ -245,5 +245,31 @@ export const notifyError = async (p: NotifyErrorParams): Promise<void> => {
   await fanOut(slack, tg, plain, p.logger);
 };
 
+export type NotifyHealthParams = {
+  /** Slack mrkdwn-formatted message body. */
+  slack: string;
+  /** Telegram HTML-formatted message body. */
+  tg: string;
+  /** Plain-text fallback for the opaque Telegram relay. */
+  plain: string;
+  logger?: Logger;
+};
+
+/**
+ * Post a pre-rendered health/balance alert to every configured channel. Caller decides
+ * when to send (e.g. only when chains are below threshold) and renders the three flavors;
+ * this function only owns the channel fan-out. Best-effort — never throws.
+ */
+export const notifyHealth = async (p: NotifyHealthParams): Promise<void> => {
+  if (
+    !process.env.SLACK_WEBHOOK_URL &&
+    !process.env.TELEGRAM_BOT_TOKEN &&
+    !process.env.TELEGRAM_WEBHOOK_URL
+  ) {
+    return;
+  }
+  await fanOut(p.slack, p.tg, p.plain, p.logger);
+};
+
 // Re-export so callers don't need a separate import for the explorer URL.
 export {explorerBaseUrl, txUrl};

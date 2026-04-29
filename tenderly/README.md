@@ -66,6 +66,16 @@ bun run robot execute-payload 56 --chain optimism
 bun run robot run-governance
 bun run robot run-voting --chain avalanche
 bun run robot run-execution --chain ink
+
+# signer health: report per-chain balance / rounds remaining
+bun run robot health
+bun run robot health --min-rounds 25
+
+# also post a Slack/Telegram alert if any chain is below threshold (silent on healthy)
+bun run robot health --notify
+
+# post a full Slack/Telegram report on every run (heartbeat-style; never silent)
+bun run robot health --notify-full
 ```
 
 `inspect` output (ANSI-colored in a terminal, plain when piped or `NO_COLOR=1`):
@@ -158,8 +168,13 @@ What gets posted:
 - **Tx submitted** by the robot (any action across CLI or Tenderly):
   `✅ activateVoting on ethereum — proposal: 1234 — tx: <hyperlink to etherscan>`
 - **Tenderly Action failure** (governanceAction, votingActivatedListener, votingAll/per-chain,
-  executionAll/per-chain): `🚨 <source> failed (chain: ...) — Error: <message>` with a
-  short stack trace. The error is also re-thrown so Tenderly's own dashboard records it.
+  executionAll/per-chain, healthAction): `🚨 <source> failed (chain: ...) — Error: <message>`
+  with a short stack trace. The error is also re-thrown so Tenderly's own dashboard records it.
+- **Daily balance alert** (one Slack/Telegram post per day if any chain is `warn` /
+  `critical` / `error`; nothing posted on healthy days). Listed per-chain with status,
+  balance, gas price, and rounds remaining. Run on demand from the CLI with
+  `bun run robot health --notify` (silent if all chains are OK), or as the
+  `health-notify` Tenderly action below.
 
 Channel POSTs use a 5s timeout via `AbortSignal.timeout`. Slack and Telegram are POSTed
 in parallel via `Promise.allSettled` — neither blocks the other.
@@ -172,6 +187,7 @@ The actions registered in `tenderly.yaml`:
 | `voting-activated-listener` | tx event on L1 governance | `votingActivatedListener` — fetch proofs and submit storage roots to the right voting chain              |
 | `voting-scan-{chain}`       | every 2m                  | scan voting chain, fire submitRoots/createVote/closeAndSend (catches anything the event listener missed) |
 | `exec-scan-{chain}`         | every 2m                  | scan PayloadsController, fire executePayload                                                             |
+| `health-notify`             | every 24h                 | `healthAction` — silent if every chain is OK; alerts if any chain is warn/critical/error                 |
 
 ## How storage roots work (without RootsConsumer)
 

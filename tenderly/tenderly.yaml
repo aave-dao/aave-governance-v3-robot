@@ -61,6 +61,14 @@ actions:
         function: tenderly/index:votingAll
         trigger: { type: periodic, periodic: { interval: 5m } }
 
+      health-notify:
+        description: "Daily signer balance check across every chain we sign on; posts to Slack/Telegram only if a chain is below threshold"
+        function: tenderly/index:healthAction
+        trigger:
+          type: periodic
+          periodic:
+            interval: 1d
+
       # Per-execution-chain actions. If your Tenderly project hits the per-project
       # action limit, comment out every `exec-scan-<chain>` entry below and uncomment
       # the `execution-all` block at the bottom of the file — it scans all chains

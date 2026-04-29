@@ -22,12 +22,12 @@ import {colorFormatter} from './logFormat';
 import {inspectProposal, type InspectorConfig} from '../orchestration/proposalInspector';
 import {formatInspectorReport} from './format';
 import {decodeProposal, formatDecodeResult} from './decode';
-import {collectHealth, formatHealthReport} from './health';
+import {collectHealth, formatHealthAlert, formatHealthFull, formatHealthReport} from './health';
 import {runGovernanceScan} from '../orchestration/governanceScan';
 import {runVotingScan} from '../orchestration/votingScan';
 import {runExecutionScan} from '../orchestration/executionScan';
 import {buildInspectorClients, ethRpcUrl, makeWriteContext} from './clientFactory';
-import {loadEnv, type Env} from './env';
+import {loadEnv, requirePrivateKey, type Env} from './env';
 import type {Logger} from '../core/logger';
 import {governanceAbi, votingMachineAbi} from '../core/abis';
 import {jsonRpcCall} from '../core/rpc';
@@ -144,15 +144,44 @@ program
   .command('health')
   .description(
     'Check signer EOA balance + gas price across every chain we sign on, and report ' +
-      'how many full action rounds the balance can cover. Flags chains below threshold.',
+      'how many full action rounds the balance can cover. Flags chains below threshold. ' +
+      'With --notify, posts a Slack/Telegram alert only when a chain is below threshold ' +
+      '(silent on healthy). With --notify-full, posts a full per-chain report on every ' +
+      'run regardless of status (heartbeat-style).',
   )
   .option('--min-rounds <n>', 'warn when remaining rounds drops below this number', '10')
-  .action(async (opts: {minRounds: string}) => {
+  .option('--notify', 'post a Slack/Telegram alert if any chain is below threshold (silent on healthy)')
+  .option('--notify-full', 'post a full Slack/Telegram report on every run (includes healthy chains)')
+  .action(async (opts: {minRounds: string; notify?: boolean; notifyFull?: boolean}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
     const minRounds = Math.max(1, Number.parseInt(opts.minRounds, 10) || 10);
-    const rows = await collectHealth(env, logger, {minRounds});
+    const rows = await collectHealth(requirePrivateKey(env), logger, {minRounds});
     process.stdout.write(formatHealthReport(rows, {minRounds}) + '\n');
+
+    if (opts.notifyFull) {
+      const report = formatHealthFull(rows, {minRounds});
+      const {notifyHealth} = await import('../core/notify');
+      await notifyHealth({...report, logger});
+      logger.info('health: posted full report', {
+        chains: rows.length,
+        warnChains: rows.filter((r) => r.status === 'warn' || r.status === 'critical').length,
+        errorChains: rows.filter((r) => r.status === 'error').length,
+      });
+    } else if (opts.notify) {
+      const alert = formatHealthAlert(rows, {minRounds});
+      if (alert) {
+        const {notifyHealth} = await import('../core/notify');
+        await notifyHealth({...alert, logger});
+        logger.info('health: posted alert', {
+          warnChains: rows.filter((r) => r.status === 'warn' || r.status === 'critical').length,
+          errorChains: rows.filter((r) => r.status === 'error').length,
+        });
+      } else {
+        logger.info('health: all chains healthy, nothing to post');
+      }
+    }
+
     const hasIssue = rows.some((r) => r.status === 'critical' || r.status === 'error');
     if (hasIssue) process.exitCode = 1;
   });

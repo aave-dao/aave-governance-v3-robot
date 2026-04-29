@@ -1,4 +1,4 @@
-import {formatUnits, type Address} from 'viem';
+import {formatUnits, type Address, type Hex} from 'viem';
 import * as viemChains from 'viem/chains';
 import type {Chain} from 'viem';
 import {
@@ -10,7 +10,6 @@ import {
 import {accountFromPrivateKey, getPublicClient} from '../core/clients';
 import type {Logger} from '../core/logger';
 import {c, glyph} from './colors';
-import {requirePrivateKey, type Env} from './env';
 
 /**
  * Gas-unit estimates per action. These are conservative empirical averages — the actual
@@ -82,11 +81,11 @@ const classifyStatus = (rounds: number, minRounds: number): ChainHealth['status'
  * parallel — slow chains don't block fast ones.
  */
 export const collectHealth = async (
-  env: Env,
+  privateKey: Hex,
   logger: Logger,
   opts: {minRounds: number},
 ): Promise<ChainHealth[]> => {
-  const account = accountFromPrivateKey(requirePrivateKey(env));
+  const account = accountFromPrivateKey(privateKey);
   const seen = new Set<number>();
   const chainIds: number[] = [];
   const push = (id: number) => {
@@ -294,4 +293,148 @@ export const formatHealthReport = (
   }
 
   return lines.join('\n');
+};
+
+// ---------- alert formatting (Slack/Telegram/plain) ---------------------------------
+
+const escapeHtml = (s: string): string =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const statusLabel = (status: ChainHealth['status']): string => status.toUpperCase();
+
+const roundsLabel = (rounds: number): string => {
+  if (rounds === Infinity) return 'unlimited rounds';
+  return `~${rounds.toLocaleString('en-US')} round${rounds === 1 ? '' : 's'} left`;
+};
+
+/**
+ * Build a single alert message in three flavors (Slack mrkdwn, Telegram HTML, plain). Returns
+ * `null` when every chain is healthy — caller uses that to decide "silently skip the post".
+ */
+export const formatHealthAlert = (
+  rows: ChainHealth[],
+  opts: {minRounds: number},
+): {slack: string; tg: string; plain: string} | null => {
+  const bad = rows.filter(
+    (r) => r.status === 'warn' || r.status === 'critical' || r.status === 'error',
+  );
+  if (bad.length === 0) return null;
+
+  const account = rows[0]?.account ?? '0x';
+  const headerCount = `${bad.length} chain${bad.length === 1 ? '' : 's'} below threshold (min ${opts.minRounds} rounds)`;
+
+  const slackLines: string[] = [
+    `:rotating_light: *signer balance alert* — ${headerCount}`,
+    `signer: \`${account}\``,
+  ];
+  const tgLines: string[] = [
+    `🚨 <b>signer balance alert</b> — ${escapeHtml(headerCount)}`,
+    `signer: <code>${escapeHtml(account)}</code>`,
+  ];
+  const plainLines: string[] = [
+    `🚨 signer balance alert — ${headerCount}`,
+    `signer: ${account}`,
+  ];
+
+  for (const r of bad) {
+    if (r.status === 'error') {
+      const reason = r.error ?? 'unknown';
+      slackLines.push(
+        `• \`${r.name}\` (chainId ${r.chainId}): *${statusLabel(r.status)}* — probe failed: \`${reason}\``,
+      );
+      tgLines.push(
+        `• <code>${escapeHtml(r.name)}</code> (chainId ${r.chainId}): <b>${statusLabel(r.status)}</b> — probe failed: <code>${escapeHtml(reason)}</code>`,
+      );
+      plainLines.push(
+        `• ${r.name} (chainId ${r.chainId}): ${statusLabel(r.status)} — probe failed: ${reason}`,
+      );
+      continue;
+    }
+
+    const balance = fmtNative(r.balanceWei, r.nativeSymbol);
+    const gas = fmtGwei(r.gasPriceWei);
+    const rounds = roundsLabel(r.rounds);
+    slackLines.push(
+      `• \`${r.name}\` (chainId ${r.chainId}): *${statusLabel(r.status)}* — ${balance}, gas ${gas}, ${rounds}`,
+    );
+    tgLines.push(
+      `• <code>${escapeHtml(r.name)}</code> (chainId ${r.chainId}): <b>${statusLabel(r.status)}</b> — ${escapeHtml(balance)}, gas ${escapeHtml(gas)}, ${escapeHtml(rounds)}`,
+    );
+    plainLines.push(
+      `• ${r.name} (chainId ${r.chainId}): ${statusLabel(r.status)} — ${balance}, gas ${gas}, ${rounds}`,
+    );
+  }
+
+  return {
+    slack: slackLines.join('\n'),
+    tg: tgLines.join('\n'),
+    plain: plainLines.join('\n'),
+  };
+};
+
+/**
+ * Build a full health report (every chain, regardless of status) in three flavors. Unlike
+ * `formatHealthAlert`, this never returns `null` — caller posts it unconditionally. Used
+ * by `health --notify-full` for heartbeat-style reporting.
+ */
+export const formatHealthFull = (
+  rows: ChainHealth[],
+  opts: {minRounds: number},
+): {slack: string; tg: string; plain: string} => {
+  const bad = rows.filter(
+    (r) => r.status === 'warn' || r.status === 'critical' || r.status === 'error',
+  );
+  const account = rows[0]?.account ?? '0x';
+  const allHealthy = bad.length === 0;
+  const summary = allHealthy
+    ? `all chains healthy (min ${opts.minRounds} rounds)`
+    : `${bad.length}/${rows.length} chain${rows.length === 1 ? '' : 's'} below threshold (min ${opts.minRounds} rounds)`;
+
+  const slackLines: string[] = [
+    `${allHealthy ? ':white_check_mark:' : ':rotating_light:'} *signer balance report* — ${summary}`,
+    `signer: \`${account}\``,
+  ];
+  const tgLines: string[] = [
+    `${allHealthy ? '✅' : '🚨'} <b>signer balance report</b> — ${escapeHtml(summary)}`,
+    `signer: <code>${escapeHtml(account)}</code>`,
+  ];
+  const plainLines: string[] = [
+    `${allHealthy ? '✅' : '🚨'} signer balance report — ${summary}`,
+    `signer: ${account}`,
+  ];
+
+  for (const r of rows) {
+    if (r.status === 'error') {
+      const reason = r.error ?? 'unknown';
+      slackLines.push(
+        `• \`${r.name}\` (chainId ${r.chainId}): *${statusLabel(r.status)}* — probe failed: \`${reason}\``,
+      );
+      tgLines.push(
+        `• <code>${escapeHtml(r.name)}</code> (chainId ${r.chainId}): <b>${statusLabel(r.status)}</b> — probe failed: <code>${escapeHtml(reason)}</code>`,
+      );
+      plainLines.push(
+        `• ${r.name} (chainId ${r.chainId}): ${statusLabel(r.status)} — probe failed: ${reason}`,
+      );
+      continue;
+    }
+
+    const balance = fmtNative(r.balanceWei, r.nativeSymbol);
+    const gas = fmtGwei(r.gasPriceWei);
+    const rounds = roundsLabel(r.rounds);
+    slackLines.push(
+      `• \`${r.name}\` (chainId ${r.chainId}): *${statusLabel(r.status)}* — ${balance}, gas ${gas}, ${rounds}`,
+    );
+    tgLines.push(
+      `• <code>${escapeHtml(r.name)}</code> (chainId ${r.chainId}): <b>${statusLabel(r.status)}</b> — ${escapeHtml(balance)}, gas ${escapeHtml(gas)}, ${escapeHtml(rounds)}`,
+    );
+    plainLines.push(
+      `• ${r.name} (chainId ${r.chainId}): ${statusLabel(r.status)} — ${balance}, gas ${gas}, ${rounds}`,
+    );
+  }
+
+  return {
+    slack: slackLines.join('\n'),
+    tg: tgLines.join('\n'),
+    plain: plainLines.join('\n'),
+  };
 };

@@ -1,4 +1,5 @@
 export {governanceAction} from './governanceAction';
+export {healthAction} from './healthAction';
 export {votingActivatedListener} from './votingActivatedListener';
 export {votingAll} from './votingChainAction';
 export {
