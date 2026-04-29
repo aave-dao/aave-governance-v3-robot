@@ -1,0 +1,76 @@
+interface/lib/refresh.ts
+  973ea4bfbb3fb085 4-8,21,86-243,250-264,266,268,284-292,306-312
+interface/app/api/execute/route.ts
+  973ea4bfbb3fb085 9,70
+interface/components/ProposalDetail.tsx
+  973ea4bfbb3fb085 18,20-22,35-41,64-80,87,99-104,109,115,125,127-132,156-158,165-176,182-184,186-188
+interface/lib/robot/core/explorers.ts
+  973ea4bfbb3fb085 41-46
+interface/components/AddressLink.tsx
+  973ea4bfbb3fb085 1-23
+interface/package.json
+  973ea4bfbb3fb085 18-19
+interface/lib/cron-handler.ts
+  973ea4bfbb3fb085 5,24
+interface/lib/eta.ts
+  973ea4bfbb3fb085 1-169
+interface/db/schema.ts
+  973ea4bfbb3fb085 75-89,174-193,199
+interface/components/VoterList.tsx
+  973ea4bfbb3fb085 1-65
+interface/lib/robot/orchestration/proposalInspector.ts
+  973ea4bfbb3fb085 61-67,82-86,97-113,240-241,276-277,325-327,392-406,447-450
+interface/lib/votes-sync.ts
+  973ea4bfbb3fb085 1-164
+interface/components/VoteBar.tsx
+  973ea4bfbb3fb085 1-128
+interface/lib/format-error.ts
+  973ea4bfbb3fb085 1-69
+interface/app/api/proposals/[id]/route.ts
+  973ea4bfbb3fb085 2,4,6,10,12,21-34,36,50-55,61
+interface/app/proposal/[id]/page.tsx
+  973ea4bfbb3fb085 2,4,6,11,22-38,43,61-66,73
+interface/app/api/proposals/route.ts
+  973ea4bfbb3fb085 1-2,10-43,45
+interface/lib/explorer-client.ts
+  973ea4bfbb3fb085 3,7-9
+interface/components/ProposalList.tsx
+  973ea4bfbb3fb085 4,6,8,19-23,26-30,33-53,65-66,73-77,83-92
+interface/app/globals.css
+  973ea4bfbb3fb085 78-79,257,261-365,479-629
+interface/scripts/backfill-all.ts
+  973ea4bfbb3fb085 1-112
+interface/components/PayloadCard.tsx
+  973ea4bfbb3fb085 3,6-27,38-61,65-68,71,82,84-143
+interface/db/migrations/0004_thresholds_and_votes.sql
+  973ea4bfbb3fb085 1-19
+interface/lib/format.ts
+  973ea4bfbb3fb085 67-86
+interface/db/migrations/0003_vote_tallies.sql
+  973ea4bfbb3fb085 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "e7ccd25f197e0b33da7f404c8b7f2f3f35787861",
+  "prompts": {
+    "973ea4bfbb3fb085": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d65e8abb-e691-47e6-9e88-4248a44b42f7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 1877,
+      "total_deletions": 494,
+      "accepted_lines": 4052,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
