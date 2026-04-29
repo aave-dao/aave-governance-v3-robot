@@ -1,0 +1,131 @@
+tenderly/tests/clients.test.ts
+  729e7d78d152056e 1-68
+tenderly/tests/actions.test.ts
+  729e7d78d152056e 2,7-10,264-492
+tenderly/tenderly.yaml
+  afec17204cdfa942 64-69,71
+  h_c84ca9b512ee6d 70
+tenderly/tests/chains.test.ts
+  729e7d78d152056e 1-29
+tenderly/tests/submitStorageRoots.test.ts
+  729e7d78d152056e 1-464
+tenderly/tests/orchestration.execution.test.ts
+  729e7d78d152056e 1-178
+tenderly/src/cli/health.ts
+  afec17204cdfa942 1,84,88,297-373
+  25d5f0e04ee5f9ed 374-440
+tenderly/tests/ipfs.test.ts
+  729e7d78d152056e 1-222
+tenderly/scripts/checkPriceFeed.ts
+  5db52b8ccd6907d6 1-58
+tenderly/tests/helpers/fixtures.ts
+  729e7d78d152056e 1-88
+tenderly/tests/health.test.ts
+  729e7d78d152056e 1-227
+tenderly/README.md
+  25d5f0e04ee5f9ed 76-78
+  afec17204cdfa942 69-75,171-177,190
+tenderly/tests/orchestration.voting.test.ts
+  729e7d78d152056e 1-343
+tenderly/tests/env.test.ts
+  729e7d78d152056e 1-79
+tenderly/src/core/notify.ts
+  afec17204cdfa942 248-273
+tenderly/src/cli/index.ts
+  25d5f0e04ee5f9ed 25,148-150,154-155,162-171
+  afec17204cdfa942 30,147,153,159,161,172-184
+tenderly/tests/multicall.test.ts
+  729e7d78d152056e 1-57
+tenderly/tests/helpers/mockFetch.ts
+  729e7d78d152056e 1-31
+tenderly/src/tenderly/healthAction.ts
+  afec17204cdfa942 1-35
+tenderly/tests/state.test.ts
+  729e7d78d152056e 1-73
+tenderly/tests/explorers.test.ts
+  729e7d78d152056e 1-57
+tenderly/tests/logger.test.ts
+  729e7d78d152056e 1-114
+tenderly/tests/orchestration.governance.test.ts
+  729e7d78d152056e 1-233
+tenderly/tests/helpers/mockClient.ts
+  729e7d78d152056e 1-2,9-10,14-27,36-38,46,48-59,62-98,112-158
+tenderly/tests/helpers/env.ts
+  729e7d78d152056e 1-24
+tenderly/tests/notify.test.ts
+  729e7d78d152056e 1-334
+tenderly/src/tenderly/index.ts
+  afec17204cdfa942 2
+tenderly/tests/format.test.ts
+  729e7d78d152056e 1-53
+tenderly/tests/disabledPayloads.test.ts
+  729e7d78d152056e 1-31
+tenderly/tests/rpc.test.ts
+  729e7d78d152056e 1-116
+tenderly/tests/actions.execute.test.ts
+  729e7d78d152056e 1-282
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "13caead9d363d50876388162c5ff846ed457f69f",
+  "prompts": {
+    "25d5f0e04ee5f9ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "343ae986-63f8-45eb-a86c-c26264414e7e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 86,
+      "total_deletions": 4,
+      "accepted_lines": 86,
+      "overriden_lines": 0
+    },
+    "5db52b8ccd6907d6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "30ec63bb-b576-4759-8d30-7f3db298541c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 58,
+      "total_deletions": 0,
+      "accepted_lines": 58,
+      "overriden_lines": 0
+    },
+    "729e7d78d152056e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9f4efdac-9057-413f-83f5-5209fa4c390b",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 4297,
+      "total_deletions": 54,
+      "accepted_lines": 3954,
+      "overriden_lines": 0
+    },
+    "afec17204cdfa942": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4ca23de5-11ab-4e7c-9dff-48e370cf8e1c",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 1422,
+      "total_deletions": 41,
+      "accepted_lines": 184,
+      "overriden_lines": 1
+    }
+  },
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
