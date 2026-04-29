@@ -1,0 +1,146 @@
+# Tenderly Web3 Actions configuration for Aave Governance V3 robot.
+#
+# Replaces (in parallel, then deprecates) the on-chain Chainlink Automation keepers.
+# Action functions live under src/tenderly/. Shared logic lives under src/core/ and
+# src/orchestration/ — those modules are also used by the CLI in src/cli/.
+#
+# Required secrets (configured via Tenderly UI or `tenderly actions secret set`):
+#   PRIVATE_KEY        Hex private key for the signer EOA.
+#   ALCHEMY_API_KEY    (recommended) Auto-builds RPC URLs for every chain via Alchemy.
+#                      The L1 RPC must support eth_getProof — Alchemy does.
+#   RPC_<NETWORK>      (optional) Per-chain override; names match @bgd-labs/toolbox
+#                      getNetworkEnv() (e.g. RPC_MAINNET, RPC_POLYGON, RPC_AVALANCHE).
+#
+# Deploy:
+#   tenderly login                          # one-time
+#   tenderly actions build                  # local build (esbuild bundle)
+#   tenderly actions deploy                 # upload + activate
+#
+# Layout:
+#   - governance-scan          — periodic L1 scan
+#   - voting-activated-listener — event-driven storage-roots submission
+#   - voting-all                — periodic backup scan across every voting chain
+#   - exec-scan-<chain>         — one periodic action per execution chain.
+#                                  If you hit "Too many actions for project" while
+#                                  deploying, comment all of these out and uncomment
+#                                  the `execution-all` block at the bottom — it
+#                                  scans every chain in a single action.
+
+account_id: "aave"
+project_slug: "governance-v3"
+actions:
+  aave/governance-v3:
+    runtime: v2
+    sources: src
+    specs:
+      governance-scan:
+        description: "Scan Aave governance on Ethereum for activate/execute/cancel"
+        function: tenderly/index:governanceAction
+        trigger:
+          type: periodic
+          periodic:
+            interval: 5m
+
+      voting-activated-listener:
+        description: "On L1 VotingActivated event, fetch proofs and submit to voting chain"
+        function: tenderly/index:votingActivatedListener
+        trigger:
+          type: transaction
+          transaction:
+            status:
+              - mined
+            filters:
+              - network: 1
+                eventEmitted:
+                  contract:
+                    address: "0x9AEE0B04504CeF83A65AC3f0e838D0593BCb2BC7"
+                  name: "VotingActivated"
+
+      voting-all:
+        description: "Periodic backup scan across every voting chain (eth/polygon/avax) for submitRoots/createVote/closeAndSend"
+        function: tenderly/index:votingAll
+        trigger: { type: periodic, periodic: { interval: 5m } }
+
+      health-notify:
+        description: "Daily signer balance check across every chain we sign on; posts to Slack/Telegram only if a chain is below threshold"
+        function: tenderly/index:healthAction
+        trigger:
+          type: periodic
+          periodic:
+            interval: 1d
+
+      # Per-execution-chain actions. If your Tenderly project hits the per-project
+      # action limit, comment out every `exec-scan-<chain>` entry below and uncomment
+      # the `execution-all` block at the bottom of the file — it scans all chains
+      # sequentially from a single action.
+      exec-scan-ethereum:
+        function: tenderly/index:execEthereum
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-polygon:
+        function: tenderly/index:execPolygon
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-avalanche:
+        function: tenderly/index:execAvalanche
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-arbitrum:
+        function: tenderly/index:execArbitrum
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-optimism:
+        function: tenderly/index:execOptimism
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-base:
+        function: tenderly/index:execBase
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-bnb:
+        function: tenderly/index:execBnb
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-gnosis:
+        function: tenderly/index:execGnosis
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-metis:
+        function: tenderly/index:execMetis
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-scroll:
+        function: tenderly/index:execScroll
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-celo:
+        function: tenderly/index:execCelo
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-linea:
+        function: tenderly/index:execLinea
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-mantle:
+        function: tenderly/index:execMantle
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-ink:
+        function: tenderly/index:execInk
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-plasma:
+        function: tenderly/index:execPlasma
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-megaeth:
+        function: tenderly/index:execMegaeth
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-soneium:
+        function: tenderly/index:execSoneium
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-sonic:
+        function: tenderly/index:execSonic
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-xlayer:
+        function: tenderly/index:execXlayer
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-zksync:
+        function: tenderly/index:execZksync
+        trigger: { type: periodic, periodic: { interval: 5m } }
+
+      # ---- Fallback: single consolidated execution scanner ---------------------
+      # If the per-chain `exec-scan-<chain>` actions above can't be deployed because
+      # of the per-project action limit ("Too many actions for project"), DELETE all
+      # of those `exec-scan-*` entries and uncomment this block instead. It scans
+      # every chain in EXECUTION_CHAINS sequentially from a single Tenderly action.
+      #
+      # execution-all:
+      #   description: "Periodic scan across every execution chain for executePayload (fallback when action limit is hit)"
+      #   function: tenderly/index:executionAll
+      #   trigger: { type: periodic, periodic: { interval: 5m } }
