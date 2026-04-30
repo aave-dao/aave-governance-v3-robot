@@ -12,15 +12,23 @@ export const fmtRelative = (etaAt: number, now = Math.floor(Date.now() / 1000)):
     [60, 'm'],
     [1, 's'],
   ];
+  // Under 1 day → show 3 parts (h m s, or 0h 0m 0s) so the seconds tick visibly. Beyond a
+  // day → 2 parts (Xd Yh) is clean enough; the user only needs minute precision at that scale.
+  const maxParts = abs < 86400 ? 3 : 2;
   let remainder = abs;
   const parts: string[] = [];
+  let started = false;
   for (const [u, label] of units) {
-    if (remainder >= u) {
-      const n = Math.floor(remainder / u);
-      remainder -= n * u;
-      parts.push(`${n}${label}`);
-      if (parts.length === 2) break;
+    if (!started) {
+      // Find the first unit that's actually present, OR fall through to seconds if everything
+      // is zero (so we render "0s" instead of nothing).
+      if (remainder >= u || u === 1) started = true;
+      else continue;
     }
+    if (parts.length >= maxParts) break;
+    const n = Math.floor(remainder / u);
+    remainder -= n * u;
+    parts.push(`${n}${label}`);
   }
   if (parts.length === 0) parts.push('0s');
   const text = parts.join(' ');
