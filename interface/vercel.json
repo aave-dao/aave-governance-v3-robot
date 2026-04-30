@@ -21,11 +21,13 @@
     { "path": "/api/cron/exec-scan/mantle", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/ink", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/plasma", "schedule": "* * * * *" },
-    { "path": "/api/cron/exec-scan/megaeth", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/soneium", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/sonic", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/xlayer", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/zksync", "schedule": "* * * * *" }
+  ],
+  "_pausedCron": [
+    { "path": "/api/cron/exec-scan/megaeth", "schedule": "* * * * *" }
   ],
   "functions": {
     "app/api/cron/cache-refresh/route.ts": { "maxDuration": 300 },
