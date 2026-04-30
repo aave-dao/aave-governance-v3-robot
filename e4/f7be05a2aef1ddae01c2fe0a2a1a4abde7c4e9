@@ -1,0 +1,14 @@
+interface/vercel.json
+  h_c84ca9b512ee6d 29-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "e4f7be05a2aef1ddae01c2fe0a2a1a4abde7c4e9",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
