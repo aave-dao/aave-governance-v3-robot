@@ -1,5 +1,6 @@
 import type {Logger} from './logger';
 import {explorerBaseUrl, shortHash, txUrl} from './explorers';
+import {redactSecrets} from '@/lib/redact-secrets';
 
 /**
  * Out-of-band notifications for the robot. Reads channel config from `process.env` on
@@ -217,11 +218,16 @@ export const notifyError = async (p: NotifyErrorParams): Promise<void> => {
       ? ` (chain: <code>${escapeHtml(chainLabel(p.chainId, p.chainName))}</code>)`
       : '';
 
-  const errMessage = p.error instanceof Error ? p.error.message : String(p.error);
-  const stackLines =
+  // Redact RPC API keys / tokens before they hit Slack/Telegram. Viem's RPC errors regularly
+  // include the full provider URL, which would otherwise leak the key.
+  const errMessage = redactSecrets(
+    p.error instanceof Error ? p.error.message : String(p.error),
+  );
+  const stackLines = redactSecrets(
     p.error instanceof Error && p.error.stack
       ? p.error.stack.split('\n').slice(0, 5).join('\n')
-      : '';
+      : '',
+  );
 
   const meta = renderMeta(p.meta);
 

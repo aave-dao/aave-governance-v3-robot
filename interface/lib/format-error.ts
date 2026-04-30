@@ -33,7 +33,7 @@ const visitedCauses = (root: unknown): unknown[] => {
 };
 
 export const formatError = (err: unknown): string => {
-  if (typeof err === 'string') return err.slice(0, MAX);
+  if (typeof err === 'string') return redactSecrets(err.slice(0, MAX));
   if (err === null || err === undefined) return 'unknown error';
 
   const lines: string[] = [];
@@ -68,5 +68,5 @@ export const formatError = (err: unknown): string => {
 
   let combined = lines.join('\n');
   if (combined.length > MAX) combined = combined.slice(0, MAX - 3) + '...';
-  return combined;
+  return redactSecrets(combined);
 };
