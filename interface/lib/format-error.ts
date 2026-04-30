@@ -2,7 +2,10 @@
 // Viem's contract errors attach `shortMessage`, `metaMessages` (call inputs / contract / fn /
 // args) and a `cause` chain that often surfaces the decoded revert reason or RPC error body.
 // We flatten all of that into one multi-line string so a developer reading the executions row
-// can see exactly what reverted.
+// can see exactly what reverted, then run the result through `redactSecrets` so RPC API keys
+// in URLs (Alchemy/Infura/etc) never land in the DB or notifications.
+
+import { redactSecrets } from './redact-secrets';
 
 const MAX = 4_000;
 

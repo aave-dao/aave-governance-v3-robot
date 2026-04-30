@@ -26,9 +26,6 @@
     { "path": "/api/cron/exec-scan/xlayer", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/zksync", "schedule": "* * * * *" }
   ],
-  "_pausedCron": [
-    { "path": "/api/cron/exec-scan/megaeth", "schedule": "* * * * *" }
-  ],
   "functions": {
     "app/api/cron/cache-refresh/route.ts": { "maxDuration": 300 },
     "app/api/cron/voting-all/route.ts": { "maxDuration": 120 },
