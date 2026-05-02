@@ -1,4 +1,6 @@
 import {
+  AaveV2Avalanche,
+  AaveV3Avalanche,
   GovernanceV3Ethereum,
   GovernanceV3Polygon,
   GovernanceV3Avalanche,
@@ -202,6 +204,31 @@ export const GOVERNANCE_TOKENS: GovernanceTokens = {
 /** stkAAVE exchange-rate storage slot (consumed by VotingStrategy.getVotingPower). */
 export const STK_AAVE_EXCHANGE_RATE_SLOT: Hex =
   '0x0000000000000000000000000000000000000000000000000000000000000051';
+
+/**
+ * Proof-of-Reserves executors monitored by the PoR keeper. Each executor exposes
+ * `areAllReservesBacked()`, `isEmergencyActionPossible()`, and `executeEmergencyAction()`.
+ *
+ * Mirrors the on-chain Chainlink keeper at 0x7aE2930B50CFEbc99FE6DB16CE5B9C7D8d09332C
+ * (Avalanche), which is registered once per executor with the executor address bytes-encoded
+ * as `checkData`. Today only Avalanche has PoR; add new chains by extending this map.
+ */
+export type ProofOfReserveChainConfig = {
+  chainId: number;
+  name: string;
+  executors: Array<{label: string; address: Address}>;
+};
+
+export const PROOF_OF_RESERVE_CHAINS: Record<number, ProofOfReserveChainConfig> = {
+  [GovernanceV3Avalanche.CHAIN_ID]: {
+    chainId: GovernanceV3Avalanche.CHAIN_ID,
+    name: 'avalanche',
+    executors: [
+      {label: 'aave-v2', address: AaveV2Avalanche.PROOF_OF_RESERVE as Address},
+      {label: 'aave-v3', address: AaveV3Avalanche.PROOF_OF_RESERVE as Address},
+    ],
+  },
+};
 
 export const findVotingChainByPortal = (portal: Address): VotingChainConfig | undefined => {
   const lower = portal.toLowerCase();

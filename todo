@@ -1,0 +1,3 @@
+- it can show time till action instead of expected state 
+- retry
+- notifications on failures

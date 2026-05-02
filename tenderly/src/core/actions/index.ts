@@ -12,3 +12,4 @@ export {
   type SubmitRootsResult,
 } from './submitStorageRoots';
 export {executePayloadAction, checkExecutePayload} from './executePayload';
+export {proofOfReservesAction, checkProofOfReserves} from './proofOfReserves';

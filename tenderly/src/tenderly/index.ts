@@ -25,3 +25,4 @@ export {
   execXlayer,
   execZksync,
 } from './executionAction';
+export {proofOfReservesAvalanche, proofOfReservesAll} from './proofOfReservesAction';

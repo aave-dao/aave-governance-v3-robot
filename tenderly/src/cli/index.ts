@@ -4,6 +4,7 @@ import {
   GOVERNANCE_CHAIN_ID,
   VOTING_CHAINS,
   EXECUTION_CHAINS,
+  PROOF_OF_RESERVE_CHAINS,
   findVotingChainByPortal,
   type VotingChainId,
 } from '../core/chains';
@@ -15,6 +16,7 @@ import {
   executePayloadAction,
   executeProposalAction,
   executeSubmitStorageRoots,
+  proofOfReservesAction,
   submitStorageRootsForBlock,
 } from '../core/actions';
 import {createLogger} from '../core/logger';
@@ -26,6 +28,7 @@ import {collectHealth, formatHealthAlert, formatHealthFull, formatHealthReport} 
 import {runGovernanceScan} from '../orchestration/governanceScan';
 import {runVotingScan} from '../orchestration/votingScan';
 import {runExecutionScan} from '../orchestration/executionScan';
+import {runProofOfReservesScan} from '../orchestration/proofOfReservesScan';
 import {buildInspectorClients, ethRpcUrls, makeWriteContext} from './clientFactory';
 import {loadEnv, requirePrivateKey, type Env} from './env';
 import type {Logger} from '../core/logger';
@@ -69,6 +72,53 @@ const resolveExecutionChainByName = (name: string): number => {
     if (EXECUTION_CHAINS[id]!.name === lower) return id;
   }
   throw new Error(`unknown execution chain: ${name}`);
+};
+
+const resolveProofOfReserveChainByName = (name: string): number => {
+  const lower = name.toLowerCase();
+  for (const id of Object.keys(PROOF_OF_RESERVE_CHAINS).map(Number)) {
+    if (PROOF_OF_RESERVE_CHAINS[id]!.name === lower) return id;
+  }
+  throw new Error(
+    `unknown proof-of-reserves chain: ${name} (configured: ${Object.values(PROOF_OF_RESERVE_CHAINS)
+      .map((c) => c.name)
+      .join(', ')})`,
+  );
+};
+
+/**
+ * Resolve a PoR executor reference to {chainId, executor address, label}. Accepts:
+ *  - a 0x-address    → finds the chain that has it registered (via PROOF_OF_RESERVE_CHAINS).
+ *  - a label string  → e.g. "aave-v2"/"aave-v3" together with --chain to disambiguate.
+ */
+const resolveProofOfReserveExecutor = (
+  ref: string,
+  chainOpt?: string,
+): {chainId: number; executor: Address; label: string} => {
+  const isAddress = /^0x[0-9a-fA-F]{40}$/.test(ref);
+  if (isAddress) {
+    const lower = ref.toLowerCase();
+    for (const id of Object.keys(PROOF_OF_RESERVE_CHAINS).map(Number)) {
+      const cfg = PROOF_OF_RESERVE_CHAINS[id]!;
+      const found = cfg.executors.find((e) => e.address.toLowerCase() === lower);
+      if (found) return {chainId: id, executor: found.address, label: found.label};
+    }
+    throw new Error(
+      `executor ${ref} is not registered in PROOF_OF_RESERVE_CHAINS — add it to chains.ts first`,
+    );
+  }
+  if (!chainOpt) {
+    throw new Error(`label "${ref}" needs --chain to disambiguate`);
+  }
+  const chainId = resolveProofOfReserveChainByName(chainOpt);
+  const cfg = PROOF_OF_RESERVE_CHAINS[chainId]!;
+  const found = cfg.executors.find((e) => e.label === ref);
+  if (!found) {
+    throw new Error(
+      `unknown PoR label "${ref}" on ${cfg.name} (available: ${cfg.executors.map((e) => e.label).join(', ')})`,
+    );
+  }
+  return {chainId, executor: found.address, label: found.label};
 };
 
 /**
@@ -372,6 +422,24 @@ program
   });
 
 program
+  .command('proof-of-reserves <executor>')
+  .description(
+    'executeEmergencyAction on a ProofOfReserveExecutor. <executor> may be a 0x-address ' +
+      '(chain auto-resolved) or a label like "aave-v2"/"aave-v3" (requires --chain).',
+  )
+  .option('--chain <name>', 'PoR chain (e.g. avalanche). Required only for label-style refs.')
+  .action(async (ref: string, opts: {chain?: string}) => {
+    const env = loadEnv();
+    const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
+    const {chainId, executor, label} = resolveProofOfReserveExecutor(ref, opts.chain);
+    const cfg = PROOF_OF_RESERVE_CHAINS[chainId]!;
+    logger.info('proof-of-reserves: resolved', {chain: cfg.name, executor, label});
+    const ctx = makeWriteContext(env, chainId, logger, cfg.name);
+    const {txHash} = await proofOfReservesAction.execute(ctx, executor);
+    logger.info('proof-of-reserves: done', {txHash});
+  });
+
+program
   .command('execute-payload <payloadId>')
   .description('executePayload on a payload execution chain')
   .requiredOption('--chain <name>', 'execution chain name')
@@ -446,6 +514,37 @@ program
         });
       } catch (err) {
         logger.error('run-execution: chain failed', {
+          chain: name,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+  });
+
+program
+  .command('run-proof-of-reserves')
+  .description(
+    'Scan PoR-enabled chain(s) and executeEmergencyAction on any executor whose reserves ' +
+      'flipped unbacked. With --chain runs only that chain; without, scans all (today: avalanche).',
+  )
+  .option('--chain <name>', 'PoR chain name. Omit to scan every chain in PROOF_OF_RESERVE_CHAINS.')
+  .action(async (opts: {chain?: string}) => {
+    const env = loadEnv();
+    const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
+    const chainIds = opts.chain
+      ? [resolveProofOfReserveChainByName(opts.chain)]
+      : Object.keys(PROOF_OF_RESERVE_CHAINS).map(Number);
+    for (const chainId of chainIds) {
+      const name = PROOF_OF_RESERVE_CHAINS[chainId]!.name;
+      try {
+        const ctx = makeWriteContext(env, chainId, logger, name);
+        const results = await runProofOfReservesScan(ctx);
+        logger.info('run-proof-of-reserves: done', {
+          chain: name,
+          results: JSON.stringify(results, replacer),
+        });
+      } catch (err) {
+        logger.error('run-proof-of-reserves: chain failed', {
           chain: name,
           error: err instanceof Error ? err.message : String(err),
         });

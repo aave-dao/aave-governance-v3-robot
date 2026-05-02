@@ -134,6 +134,16 @@ actions:
         function: tenderly/index:execZksync
         trigger: { type: periodic, periodic: { interval: 5m } }
 
+      # ---- Proof of Reserves (replicates Chainlink keeper 0x7aE2930B50CFEbc99FE6DB16CE5B9C7D8d09332C) ----
+      # Reads `areAllReservesBacked() + isEmergencyActionPossible()` on every executor in
+      # PROOF_OF_RESERVE_CHAINS (today: AaveV2/V3 on Avalanche) and triggers
+      # `executeEmergencyAction()` when both conditions flip negative. New PoR-enabled
+      # chains are picked up automatically once added to core/chains.ts.
+      proof-of-reserves-avalanche:
+        description: "Proof-of-Reserves emergency executor for AaveV2 + AaveV3 on Avalanche"
+        function: tenderly/index:proofOfReservesAvalanche
+        trigger: { type: periodic, periodic: { interval: 5m } }
+
       # ---- Fallback: single consolidated execution scanner ---------------------
       # If the per-chain `exec-scan-<chain>` actions above can't be deployed because
       # of the per-project action limit ("Too many actions for project"), DELETE all
@@ -143,4 +153,14 @@ actions:
       # execution-all:
       #   description: "Periodic scan across every execution chain for executePayload (fallback when action limit is hit)"
       #   function: tenderly/index:executionAll
+      #   trigger: { type: periodic, periodic: { interval: 5m } }
+
+      # ---- Fallback: single consolidated proof-of-reserves scanner -------------
+      # If you'd rather run one consolidated PoR action across every chain (currently
+      # just Avalanche, but room to grow), DELETE the per-chain `proof-of-reserves-*`
+      # entries above and uncomment this block.
+      #
+      # proof-of-reserves-all:
+      #   description: "Periodic PoR scan across every PoR-enabled chain (fallback)"
+      #   function: tenderly/index:proofOfReservesAll
       #   trigger: { type: periodic, periodic: { interval: 5m } }

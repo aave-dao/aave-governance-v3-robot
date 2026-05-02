@@ -1,0 +1,11 @@
+forge-std/=lib/forge-std/src/
+lib/chainlink-brownie-contracts/=lib/chainlink-brownie-contracts/
+src/contracts/=src/contracts/
+src/interfaces/=src/interfaces/
+@aave/core-v2/=lib/protocol-v2/
+aave-address-book/=lib/aave-address-book/src/
+aave-helpers/=lib/aave-helpers/src/
+chainlink-brownie-contracts/=lib/chainlink-brownie-contracts/contracts/src/v0.8/
+ds-test/=lib/forge-std/lib/ds-test/src/
+protocol-v2/=lib/protocol-v2/
+solidity-utils/=lib/solidity-utils/src/
