@@ -13,13 +13,15 @@ import {GOVERNANCE_CHAIN_ID} from '../core/chains';
 import {hydrateSecrets} from './secrets';
 
 /**
- * Tenderly's runtime sets `LOG_LEVEL` so we can crank up verbosity from the dashboard
- * without redeploying. Falls back to `info` if unset.
+ * Tenderly's runtime sets `LOG_LEVEL` so we can crank down verbosity from the dashboard
+ * without redeploying. Defaults to `trace` (the most verbose) — Tenderly persists action
+ * logs and per-invocation log volume is low, so the extra detail is worth it for postmortems.
+ * Set LOG_LEVEL=info|warn|error in the dashboard to quiet things down.
  */
 const RESOLVED_LEVEL = (() => {
   const v = process.env.LOG_LEVEL?.toLowerCase();
   if (v === 'trace' || v === 'debug' || v === 'info' || v === 'warn' || v === 'error') return v;
-  return 'info' as const;
+  return 'trace' as const;
 })();
 
 export const tenderlyLogger = (): Logger =>
