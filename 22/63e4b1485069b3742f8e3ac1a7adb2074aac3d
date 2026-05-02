@@ -1,0 +1,28 @@
+interface/lib/robot/core/notify.ts
+  5570b74616293315 1,142-143,150-151,154-155,157-160,163-185,197
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "2263e4b1485069b3742f8e3ac1a7adb2074aac3d",
+  "prompts": {
+    "5570b74616293315": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8b11c9ba-a764-4b6c-9e47-a72c3db1c359",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 2841,
+      "total_deletions": 7,
+      "accepted_lines": 1414,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
