@@ -1,0 +1,68 @@
+tenderly/src/core/redact-secrets.ts
+  5570b74616293315 1-67
+tenderly/src/orchestration/proposalInspector.ts
+  973ea4bfbb3fb085 56-61,394-396
+  5570b74616293315 22,112,250,365,383
+tenderly/src/tenderly/runtime.ts
+  5570b74616293315 4,34,58
+tenderly/src/cli/clientFactory.ts
+  5570b74616293315 10,82-87
+tenderly/src/core/rpc.ts
+  5570b74616293315 3,9-14,17,21-49,53-57,72,77
+tenderly/src/cli/index.ts
+  5570b74616293315 29,256,289,327,415
+tenderly/tests/helpers/mockClient.ts
+  5570b74616293315 99-109
+tenderly/src/core/notify.ts
+  5570b74616293315 1,4,142-143,150-151,154-155,157-160,163-185,197,253-258,261-262
+tenderly/tests/notify.test.ts
+  5570b74616293315 2,7-17,53,66,91,105,122,142
+tenderly/src/tenderly/votingActivatedListener.ts
+  5570b74616293315 73
+tenderly/src/orchestration/votingScan.ts
+  5570b74616293315 172
+tenderly/src/core/actions/submitStorageRoots.ts
+  5570b74616293315 113,122,135-138,171,176,289,293,376,411,427
+tenderly/src/tenderly/votingChainAction.ts
+  5570b74616293315 23
+tenderly/src/core/clients.ts
+  5570b74616293315 4,8,10,22,24-34,39-42,69-72,80-81,94-117,119-120,122-127,129-183,194-195,198-199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "2d6ec684f5924f43de407610fc1cace11a4935dd",
+  "prompts": {
+    "5570b74616293315": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8b11c9ba-a764-4b6c-9e47-a72c3db1c359",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 1379,
+      "overriden_lines": 0
+    },
+    "973ea4bfbb3fb085": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d65e8abb-e691-47e6-9e88-4248a44b42f7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 2390,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
