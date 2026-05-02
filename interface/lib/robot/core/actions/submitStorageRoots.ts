@@ -408,6 +408,7 @@ export const submitStorageRootsForBlock = async (
     chain: args.config.name,
   });
   await notifyTxSuccess({
+    publicClient: ctx.publicClient,
     chainId: ctx.chainId,
     chainName: args.config.name,
     action: 'submitStorageRoots',
@@ -475,6 +476,7 @@ export const executeSubmitStorageRoots = async (
     chain: config.name,
   });
   await notifyTxSuccess({
+    publicClient: ctx.publicClient,
     chainId: ctx.chainId,
     chainName: config.name,
     action: 'submitStorageRoots',

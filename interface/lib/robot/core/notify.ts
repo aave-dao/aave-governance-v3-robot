@@ -1,3 +1,4 @@
+import type {Hex, PublicClient} from 'viem';
 import type {Logger} from './logger';
 import {explorerBaseUrl, shortHash, txUrl} from './explorers';
 import {redactSecrets} from '@/lib/redact-secrets';
@@ -138,19 +139,50 @@ const markNotified = (err: unknown): void => {
 // ---------------- public API ----------------
 
 export type NotifyTxParams = {
+  /** Used to wait for the receipt before notifying. */
+  publicClient: PublicClient;
   chainId: number;
   chainName?: string;
   action: string;
   txHash: string;
   meta?: Record<string, unknown>;
   logger?: Logger;
+  /** Receipt-wait timeout in ms. Defaults to 90s. */
+  confirmTimeoutMs?: number;
 };
 
+const DEFAULT_CONFIRM_TIMEOUT_MS = 90_000;
+
 /**
- * Post a "tx submitted" success notification. Hyperlinks the txHash to the right
- * block explorer. Best-effort — never throws.
+ * Wait for the tx receipt, then post a "tx confirmed" success notification. Hyperlinks the
+ * txHash to the right block explorer. Throws on revert or confirmation timeout — the outer
+ * `notifyError` pipeline picks those up, so we never post a false-success alert when a tx
+ * was accepted into the mempool but reverted on-chain.
  */
 export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
+  // Wait for confirmation first. A successful broadcast (mempool acceptance) is not the
+  // same as a successful execution — txs can revert post-broadcast (out-of-gas, runtime
+  // require, race condition). Notifying only on a confirmed `success` receipt avoids
+  // false positives in Slack/Telegram.
+  let receipt: Awaited<ReturnType<PublicClient['waitForTransactionReceipt']>>;
+  try {
+    receipt = await p.publicClient.waitForTransactionReceipt({
+      hash: p.txHash as Hex,
+      timeout: p.confirmTimeoutMs ?? DEFAULT_CONFIRM_TIMEOUT_MS,
+    });
+  } catch (err) {
+    throw new Error(
+      `tx ${p.action} submitted but confirmation failed: ${p.txHash} — ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+  if (receipt.status !== 'success') {
+    throw new Error(
+      `tx ${p.action} reverted on-chain: ${p.txHash} (block ${receipt.blockNumber.toString()})`,
+    );
+  }
+
   if (
     !process.env.SLACK_WEBHOOK_URL &&
     !process.env.TELEGRAM_BOT_TOKEN &&
@@ -162,7 +194,7 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
   const chain = chainLabel(p.chainId, p.chainName);
   const url = txUrl(p.chainId, p.txHash);
   const short = shortHash(p.txHash);
-  const meta = renderMeta(p.meta);
+  const meta = renderMeta({...p.meta, block: receipt.blockNumber.toString()});
 
   // Slack: mrkdwn — `<URL|text>` for a link, backticks for inline code.
   const slackTxLine = url ? `tx: <${url}|${short}>` : `tx: \`${p.txHash}\``;
