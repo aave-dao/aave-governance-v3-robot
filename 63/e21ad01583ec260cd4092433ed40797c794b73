@@ -1,0 +1,28 @@
+tenderly/src/tenderly/runtime.ts
+  5570b74616293315 16-19,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "63e21ad01583ec260cd4092433ed40797c794b73",
+  "prompts": {
+    "5570b74616293315": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8b11c9ba-a764-4b6c-9e47-a72c3db1c359",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 68,
+      "total_deletions": 66,
+      "accepted_lines": 1052,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
