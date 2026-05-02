@@ -199,7 +199,7 @@ const upsertReport = async (
       .insert(payloads)
       .values(row)
       .onConflictDoUpdate({
-        target: [payloads.chainId, payloads.payloadId],
+        target: [payloads.chainId, payloads.payloadId, payloads.proposalId],
         set: {
           proposalId: row.proposalId,
           chainName: row.chainName,

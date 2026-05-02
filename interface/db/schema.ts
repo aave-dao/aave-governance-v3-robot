@@ -121,7 +121,10 @@ export const payloads = pgTable(
     refreshedAt: timestamp('refreshed_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
-    pk: uniqueIndex('payloads_pk').on(t.chainId, t.payloadId),
+    // proposalId is part of the unique key — multiple proposals can reference the same
+    // (chain_id, payload_id) (e.g. re-submissions like the rsETH incident #477+#478),
+    // and each proposal-payload link needs its own row.
+    pk: uniqueIndex('payloads_pk').on(t.chainId, t.payloadId, t.proposalId),
     proposalIdx: index('payloads_proposal_idx').on(t.proposalId),
     refreshedAtIdx: index('payloads_refreshed_at_idx').on(t.refreshedAt),
   }),
