@@ -1,0 +1,32 @@
+interface/db/schema.ts
+  5570b74616293315 124-127
+interface/lib/refresh.ts
+  5570b74616293315 202
+interface/db/migrations/0006_payloads_per_proposal.sql
+  5570b74616293315 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "2e406006f4d1787f58e2fc5aa668860219d7b115",
+  "prompts": {
+    "5570b74616293315": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8b11c9ba-a764-4b6c-9e47-a72c3db1c359",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 2,
+      "accepted_lines": 1058,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
