@@ -1,0 +1,240 @@
+reference/contracts/avalanche-proof-of-reserves-keeper/src/contracts/ProofOfReserveKeeper.sol
+  5570b74616293315 1-53
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdAssertions.t.sol
+  5570b74616293315 1-141
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/foundry.toml
+  5570b74616293315 1-18
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/LibVariable.sol
+  5570b74616293315 1-477
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdConfig.sol
+  5570b74616293315 1-632
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdToml.sol
+  5570b74616293315 1-275
+reference/contracts/avalanche-proof-of-reserves-keeper/.gitmodules
+  5570b74616293315 1-3
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdAssertions.sol
+  5570b74616293315 1-1300
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/console.sol
+  5570b74616293315 1-1599
+tenderly/src/orchestration/proofOfReservesScan.ts
+  5570b74616293315 1-76
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdToml.t.sol
+  5570b74616293315 1-49
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/Script.sol
+  5570b74616293315 1-28
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/README.md
+  5570b74616293315 1-314
+reference/contracts/avalanche-proof-of-reserves-keeper/remappings.txt
+  5570b74616293315 1-11
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/chainlink-brownie-contracts/contracts/src/v0.8/KeeperCompatible.sol
+  5570b74616293315 1-7
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol
+  5570b74616293315 1-41
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/fixtures/test.json
+  5570b74616293315 1-8
+reference/contracts/avalanche-proof-of-reserves-keeper/src/interfaces/IProofOfReserveExecutor.sol
+  5570b74616293315 1-62
+tenderly/src/tenderly/proofOfReservesAction.ts
+  5570b74616293315 1-89
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdJson.t.sol
+  5570b74616293315 1-49
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdChains.sol
+  5570b74616293315 1-310
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/interfaces/IERC721.sol
+  5570b74616293315 1-164
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdStyle.t.sol
+  5570b74616293315 1-110
+interface/app/api/cron/proof-of-reserves/avalanche/route.ts
+  5570b74616293315 1-17
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/compilation/CompilationScript.sol
+  5570b74616293315 1-8
+tenderly/src/tenderly/index.ts
+  5570b74616293315 28
+reference/contracts/avalanche-proof-of-reserves-keeper/README.md
+  5570b74616293315 1-66
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/LICENSE-MIT
+  5570b74616293315 1-25
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/console2.sol
+  5570b74616293315 1-4
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdInvariant.sol
+  5570b74616293315 1-161
+tenderly/tests/actions.proofOfReserves.test.ts
+  5570b74616293315 1-118
+.claude/skills/chainlink-keeper-to-tenderly/SKILL.md
+  5570b74616293315 1-288
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdStorage.t.sol
+  5570b74616293315 1-532
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/.github/dependabot.yml
+  5570b74616293315 1-8
+tenderly/src/core/actions/proofOfReserves.ts
+  5570b74616293315 1-110
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdJson.sol
+  5570b74616293315 1-275
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdMath.sol
+  5570b74616293315 1-67
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/.github/workflows/ci.yml
+  5570b74616293315 1-163
+interface/lib/robot/core/abis/proofOfReserveExecutor.ts
+  5570b74616293315 1-29
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/interfaces/IERC165.sol
+  5570b74616293315 1-12
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/.gitignore
+  5570b74616293315 1-4
+tenderly/src/core/abis/index.ts
+  5570b74616293315 8
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/chainlink-brownie-contracts/contracts/src/v0.8/KeeperBase.sol
+  5570b74616293315 1-25
+reference/contracts/avalanche-proof-of-reserves-keeper/foundry.toml
+  5570b74616293315 1-15
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/interfaces/IERC1155.sol
+  5570b74616293315 1-105
+interface/lib/robot/core/abis/index.ts
+  5570b74616293315 8
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/safeconsole.sol
+  5570b74616293315 1-13248
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/LibVariable.t.sol
+  5570b74616293315 1-452
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdMath.t.sol
+  5570b74616293315 1-202
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/Vm.t.sol
+  5570b74616293315 1-18
+tenderly/src/core/actions/index.ts
+  5570b74616293315 15
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/interfaces/IERC4626.sol
+  5570b74616293315 1-190
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdChains.t.sol
+  5570b74616293315 1-227
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/compilation/CompilationTestBase.sol
+  5570b74616293315 1-8
+package.json
+  973ea4bfbb3fb085 22-24
+tenderly/src/core/chains.ts
+  5570b74616293315 2-3,208-232
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/.gitattributes
+  5570b74616293315 1
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdUtils.sol
+  5570b74616293315 1-200
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/fixtures/test.toml
+  5570b74616293315 1-6
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/RELEASE_CHECKLIST.md
+  5570b74616293315 1-12
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/compilation/CompilationTest.sol
+  5570b74616293315 1-8
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/interfaces/IMulticall3.sol
+  5570b74616293315 1-68
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/compilation/CompilationScriptBase.sol
+  5570b74616293315 1-8
+reference/contracts/avalanche-proof-of-reserves-keeper/.gitignore
+  5570b74616293315 1-20
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdError.t.sol
+  5570b74616293315 1-119
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/CommonBase.t.sol
+  5570b74616293315 1-44
+interface/lib/robot/core/actions/proofOfReserves.ts
+  5570b74616293315 1-110
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdStorage.sol
+  5570b74616293315 1-476
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdUtils.t.sol
+  5570b74616293315 1-342
+interface/lib/robot/orchestration/proofOfReservesScan.ts
+  5570b74616293315 1-76
+interface/vercel.json
+  5570b74616293315 27
+  h_c84ca9b512ee6d 28
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/Config.t.sol
+  5570b74616293315 1-381
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdConstants.t.sol
+  5570b74616293315 1-38
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/Base.sol
+  5570b74616293315 1-48
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/interfaces/IERC20.sol
+  5570b74616293315 1-43
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdStyle.sol
+  5570b74616293315 1-333
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/fixtures/config.toml
+  5570b74616293315 1-81
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/Vm.sol
+  5570b74616293315 1-2535
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/Test.sol
+  5570b74616293315 1-32
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/.github/workflows/sync.yml
+  5570b74616293315 1-36
+tenderly/src/cli/index.ts
+  5570b74616293315 7,19,31,77-123,424-441,524-554
+tenderly/tenderly.yaml
+  5570b74616293315 137-146,157-166
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/package.json
+  5570b74616293315 1-16
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdCheats.sol
+  5570b74616293315 1-877
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/fixtures/broadcast.log.json
+  5570b74616293315 1-187
+todo
+  5570b74616293315 1-3
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/CONTRIBUTING.md
+  5570b74616293315 1-193
+interface/lib/robot/core/chains.ts
+  5570b74616293315 2-3,208-232
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/.github/CODEOWNERS
+  5570b74616293315 1
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdConstants.sol
+  5570b74616293315 1-30
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/interfaces/IERC7540.sol
+  5570b74616293315 1-145
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/scripts/vm.py
+  5570b74616293315 1-636
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/Config.sol
+  5570b74616293315 1-60
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/interfaces/IERC6909.sol
+  5570b74616293315 1-72
+tenderly/src/core/abis/proofOfReserveExecutor.ts
+  5570b74616293315 1-29
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/LICENSE-APACHE
+  5570b74616293315 1-203
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/StdError.sol
+  5570b74616293315 1-33
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/src/interfaces/IERC7575.sol
+  5570b74616293315 1-241
+reference/contracts/avalanche-proof-of-reserves-keeper/lib/forge-std/test/StdCheats.t.sol
+  5570b74616293315 1-695
+interface/lib/robot/core/actions/index.ts
+  5570b74616293315 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "eaa8d82dfb3692d5f8710463d26dea76eb97cfb1",
+  "prompts": {
+    "5570b74616293315": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8b11c9ba-a764-4b6c-9e47-a72c3db1c359",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 32692,
+      "total_deletions": 31721,
+      "accepted_lines": 31857,
+      "overriden_lines": 1
+    },
+    "973ea4bfbb3fb085": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d65e8abb-e691-47e6-9e88-4248a44b42f7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 2372,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
