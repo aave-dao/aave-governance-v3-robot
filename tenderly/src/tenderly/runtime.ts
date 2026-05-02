@@ -1,6 +1,7 @@
 import type {Context} from '@tenderly/actions';
 import {
   accountFromPrivateKey,
+  candidateUrls,
   describeRpcSource,
   getPublicClient,
   getRpcUrl,
@@ -30,7 +31,7 @@ export const tenderlyLogger = (): Logger =>
 export type ChainSetup = {
   read: ReadContext;
   write: WriteContext;
-  ethRpcUrl: string;
+  ethRpcUrls: string[];
   logger: Logger;
 };
 
@@ -54,7 +55,7 @@ export const setupChain = async (
   return {
     read: {chainId, publicClient, logger: baseLogger},
     write: {chainId, publicClient, walletClient, account, logger: baseLogger},
-    ethRpcUrl: getRpcUrl(GOVERNANCE_CHAIN_ID),
+    ethRpcUrls: candidateUrls(GOVERNANCE_CHAIN_ID),
     logger: baseLogger,
   };
 };

@@ -70,7 +70,7 @@ export const votingActivatedListener: ActionFn = async (ctx: Context, event: Eve
       const target = await setupChain(ctx, votingChain.chainId, votingChain.name);
       try {
         const r = await executeSubmitStorageRoots(
-          {...target.write, ethRpcUrl: govSetup.ethRpcUrl},
+          {...target.write, ethRpcUrls: govSetup.ethRpcUrls},
           {proposalId, l1ProposalBlockHash: snapshotBlockHash},
         );
         if (r.txHash) {

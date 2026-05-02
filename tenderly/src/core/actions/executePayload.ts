@@ -68,6 +68,7 @@ const execute = async (ctx: WriteContext, payloadId: bigint): Promise<ExecuteRes
   });
   ctx.logger.info('executePayload: submitted', {payloadId: payloadId.toString(), txHash});
   await notifyTxSuccess({
+    publicClient: ctx.publicClient,
     chainId: ctx.chainId,
     chainName: config.name,
     action: 'executePayload',

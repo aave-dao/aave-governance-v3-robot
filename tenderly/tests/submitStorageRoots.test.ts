@@ -193,7 +193,7 @@ describe('executeSubmitStorageRoots', () => {
       publicClient: makeMockClient({}, {chainId: 137}),
       walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
       account: ACCOUNT,
-      ethRpcUrl: ETH_RPC,
+      ethRpcUrls: ETH_RPC,
     };
     await expect(
       executeSubmitStorageRoots(ctx, {
@@ -214,7 +214,7 @@ describe('executeSubmitStorageRoots', () => {
         publicClient: makeMockClient(allRegisteredMocks(), {chainId: 137}),
         walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
         account: ACCOUNT,
-        ethRpcUrl: ETH_RPC,
+        ethRpcUrls: ETH_RPC,
       };
       const out = await executeSubmitStorageRoots(ctx, {
         proposalId: 1n,
@@ -255,7 +255,7 @@ describe('executeSubmitStorageRoots', () => {
         ),
         walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
         account: ACCOUNT,
-        ethRpcUrl: ETH_RPC,
+        ethRpcUrls: ETH_RPC,
       };
       await expect(
         executeSubmitStorageRoots(ctx, {proposalId: 1n, l1ProposalBlockHash: BLOCK_HASH}),
@@ -279,7 +279,7 @@ describe('executeSubmitStorageRoots', () => {
         ),
         walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
         account: ACCOUNT,
-        ethRpcUrl: ETH_RPC,
+        ethRpcUrls: ETH_RPC,
       };
       const out = await executeSubmitStorageRoots(ctx, {
         proposalId: 1n,
@@ -322,7 +322,7 @@ describe('executeSubmitStorageRoots', () => {
         ),
         walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
         account: ACCOUNT,
-        ethRpcUrl: ETH_RPC,
+        ethRpcUrls: ETH_RPC,
       };
       await executeSubmitStorageRoots(ctx, {
         proposalId: 1n,
@@ -359,7 +359,7 @@ describe('executeSubmitStorageRoots', () => {
         ),
         walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
         account: ACCOUNT,
-        ethRpcUrl: ETH_RPC,
+        ethRpcUrls: ETH_RPC,
       };
       await expect(
         executeSubmitStorageRoots(ctx, {
@@ -386,7 +386,7 @@ describe('executeSubmitStorageRoots', () => {
         ),
         walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
         account: ACCOUNT,
-        ethRpcUrl: ETH_RPC,
+        ethRpcUrls: ETH_RPC,
       };
       await executeSubmitStorageRoots(ctx, {
         proposalId: 1n,
@@ -424,7 +424,7 @@ describe('submitStorageRootsForBlock', () => {
         ),
         walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
         account: ACCOUNT,
-        ethRpcUrl: ETH_RPC,
+        ethRpcUrls: ETH_RPC,
       };
       const out = await submitStorageRootsForBlock(ctx, {
         l1BlockHash: BLOCK_HASH,
@@ -448,7 +448,7 @@ describe('submitStorageRootsForBlock', () => {
         publicClient: makeMockClient(allRegisteredMocks(), {chainId: 137}),
         walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
         account: ACCOUNT,
-        ethRpcUrl: ETH_RPC,
+        ethRpcUrls: ETH_RPC,
       };
       const out = await submitStorageRootsForBlock(ctx, {
         l1BlockHash: BLOCK_HASH,

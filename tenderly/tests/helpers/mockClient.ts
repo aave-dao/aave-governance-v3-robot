@@ -96,6 +96,17 @@ export const makeMockClient = (
       }
       return options.chainState.gasPrice;
     },
+
+    /**
+     * `notifyTxSuccess` waits for the receipt before posting. Tests don't actually broadcast,
+     * so return a synthetic confirmed receipt — letting every action's "send tx → notify"
+     * path complete deterministically. Override per-test by replacing the method on the
+     * returned client if you need a `reverted` or timeout case.
+     */
+    waitForTransactionReceipt: async () => ({
+      status: 'success' as const,
+      blockNumber: 1n,
+    }),
   } as unknown as PublicClient;
 };
 

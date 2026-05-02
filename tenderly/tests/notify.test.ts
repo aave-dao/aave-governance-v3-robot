@@ -1,7 +1,19 @@
 import {beforeEach, describe, expect, test} from 'bun:test';
+import type {PublicClient} from 'viem';
 import {notifyError, notifyHealth, notifyTxSuccess} from '../src/core/notify';
 import {withEnv} from './helpers/env';
 import {installFetchMock, type FetchResponseSpec} from './helpers/mockFetch';
+
+// Minimal PublicClient stub: `notifyTxSuccess` only calls `waitForTransactionReceipt`.
+const fakeClient = (
+  receipt: {status: 'success' | 'reverted'; blockNumber: bigint} = {
+    status: 'success',
+    blockNumber: 1n,
+  },
+): PublicClient =>
+  ({
+    waitForTransactionReceipt: async () => receipt,
+  } as unknown as PublicClient);
 
 const NO_CHANNELS = {
   SLACK_WEBHOOK_URL: undefined,
@@ -38,7 +50,7 @@ describe('notifyTxSuccess', () => {
     await withEnv(NO_CHANNELS, async () => {
       const {restore, calls} = installFetchMock(() => ok200());
       try {
-        await notifyTxSuccess({chainId: 1, action: 'test', txHash: '0xabc'});
+        await notifyTxSuccess({publicClient: fakeClient(), chainId: 1, action: 'test', txHash: '0xabc'});
       } finally {
         restore();
       }
@@ -51,6 +63,7 @@ describe('notifyTxSuccess', () => {
       const {restore, calls} = installFetchMock(() => ok200());
       try {
         await notifyTxSuccess({
+          publicClient: fakeClient(),
           chainId: 1,
           chainName: 'ethereum',
           action: 'activateVoting',
@@ -75,7 +88,7 @@ describe('notifyTxSuccess', () => {
     await withEnv(SLACK_ONLY, async () => {
       const {restore, calls} = installFetchMock(() => ok200());
       try {
-        await notifyTxSuccess({chainId: 0xdeadbeef, action: 'a', txHash: '0xabc'});
+        await notifyTxSuccess({publicClient: fakeClient(), chainId: 0xdeadbeef, action: 'a', txHash: '0xabc'});
       } finally {
         restore();
       }
@@ -89,7 +102,7 @@ describe('notifyTxSuccess', () => {
     await withEnv(TG_BOT, async () => {
       const {restore, calls} = installFetchMock(() => ok200());
       try {
-        await notifyTxSuccess({chainId: 1, action: 'a', txHash: '0xabc'});
+        await notifyTxSuccess({publicClient: fakeClient(), chainId: 1, action: 'a', txHash: '0xabc'});
       } finally {
         restore();
       }
@@ -106,7 +119,7 @@ describe('notifyTxSuccess', () => {
     await withEnv(TG_RELAY, async () => {
       const {restore, calls} = installFetchMock(() => ok200());
       try {
-        await notifyTxSuccess({chainId: 1, action: 'a', txHash: '0xabc'});
+        await notifyTxSuccess({publicClient: fakeClient(), chainId: 1, action: 'a', txHash: '0xabc'});
       } finally {
         restore();
       }
@@ -126,6 +139,7 @@ describe('notifyTxSuccess', () => {
       const {restore, calls} = installFetchMock(() => ok200());
       try {
         await notifyTxSuccess({
+          publicClient: fakeClient(),
           chainId: 1,
           chainName: 'a<b>&c',
           action: 'x<y>',
@@ -161,7 +175,7 @@ describe('notifyTxSuccess', () => {
       };
       const {restore} = installFetchMock(() => ({status: 500, body: 'oops'}));
       try {
-        await notifyTxSuccess({chainId: 1, action: 'a', txHash: '0xabc', logger});
+        await notifyTxSuccess({publicClient: fakeClient(), chainId: 1, action: 'a', txHash: '0xabc', logger});
       } finally {
         restore();
       }
@@ -178,7 +192,7 @@ describe('notifyTxSuccess', () => {
       }));
       try {
         await expect(
-          notifyTxSuccess({chainId: 1, action: 'a', txHash: '0xabc'}),
+          notifyTxSuccess({publicClient: fakeClient(), chainId: 1, action: 'a', txHash: '0xabc'}),
         ).resolves.toBeUndefined();
       } finally {
         restore();

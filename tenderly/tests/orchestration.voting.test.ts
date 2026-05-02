@@ -270,7 +270,7 @@ describe('runVotingScan', () => {
       ),
       walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
       account: ACCOUNT,
-      ethRpcUrl: 'https://l1.example.com',
+      ethRpcUrls: 'https://l1.example.com',
     };
     const results = await runVotingScan(ctx);
     expect(results.length).toBe(1);
@@ -298,7 +298,7 @@ describe('runVotingScan', () => {
       ),
       walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
       account: ACCOUNT,
-      ethRpcUrl: 'https://l1.example.com',
+      ethRpcUrls: 'https://l1.example.com',
     };
     const results = await runVotingScan(ctx);
     expect(results[0]?.kind).toBe('closeAndSendVote');
@@ -333,7 +333,7 @@ describe('runVotingScan', () => {
       publicClient: makeMockClient(mocks, {chainId: 137}),
       walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
       account: ACCOUNT,
-      ethRpcUrl: 'https://l1.example.com',
+      ethRpcUrls: 'https://l1.example.com',
     };
     const results = await runVotingScan(ctx);
     expect(results[0]?.txHash).toBeUndefined();

@@ -20,7 +20,7 @@ export const votingAll: ActionFn = async (ctx: Context, _event: Event) => {
     try {
       const target = await setupChain(ctx, chainId, config.name);
       target.logger.info('votingAll: scan start', {chain: config.name});
-      const results = await runVotingScan({...target.write, ethRpcUrl: target.ethRpcUrl});
+      const results = await runVotingScan({...target.write, ethRpcUrls: target.ethRpcUrls});
       target.logger.info('votingAll: scan done', {
         chain: config.name,
         actions: results.length,

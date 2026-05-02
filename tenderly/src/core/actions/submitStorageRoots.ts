@@ -110,7 +110,7 @@ const buildSlotEntry = (
  * the expected values to whatever's already in the DataWarehouse before sending.
  */
 export const buildStorageRootEntries = async (
-  ethRpcUrl: string,
+  ethRpcUrls: string | string[],
   config: VotingChainConfig,
   snapshotBlockHash: Hex,
   logger?: {
@@ -119,7 +119,7 @@ export const buildStorageRootEntries = async (
   },
 ): Promise<BuiltEntry[]> => {
   logger?.trace('buildStorageRootEntries: fetching block', {snapshotBlockHash});
-  const block = await getRawBlockByHash(ethRpcUrl, snapshotBlockHash);
+  const block = await getRawBlockByHash(ethRpcUrls, snapshotBlockHash);
   if (!block || !block.number) {
     throw new Error(`block ${snapshotBlockHash} not found via eth_getBlockByHash`);
   }
@@ -132,10 +132,10 @@ export const buildStorageRootEntries = async (
 
   logger?.trace('buildStorageRootEntries: fetching 4 account proofs in parallel');
   const [aaveProof, aAaveProof, stkAaveProof, governanceProof] = await Promise.all([
-    getProof(ethRpcUrl, GOVERNANCE_TOKENS.aave, [], blockNumber),
-    getProof(ethRpcUrl, GOVERNANCE_TOKENS.aAave, [], blockNumber),
-    getProof(ethRpcUrl, GOVERNANCE_TOKENS.stkAave, [STK_AAVE_EXCHANGE_RATE_SLOT], blockNumber),
-    getProof(ethRpcUrl, config.governance, [], blockNumber),
+    getProof(ethRpcUrls, GOVERNANCE_TOKENS.aave, [], blockNumber),
+    getProof(ethRpcUrls, GOVERNANCE_TOKENS.aAave, [], blockNumber),
+    getProof(ethRpcUrls, GOVERNANCE_TOKENS.stkAave, [STK_AAVE_EXCHANGE_RATE_SLOT], blockNumber),
+    getProof(ethRpcUrls, config.governance, [], blockNumber),
   ]);
   logger?.debug('buildStorageRootEntries: proofs received', {
     aaveNodes: aaveProof.accountProof.length,
@@ -168,12 +168,12 @@ export const buildStorageRootEntries = async (
 
 /** Backward-compat shim — `buildStorageRootCalls` still exists for any external callers. */
 export const buildStorageRootCalls = async (
-  ethRpcUrl: string,
+  ethRpcUrls: string | string[],
   config: VotingChainConfig,
   snapshotBlockHash: Hex,
   logger?: Parameters<typeof buildStorageRootEntries>[3],
 ): Promise<Call3[]> => {
-  const entries = await buildStorageRootEntries(ethRpcUrl, config, snapshotBlockHash, logger);
+  const entries = await buildStorageRootEntries(ethRpcUrls, config, snapshotBlockHash, logger);
   return entries.map((e) => e.call);
 };
 
@@ -286,11 +286,11 @@ export type SubmitRootsResult = ExecuteResult | {txHash?: undefined; skipped: st
  * can name which root/slot would fail without re-deriving the mapping.
  */
 const planBatch = async (
-  ctx: ReadContext & {ethRpcUrl: string},
+  ctx: ReadContext & {ethRpcUrls: string | string[]},
   config: VotingChainConfig,
   blockHash: Hex,
 ): Promise<{toSend: BuiltEntry[]; matched: number; total: number}> => {
-  const entries = await buildStorageRootEntries(ctx.ethRpcUrl, config, blockHash, ctx.logger);
+  const entries = await buildStorageRootEntries(ctx.ethRpcUrls, config, blockHash, ctx.logger);
   const results = await inspectExisting(ctx, config, blockHash, entries);
   assertNoMismatches(results);
 
@@ -373,7 +373,7 @@ const decodeRevertReason = (returnData: Hex): string => {
  * upstream submission worth investigating).
  */
 export const submitStorageRootsForBlock = async (
-  ctx: WriteContext & {ethRpcUrl: string},
+  ctx: WriteContext & {ethRpcUrls: string | string[]},
   args: {l1BlockHash: Hex; config: VotingChainConfig},
 ): Promise<SubmitRootsResult> => {
   ctx.logger.info('submitStorageRootsForBlock: planning', {
@@ -408,6 +408,7 @@ export const submitStorageRootsForBlock = async (
     chain: args.config.name,
   });
   await notifyTxSuccess({
+    publicClient: ctx.publicClient,
     chainId: ctx.chainId,
     chainName: args.config.name,
     action: 'submitStorageRoots',
@@ -423,7 +424,7 @@ export const submitStorageRootsForBlock = async (
  * inspect/skip/mismatch pipeline as `submitStorageRootsForBlock`.
  */
 export const executeSubmitStorageRoots = async (
-  ctx: WriteContext & {ethRpcUrl: string},
+  ctx: WriteContext & {ethRpcUrls: string | string[]},
   args: {proposalId: bigint; l1ProposalBlockHash: Hex},
 ): Promise<SubmitRootsResult> => {
   const config = requireVotingChain(ctx.chainId);
@@ -475,6 +476,7 @@ export const executeSubmitStorageRoots = async (
     chain: config.name,
   });
   await notifyTxSuccess({
+    publicClient: ctx.publicClient,
     chainId: ctx.chainId,
     chainName: config.name,
     action: 'submitStorageRoots',

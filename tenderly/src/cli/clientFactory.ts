@@ -7,6 +7,7 @@ import {
 } from '../core/chains';
 import {
   accountFromPrivateKey,
+  candidateUrls,
   describeRpcSource,
   getPublicClient,
   getRpcUrl,
@@ -78,5 +79,9 @@ export const buildInspectorClients = (_env: Env) => {
   return {govPublic, votingClients, executionClients};
 };
 
-/** L1 RPC URL — used by storage-roots flow for eth_getProof / eth_getBlockByHash. */
-export const ethRpcUrl = (_env: Env): string => getRpcUrl(GOVERNANCE_CHAIN_ID);
+/**
+ * L1 RPC URLs — used by storage-roots flow for eth_getProof / eth_getBlockByHash.
+ * Returns the same fallback-ordered list the viem client uses (env override → toolbox/Alchemy
+ * → public), so a single flaky provider doesn't kill the proof fetch.
+ */
+export const ethRpcUrls = (_env: Env): string[] => candidateUrls(GOVERNANCE_CHAIN_ID);

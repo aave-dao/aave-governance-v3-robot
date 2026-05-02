@@ -64,6 +64,7 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
   });
   ctx.logger.info('activateVoting: submitted', {proposalId: proposalId.toString(), txHash});
   await notifyTxSuccess({
+    publicClient: ctx.publicClient,
     chainId: ctx.chainId,
     chainName: 'ethereum',
     action: 'activateVoting',

@@ -19,6 +19,7 @@ import {
 import {EXECUTION_CHAINS, findVotingChainByPortal, type VotingChainConfig} from '../core/chains';
 import {fetchProposalMetadataSafe, type ProposalMetadata} from '../core/ipfs';
 import type {Logger} from '../core/logger';
+import {redactSecrets} from '../core/redact-secrets';
 import {
   PayloadState,
   ProposalState,
@@ -52,6 +53,12 @@ export type InspectorReport = {
     creationTime: number;
     votingActivationTime: number;
     queuingTime: number;
+    /** Per-proposal: time spent in Active state. Lifted from the proposal struct. */
+    votingDuration: number;
+    /** Contract-level: gap between Queued and Executed. From COOLDOWN_PERIOD(). */
+    cooldownPeriod: number;
+    /** Per-access-level: gap between Created and Active. From getVotingConfig(). */
+    coolDownBeforeVotingStart: number;
     creator: Address;
     snapshotBlockHash: Hex;
     ipfsHash: Hex;
@@ -102,7 +109,7 @@ const buildActionStatus = async (
     return {
       name,
       status: 'blocked',
-      reason: err instanceof Error ? err.message : String(err),
+      reason: redactSecrets(err instanceof Error ? err.message : String(err)),
       etaAt,
     };
   }
@@ -240,7 +247,7 @@ export const inspectProposal = async (
       } catch (err) {
         logger.warn('inspector: voting machine read failed', {
           chain: votingChain.name,
-          error: err instanceof Error ? err.message : String(err),
+          error: redactSecrets(err instanceof Error ? err.message : String(err)),
         });
       }
 
@@ -355,7 +362,7 @@ export const inspectProposal = async (
         chainName,
         payloadId,
         payloadsController,
-        state: `error: ${err instanceof Error ? err.message : String(err)}`,
+        state: `error: ${redactSecrets(err instanceof Error ? err.message : String(err))}`,
         stateNumber: -1,
         actionCount: 0,
         actions: [],
@@ -373,7 +380,7 @@ export const inspectProposal = async (
       metadataError = 'failed to fetch from any IPFS gateway';
     }
   } catch (err) {
-    metadataError = err instanceof Error ? err.message : String(err);
+    metadataError = redactSecrets(err instanceof Error ? err.message : String(err));
   }
 
   return {
@@ -384,6 +391,9 @@ export const inspectProposal = async (
       creationTime: proposal.creationTime,
       votingActivationTime: proposal.votingActivationTime,
       queuingTime: proposal.queuingTime,
+      votingDuration: Number(proposal.votingDuration),
+      cooldownPeriod: Number(cooldownPeriod),
+      coolDownBeforeVotingStart: Number(votingConfig.coolDownBeforeVotingStart),
       creator: proposal.creator,
       snapshotBlockHash: proposal.snapshotBlockHash as Hex,
       ipfsHash: proposal.ipfsHash as Hex,

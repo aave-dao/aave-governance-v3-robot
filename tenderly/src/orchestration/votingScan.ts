@@ -169,7 +169,7 @@ export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAc
 };
 
 export const runVotingScan = async (
-  ctx: WriteContext & {ethRpcUrl: string},
+  ctx: WriteContext & {ethRpcUrls: string | string[]},
 ): Promise<
   Array<{kind: VotingActionKind; proposalId: bigint; txHash?: string; error?: string}>
 > => {

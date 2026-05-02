@@ -26,7 +26,7 @@ import {collectHealth, formatHealthAlert, formatHealthFull, formatHealthReport} 
 import {runGovernanceScan} from '../orchestration/governanceScan';
 import {runVotingScan} from '../orchestration/votingScan';
 import {runExecutionScan} from '../orchestration/executionScan';
-import {buildInspectorClients, ethRpcUrl, makeWriteContext} from './clientFactory';
+import {buildInspectorClients, ethRpcUrls, makeWriteContext} from './clientFactory';
 import {loadEnv, requirePrivateKey, type Env} from './env';
 import type {Logger} from '../core/logger';
 import {governanceAbi, votingMachineAbi} from '../core/abis';
@@ -253,7 +253,7 @@ program
     logger.info('submit-roots: resolved chain', {chain: chainName, chainId});
     const ctx = makeWriteContext(env, chainId, logger, chainName);
     const result = await executeSubmitStorageRoots(
-      {...ctx, ethRpcUrl: ethRpcUrl(env)},
+      {...ctx, ethRpcUrls: ethRpcUrls(env)},
       {proposalId, l1ProposalBlockHash: snapshotBlockHash},
     );
     if (result.txHash) logger.info('submit-roots: done', {txHash: result.txHash});
@@ -286,7 +286,7 @@ program
       ) as `0x${string}`;
       logger.debug('submit-roots-for-block: resolving hash from number', {numHex});
       const blockData = await jsonRpcCall<{hash: `0x${string}`} | null>(
-        ethRpcUrl(env),
+        ethRpcUrls(env),
         'eth_getBlockByNumber',
         [numHex, false],
       );
@@ -324,7 +324,7 @@ program
 
     const ctx = makeWriteContext(env, chainId, logger, config.name);
     const result = await submitStorageRootsForBlock(
-      {...ctx, ethRpcUrl: ethRpcUrl(env)},
+      {...ctx, ethRpcUrls: ethRpcUrls(env)},
       {l1BlockHash: blockHash, config},
     );
     if (result.txHash) logger.info('submit-roots-for-block: done', {txHash: result.txHash});
@@ -412,7 +412,7 @@ program
       const name = VOTING_CHAINS[chainId]!.name;
       try {
         const ctx = makeWriteContext(env, chainId, logger, name);
-        const results = await runVotingScan({...ctx, ethRpcUrl: ethRpcUrl(env)});
+        const results = await runVotingScan({...ctx, ethRpcUrls: ethRpcUrls(env)});
         logger.info('run-voting: done', {chain: name, results: JSON.stringify(results, replacer)});
       } catch (err) {
         logger.error('run-voting: chain failed', {
