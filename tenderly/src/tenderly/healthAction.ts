@@ -1,6 +1,7 @@
 import type {ActionFn, Context, Event} from '@tenderly/actions';
 import {collectHealth, formatHealthAlert} from '../cli/health';
 import {notifyError, notifyHealth} from '../core/notify';
+import {installTenderlyNotifyDedupe} from './notify-dedupe-store';
 import {hydrateSecrets} from './secrets';
 import {tenderlyLogger} from './runtime';
 
@@ -14,6 +15,8 @@ import {tenderlyLogger} from './runtime';
 const MIN_ROUNDS = 10;
 
 export const healthAction: ActionFn = async (ctx: Context, _event: Event) => {
+  // healthAction doesn't go through setupChain, so install the dedupe store here.
+  installTenderlyNotifyDedupe(ctx.storage);
   const logger = tenderlyLogger().child({action: 'healthAction'});
   try {
     const {privateKey} = await hydrateSecrets(ctx);

@@ -4,6 +4,8 @@ import { requireCronAuth } from './cron-auth';
 import { recordCronRun } from './cron-runs';
 import { formatError } from './format-error';
 import { getLogger } from './logger';
+// Side-effect import: installs the Postgres-backed dedupe store onto `notifyError`.
+import './notify-dedupe-store';
 import { jsonSafe } from './serialize';
 
 // Wraps a cron body with auth check, timing, cron_runs row insert, slack/telegram error notify,

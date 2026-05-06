@@ -8,6 +8,8 @@ import { ulid } from '@/lib/ulid';
 import { getLogger } from '@/lib/logger';
 import { formatError } from '@/lib/format-error';
 import { notifyError } from '@robot/core/notify';
+// Side-effect import: installs the Postgres-backed dedupe store onto `notifyError`.
+import '@/lib/notify-dedupe-store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -78,11 +80,16 @@ export async function POST(req: NextRequest) {
     // Surface to Slack/Telegram. Operator-triggered exec failures (broadcast errors AND
     // post-broadcast reverts/timeouts that bubble out of notifyTxSuccess) were previously
     // only logged — the operator wouldn't see them unless tailing logs.
+    //
+    // NOTE: deliberately exclude `executionId` from the dedupe meta — it's a fresh ULID
+    // per request and would defeat dedupe (every retry would look like a new error). The
+    // operator can find the executionId via the `executions` table or the UI; what we want
+    // to dedupe on is `(action, chainId, id, error)`.
     await notifyError({
       source: action,
       error: err,
       chainId: chainId ?? undefined,
-      meta: { id, executionId },
+      meta: { id },
       logger,
     });
     return NextResponse.json({ executionId, error: message }, { status: 500 });

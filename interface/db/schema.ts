@@ -205,6 +205,26 @@ export const votes = pgTable(
   }),
 );
 
+export const notifyDedupe = pgTable(
+  'notify_dedupe',
+  {
+    /** sha256 of (source | chainId | meta | first-line of redacted message), truncated. */
+    fingerprint: text('fingerprint').primaryKey(),
+    source: text('source').notNull(),
+    chainId: integer('chain_id'),
+    lastNotifiedAt: timestamp('last_notified_at', { withTimezone: true }).notNull().defaultNow(),
+    lastMessage: text('last_message').notNull(),
+    /** Total events for this fingerprint since the last actual fire (the fire itself
+     *  counts as 1). Reset to 1 each time we fire; incremented on each suppressed dedupe
+     *  hit. So count==1 means "fired once, no suppressions yet"; count==42 means "1 fire +
+     *  41 suppressions in the current 6h window". */
+    count: integer('count').notNull().default(1),
+  },
+  (t) => ({
+    lastNotifiedIdx: index('notify_dedupe_last_notified_idx').on(t.lastNotifiedAt),
+  }),
+);
+
 export const lifecycleTxs = pgTable(
   'lifecycle_txs',
   {
@@ -235,3 +255,4 @@ export type Cursor = typeof cursors.$inferSelect;
 export type Vote = typeof votes.$inferSelect;
 export type EnsName = typeof ensNames.$inferSelect;
 export type LifecycleTx = typeof lifecycleTxs.$inferSelect;
+export type NotifyDedupe = typeof notifyDedupe.$inferSelect;

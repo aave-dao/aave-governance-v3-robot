@@ -10,6 +10,7 @@ import {
 import type {ReadContext, WriteContext} from '../core/context';
 import {createLogger, type Logger} from '../core/logger';
 import {GOVERNANCE_CHAIN_ID} from '../core/chains';
+import {installTenderlyNotifyDedupe} from './notify-dedupe-store';
 import {hydrateSecrets} from './secrets';
 
 /**
@@ -46,6 +47,10 @@ export const setupChain = async (
   chainId: number,
   chainName?: string,
 ): Promise<ChainSetup> => {
+  // Wire notify dedupe to Tenderly Storage FIRST — before anything that could throw — so
+  // even a hydrateSecrets failure surfaces through the dedupe path. Idempotent across
+  // action invocations.
+  installTenderlyNotifyDedupe(ctx.storage);
   const {privateKey} = await hydrateSecrets(ctx);
   const baseLogger = tenderlyLogger().child({chainId, chain: chainName});
   const url = getRpcUrl(chainId);

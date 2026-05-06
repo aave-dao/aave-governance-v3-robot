@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import type {Hex, PublicClient} from 'viem';
 import type {Logger} from './logger';
 import {explorerBaseUrl, shortHash, txUrl} from './explorers';
@@ -136,6 +137,75 @@ const markNotified = (err: unknown): void => {
   }
 };
 
+// ---------------- cross-process dedupe ----------------
+
+/**
+ * Pluggable persistent dedupe store. Without one installed, only the in-process symbol
+ * marker dedupes — meaning the same persistent failure (e.g. an RPC outage on every cron
+ * tick) re-notifies forever. With a store installed, the same fingerprint within
+ * `DEDUPE_WINDOW_SEC` is suppressed.
+ *
+ * The interface installs a Postgres-backed store at boot; tenderly installs a Storage-backed
+ * store from setupChain.
+ */
+export type DedupeStore = {
+  /** Returns the unix-seconds timestamp of the last fired notification, or null. */
+  getLastNotified(fingerprint: string): Promise<number | null>;
+  /** Records that this fingerprint just fired (resets the window). */
+  setLastNotified(
+    fingerprint: string,
+    atSec: number,
+    info: {source: string; chainId?: number; message: string},
+  ): Promise<void>;
+  /** Optional: bump suppressed-count when a dedupe hit occurs. Best-effort. */
+  bumpSuppressed?(fingerprint: string): Promise<void>;
+};
+
+let installedStore: DedupeStore | null = null;
+/** Install (or replace) the persistent dedupe store. Pass null to disable. */
+export const setNotifyDedupeStore = (store: DedupeStore | null): void => {
+  installedStore = store;
+};
+
+/** Default window — re-alert on the same fingerprint only after this many seconds. */
+export const DEDUPE_WINDOW_SEC = 6 * 60 * 60;
+
+const stableStringify = (obj: Record<string, unknown> | undefined): string => {
+  if (!obj) return '';
+  const keys = Object.keys(obj).sort();
+  return JSON.stringify(keys.map((k) => [k, obj[k]]));
+};
+
+/**
+ * Strip per-invocation volatile values from a message before fingerprinting:
+ *   • 0x-prefixed hex (8+ chars)  → <hex>   — tx hashes, addresses
+ *   • bare large numbers (5+ digits) → <num> — block numbers, fees, timestamps
+ *
+ * Without this, alerts like `tx executePayload reverted on-chain: 0xabcd… (block 12345)`
+ * would have a fresh fingerprint per retry (new txHash + new block) and never dedupe.
+ */
+const normalizeForFingerprint = (s: string): string =>
+  s.replace(/0x[0-9a-fA-F]{8,}/g, '<hex>').replace(/\b\d{5,}\b/g, '<num>');
+
+/**
+ * Stable fingerprint of an alert, used as the dedupe key. Built from the source name,
+ * chainId, sorted-meta, and the *normalized* first line of the redacted message. The
+ * first line is the deterministic part of an error (the rest is stack/RPC noise that
+ * varies between invocations); normalizing volatile hex/numbers lets us recognise "the
+ * same error" even when downstream details shift.
+ */
+const fingerprintError = (
+  source: string,
+  chainId: number | undefined,
+  meta: Record<string, unknown> | undefined,
+  redactedMessage: string,
+): string => {
+  const firstLine = (redactedMessage.split('\n')[0] ?? '').slice(0, 500);
+  const normalized = normalizeForFingerprint(firstLine);
+  const raw = `${source}|${chainId ?? ''}|${stableStringify(meta)}|${normalized}`;
+  return createHash('sha256').update(raw).digest('hex').slice(0, 32);
+};
+
 // ---------------- public API ----------------
 
 export type NotifyTxParams = {
@@ -261,6 +331,41 @@ export const notifyError = async (p: NotifyErrorParams): Promise<void> => {
       : '',
   );
 
+  // Cross-process dedupe: if this fingerprint fired within the window, suppress and bail.
+  // We do this AFTER computing the message (so the fingerprint reflects the redacted
+  // first-line) but BEFORE rendering the channel-specific bodies (cheap savings on dedupe
+  // hits, which are the common case for persistent failures).
+  const fp = fingerprintError(p.source, p.chainId, p.meta, errMessage);
+  if (installedStore) {
+    try {
+      const last = await installedStore.getLastNotified(fp);
+      if (last !== null) {
+        const ageSec = Math.floor(Date.now() / 1000) - last;
+        if (ageSec < DEDUPE_WINDOW_SEC) {
+          p.logger?.debug('notify: dedupe hit, suppressing alert', {
+            source: p.source,
+            fp,
+            ageSec,
+            windowSec: DEDUPE_WINDOW_SEC,
+          });
+          if (installedStore.bumpSuppressed) {
+            try {
+              await installedStore.bumpSuppressed(fp);
+            } catch {
+              /* best-effort */
+            }
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      // Never let a dedupe-store failure suppress an alert — fall through and notify.
+      p.logger?.warn('notify: dedupe lookup failed (alerting anyway)', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   const meta = renderMeta(p.meta);
 
   const slack =
@@ -281,6 +386,21 @@ export const notifyError = async (p: NotifyErrorParams): Promise<void> => {
     (stackLines ? `\n${stackLines}` : '');
 
   await fanOut(slack, tg, plain, p.logger);
+
+  // Record the fire so subsequent identical alerts within the window get suppressed.
+  if (installedStore) {
+    try {
+      await installedStore.setLastNotified(fp, Math.floor(Date.now() / 1000), {
+        source: p.source,
+        chainId: p.chainId,
+        message: errMessage,
+      });
+    } catch (err) {
+      p.logger?.warn('notify: dedupe store update failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 };
 
 export type NotifyHealthParams = {
