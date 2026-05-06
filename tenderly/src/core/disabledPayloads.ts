@@ -26,6 +26,11 @@ export const DISABLED_PAYLOADS: DisabledPayload[] = [
     payloadId: 5,
     reason: 'megaeth payload that will not execute on-chain — waiting for expiry',
   },
+  {
+    chainId: 1, //
+    payloadId: 429,
+    reason: 'bc robots were cancelled',
+  },
 ];
 
 export const isPayloadDisabled = (
