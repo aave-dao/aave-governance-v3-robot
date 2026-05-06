@@ -1,0 +1,26 @@
+interface/lib/lifecycle-index.ts
+  s_973ea4bfbb3fb0::t_801608d09a6702 81-91,103,106,114-152
+  s_973ea4bfbb3fb0::t_46b6913ef5cee2 382
+  s_973ea4bfbb3fb0::t_de24855d181e00 501-504
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "2a6d8a5965a0a7a8ea0cbfa7152d82374465e2e2",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_973ea4bfbb3fb0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d65e8abb-e691-47e6-9e88-4248a44b42f7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
