@@ -78,11 +78,17 @@ const ZERO_ADDR = ('0x' + '00'.repeat(20)) as Address;
 const SECONDS_PER_BLOCK_L1 = 12;
 const L1_LOOKBACK_BUFFER_BLOCKS = 5_000n;
 const VOTING_LOOKBACK_BUFFER_BLOCKS = 5_000n;
-const PAYLOAD_WINDOW_BLOCKS = 600n;
+// Window for non-indexed PayloadQueued/PayloadExecuted scans. Widened from 600 to give
+// margin against drift even when measureBlockTimeSec is slightly off. ±2000 blocks at
+// arbitrum's ~0.25s/block is ~8 minutes; at most other chains (1-3s) it's 30-100 min.
+const PAYLOAD_WINDOW_BLOCKS = 4_000n;
 
-// Conservative seconds-per-block estimates per chain — bias smaller so the resulting block
-// window is wider rather than risk missing the event.
-const SECONDS_PER_BLOCK: Record<number, number> = {
+// Static fallback used only when the dynamic measurement (`measureBlockTimeSec`) fails.
+// We prefer a measured value because static estimates drift as chains evolve — Arbitrum,
+// for example, was ~0.25s for ages while this table had it at 1s, which placed our scan
+// center > 1M blocks away from the actual event for week-old payloads. Keep these
+// reasonably accurate as of 2026 so the fallback is still useful.
+const SECONDS_PER_BLOCK_FALLBACK: Record<number, number> = {
   1: 12,
   10: 2,
   56: 3,
@@ -94,15 +100,56 @@ const SECONDS_PER_BLOCK: Record<number, number> = {
   1088: 4,
   1868: 2,
   4326: 1,
-  5000: 1,
+  5000: 2,
   8453: 2,
   9745: 1,
-  42161: 1,
+  42161: 0.26, // arbitrum sequencer pace
   42220: 5,
   43114: 2,
   57073: 1,
   59144: 2,
   534352: 3,
+};
+
+/**
+ * Per-process cache of measured average block time. We sample the most recent ~10k blocks
+ * and compute (Δtimestamp / Δnumber). 10k blocks is enough to wash out single-block jitter
+ * but recent enough that long-term drift doesn't matter. Two extra reads per chain per
+ * process — cheap, and Vercel's per-invocation lifetime makes the cache short-lived anyway.
+ */
+const blockTimeCache: Map<number, Promise<number>> = new Map();
+
+const fallbackBlockTime = (chainId: number): number =>
+  SECONDS_PER_BLOCK_FALLBACK[chainId] ?? 2;
+
+const measureBlockTimeSec = async (
+  client: PublicClient,
+  chainId: number,
+): Promise<number> => {
+  const existing = blockTimeCache.get(chainId);
+  if (existing) return existing;
+  const promise = (async () => {
+    try {
+      const latest = await client.getBlock({blockTag: 'latest'});
+      const window = 10_000n;
+      const oldNumber = latest.number > window ? latest.number - window : 1n;
+      const old = await client.getBlock({blockNumber: oldNumber});
+      const dt = Number(latest.timestamp - old.timestamp);
+      const dn = Number(latest.number - old.number);
+      if (dn <= 0 || dt <= 0) return fallbackBlockTime(chainId);
+      const measured = dt / dn;
+      // Sanity clamp: anything outside this range is almost certainly an RPC bug
+      // (mismatched block headers, reorgs near the tip, etc.) rather than a real chain.
+      if (measured < 0.05 || measured > 120) return fallbackBlockTime(chainId);
+      return measured;
+    } catch {
+      return fallbackBlockTime(chainId);
+    }
+  })();
+  blockTimeCache.set(chainId, promise);
+  // If the promise itself rejects (shouldn't — we catch above), evict so we retry next.
+  promise.catch(() => blockTimeCache.delete(chainId));
+  return promise;
 };
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -332,7 +379,7 @@ const indexVoting = async (
   const latestBlock = await client.getBlockNumber().catch(() => null);
   if (latestBlock === null) return;
 
-  const blockTimeSec = SECONDS_PER_BLOCK[cfg.chainId] ?? 2;
+  const blockTimeSec = await measureBlockTimeSec(client, cfg.chainId);
   const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - input.creationTime);
   const span = BigInt(Math.floor(elapsed / blockTimeSec)) + VOTING_LOOKBACK_BUFFER_BLOCKS;
   const fromBlock = span > latestBlock ? 0n : latestBlock - span;
@@ -449,9 +496,12 @@ const scanPayloadEvent = async (
     return;
   }
 
-  const blockTimeSec = SECONDS_PER_BLOCK[payload.chainId] ?? 2;
   const latestBlock = await client.getBlockNumber().catch(() => null);
   if (latestBlock === null) return;
+  // Measured per chain (cached). Using a static estimate here was the smoking-gun bug —
+  // arbitrum at 1s/block in the table vs ~0.25s actual put scan center > 1M blocks away
+  // from the real event for week-old payloads.
+  const blockTimeSec = await measureBlockTimeSec(client, payload.chainId);
 
   const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - ts);
   const blocksAgo = BigInt(Math.floor(elapsed / blockTimeSec));
