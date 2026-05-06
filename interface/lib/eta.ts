@@ -25,6 +25,18 @@ type ProposalForEta = {
 
 const rel = (etaAt: number, now?: number) => fmtRelative(etaAt, now);
 
+/**
+ * True when an ETA has already passed but the eligibility flag is still `false` — meaning
+ * the cache-refresh cron hasn't caught up to the on-chain state. The UI treats this as
+ * "should be ready, just refreshing" so the user isn't blocked waiting up to a minute for
+ * the next cron tick.
+ */
+const isStale = (etaAt: number | undefined, now?: number): boolean => {
+  if (etaAt === undefined) return false;
+  const t = now ?? Math.floor(Date.now() / 1000);
+  return etaAt <= t;
+};
+
 const earliestPayloadEta = (payloads: EligibilityBlob['payloads']): number | undefined => {
   let best: number | undefined;
   for (const p of payloads) {
@@ -54,6 +66,9 @@ export const nextActionLabel = (p: ProposalForEta, now?: number): NextAction => 
   // Created — waiting for cooldown to activate voting
   if (p.state === 1) {
     if (elig.activate.eligible) return { label: 'Ready to activate voting', tone: 'ready' };
+    if (isStale(elig.activate.etaAt, now)) {
+      return { label: 'Ready to activate voting · refreshing', tone: 'ready' };
+    }
     if (elig.activate.etaAt) {
       return {
         label: `Voting starts ${rel(elig.activate.etaAt, now)}`,
@@ -68,11 +83,15 @@ export const nextActionLabel = (p: ProposalForEta, now?: number): NextAction => 
   if (p.state === 2) {
     if (vmState === 1) {
       // Active on L2
-      if (elig.voting?.closeAndSendVote.etaAt) {
+      const closeEta = elig.voting?.closeAndSendVote.etaAt;
+      if (isStale(closeEta, now)) {
+        return { label: 'Ready to close vote · refreshing', tone: 'ready' };
+      }
+      if (closeEta) {
         return {
-          label: `Voting ends ${rel(elig.voting.closeAndSendVote.etaAt, now)}`,
+          label: `Voting ends ${rel(closeEta, now)}`,
           tone: 'pending',
-          nextEventAt: elig.voting.closeAndSendVote.etaAt,
+          nextEventAt: closeEta,
         };
       }
       return { label: 'Voting in progress', tone: 'pending' };
@@ -91,6 +110,9 @@ export const nextActionLabel = (p: ProposalForEta, now?: number): NextAction => 
   // Queued — waiting for cooldown to execute on L1
   if (p.state === 3) {
     if (elig.execute.eligible) return { label: 'Ready to execute on L1', tone: 'ready' };
+    if (isStale(elig.execute.etaAt, now)) {
+      return { label: 'Ready to execute on L1 · refreshing', tone: 'ready' };
+    }
     if (elig.execute.etaAt) {
       return {
         label: `L1 executes ${rel(elig.execute.etaAt, now)}`,
@@ -110,6 +132,9 @@ export const nextActionLabel = (p: ProposalForEta, now?: number): NextAction => 
       return { label: 'Payloads ready to execute', tone: 'ready' };
     }
     const earliest = earliestPayloadEta(elig.payloads);
+    if (isStale(earliest, now)) {
+      return { label: 'Payloads ready to execute · refreshing', tone: 'ready' };
+    }
     if (earliest !== undefined) {
       return {
         label: `Payloads execute ${rel(earliest, now)}`,
@@ -163,24 +188,42 @@ export const pickVoteSource = (p: ProposalForVotes): VoteSnapshot => {
       caption: 'L1 final',
     };
   }
-  // Otherwise, if a voting chain has a running tally (any non-zero), surface it.
+
+  // If the voting machine has progressed past NotCreated, surface its tally — even if 0/0.
+  // Voting may have just started with no votes cast yet; we shouldn't say "not yet started".
+  const vmName = p.vmStateName ?? p.eligibility.voting?.state ?? null;
+  const vmHasStarted =
+    vmName === 'Active' || vmName === 'Finished' || vmName === 'SentToGovernance';
+  if (vmHasStarted) {
+    const chain = p.eligibility.voting?.chainName ?? 'voting chain';
+    return {
+      forVotes: toBig(p.vmForVotes),
+      againstVotes: toBig(p.vmAgainstVotes),
+      source: 'vm',
+      caption: `Live · ${chain} · ${vmName}`,
+    };
+  }
+
+  // Belt-and-suspenders: if vmStateName missed but we have non-zero tallies, still surface them.
   const hasVm =
     (p.vmForVotes && toBig(p.vmForVotes) > 0n) ||
     (p.vmAgainstVotes && toBig(p.vmAgainstVotes) > 0n);
   if (hasVm) {
     const chain = p.eligibility.voting?.chainName ?? 'voting chain';
-    const stateLabel = p.vmStateName ?? p.eligibility.voting?.state ?? 'unknown';
     return {
       forVotes: toBig(p.vmForVotes),
       againstVotes: toBig(p.vmAgainstVotes),
       source: 'vm',
-      caption: `Live · ${chain} · ${stateLabel}`,
+      caption: `Live · ${chain} · ${vmName ?? 'unknown'}`,
     };
   }
+
   return {
     forVotes: 0n,
     againstVotes: 0n,
     source: null,
-    caption: p.eligibility.voting ? `Voting on ${p.eligibility.voting.chainName} not yet started` : 'No vote yet',
+    caption: p.eligibility.voting
+      ? `Voting on ${p.eligibility.voting.chainName} not yet started`
+      : 'No vote yet',
   };
 };

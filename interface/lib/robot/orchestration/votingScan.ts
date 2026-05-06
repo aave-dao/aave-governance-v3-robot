@@ -7,6 +7,7 @@ import {
 import {VOTING_CHAINS, type VotingChainConfig, type VotingChainId} from '../core/chains';
 import {closeAndSendVoteAction, createVoteAction, executeSubmitStorageRoots} from '../core/actions';
 import type {ReadContext, WriteContext} from '../core/context';
+import {notifyError} from '../core/notify';
 import {VotingMachineProposalState, votingProposalStateName} from '../core/state';
 
 /**
@@ -220,6 +221,16 @@ export const runVotingScan = async (
         proposalId: item.proposalId.toString(),
         kind: item.kind,
         error: msg,
+      });
+      // Surface per-item failures to Slack/Telegram. The outer cron wrapper only notifies
+      // when the whole run throws — without this call, a tx that broadcasts then reverts
+      // (or fails to broadcast) would be silently buried in the results summary.
+      await notifyError({
+        source: item.kind,
+        error: err,
+        chainId: ctx.chainId,
+        meta: {proposalId: item.proposalId.toString()},
+        logger: ctx.logger,
       });
       results.push({kind: item.kind, proposalId: item.proposalId, error: msg});
     }

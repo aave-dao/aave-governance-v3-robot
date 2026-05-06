@@ -24,6 +24,8 @@ import {colorFormatter} from './logFormat';
 import {inspectProposal, type InspectorConfig} from '../orchestration/proposalInspector';
 import {formatInspectorReport} from './format';
 import {decodeProposal, formatDecodeResult} from './decode';
+import {fetchIpfsText, ipfsHashToCidV0, parseProposalMarkdown} from '../core/ipfs';
+import {findRedeemable, formatRedeemableReport} from './redeemable';
 import {collectHealth, formatHealthAlert, formatHealthFull, formatHealthReport} from './health';
 import {runGovernanceScan} from '../orchestration/governanceScan';
 import {runVotingScan} from '../orchestration/votingScan';
@@ -248,6 +250,45 @@ program
     loadEnv();
     const result = await decodeProposal(BigInt(idStr), {fetchMetadata: opts.metadata !== false});
     process.stdout.write(formatDecodeResult(result, {full: opts.full}) + '\n');
+  });
+
+// -------- redeemable --------
+program
+  .command('redeemable')
+  .description(
+    'Find Aave Governance V3 cancellation-fee redemptions whose ETH would land on a given ' +
+      'author address. Scans the most recent N proposals on L1; prints proposal IDs + per-proposal ' +
+      'fees + ready-to-broadcast calldata. Anyone can call redeemCancellationFee — only the ' +
+      'destination is fixed by the contract.',
+  )
+  .option('--author <addrOrEns>', 'author address or ENS name (default: aavelabs.eth)', 'aavelabs.eth')
+  .option('--count <n>', 'how many recent proposals to scan (default: 50)', '50')
+  .action(async (opts: {author: string; count: string}) => {
+    const count = Math.max(1, Number.parseInt(opts.count, 10));
+    if (!Number.isFinite(count)) throw new Error(`--count must be a positive integer, got "${opts.count}"`);
+    const report = await findRedeemable({author: opts.author, count});
+    process.stdout.write(formatRedeemableReport(report) + '\n');
+  });
+
+// -------- ipfs --------
+program
+  .command('ipfs <hashOrCid>')
+  .description(
+    'Resolve an IPFS reference and print the markdown. Accepts a 32-byte hex hash ' +
+      '(0x-prefixed, as stored on-chain) or a CIDv0 string (Qm…).',
+  )
+  .option('--raw', 'print the original markdown including YAML frontmatter (default strips it)')
+  .option('--gateway <url>', 'override gateway (repeatable)', (val: string, prev: string[]) => [...prev, val], [] as string[])
+  .action(async (input: string, opts: {raw?: boolean; gateway: string[]}) => {
+    const trimmed = input.trim();
+    const isHexHash = /^0x?[0-9a-fA-F]{64}$/.test(trimmed);
+    const cid = isHexHash
+      ? ipfsHashToCidV0((trimmed.startsWith('0x') ? trimmed : `0x${trimmed}`) as `0x${string}`)
+      : trimmed;
+    const fetchOpts = opts.gateway.length > 0 ? {gateways: opts.gateway} : undefined;
+    const text = await fetchIpfsText(cid, fetchOpts);
+    const body = opts.raw ? text : parseProposalMarkdown(text).body;
+    process.stdout.write(body.endsWith('\n') ? body : body + '\n');
   });
 
 // -------- per-action commands --------

@@ -7,6 +7,7 @@ import { dispatchExecute, type ActionName } from '@/lib/execute-action';
 import { ulid } from '@/lib/ulid';
 import { getLogger } from '@/lib/logger';
 import { formatError } from '@/lib/format-error';
+import { notifyError } from '@robot/core/notify';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -68,11 +69,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ executionId, txHash, chainId: usedChainId });
   } catch (err) {
     const message = formatError(err);
-    getLogger().warn('execute: dispatch failed', { action, id, error: message });
+    const logger = getLogger();
+    logger.warn('execute: dispatch failed', { action, id, error: message });
     await db
       .update(executions)
       .set({ status: 'failed', error: message, updatedAt: new Date() })
       .where(eq(executions.id, executionId));
+    // Surface to Slack/Telegram. Operator-triggered exec failures (broadcast errors AND
+    // post-broadcast reverts/timeouts that bubble out of notifyTxSuccess) were previously
+    // only logged — the operator wouldn't see them unless tailing logs.
+    await notifyError({
+      source: action,
+      error: err,
+      chainId: chainId ?? undefined,
+      meta: { id, executionId },
+      logger,
+    });
     return NextResponse.json({ executionId, error: message }, { status: 500 });
   }
 }

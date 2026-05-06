@@ -16,7 +16,9 @@ import {
   type NextRecommendedBlob,
   type ProposalMetadataBlob,
 } from '@/db/schema';
+import type { Hex } from 'viem';
 import { buildInspectorClientsFromEnv } from './context-factory';
+import { indexLifecycleTxs } from './lifecycle-index';
 import { jsonSafe } from './serialize';
 import { syncVotesForProposal, type VotesSyncSummary } from './votes-sync';
 
@@ -214,6 +216,31 @@ const upsertReport = async (
           refreshedAt: row.refreshedAt,
         },
       });
+  }
+
+  // Index any lifecycle event tx hashes that should exist by now and aren't yet cached.
+  // Best effort — RPC failures are logged inside and retried next tick.
+  try {
+    await indexLifecycleTxs({
+      proposalId: id,
+      proposalState: rep.governance.stateNumber,
+      vmStateName: rep.voting?.state ?? null,
+      creationTime: rep.governance.creationTime,
+      votingPortal: (rep.governance.votingPortal as `0x${string}`) ?? null,
+      snapshotBlockHash: (rep.governance.snapshotBlockHash as Hex) ?? null,
+      payloads: rep.payloads.map((p) => ({
+        chainId: p.chainId,
+        payloadId: p.payloadId,
+        stateNumber: p.stateNumber,
+        queuedAt: p.queuedAt ?? null,
+        executedAt: p.executedAt ?? null,
+      })),
+    });
+  } catch (err) {
+    bundle.logger.warn('refresh: lifecycle index failed', {
+      proposalId: id.toString(),
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 
   // Sync VoteEmitted events on the voting chain — best effort, never fails the upsert.

@@ -29,11 +29,12 @@ import { Timeline } from './Timeline';
 import { ActionButton } from './ActionButton';
 import { PayloadCard } from './PayloadCard';
 import { MarkdownRenderer } from './MarkdownRenderer';
-import type { ExecutionRow } from './ExecutionList';
+import { ExecutionList, type ExecutionRow } from './ExecutionList';
 import { VoteBar, thresholdWei } from './VoteBar';
 import { VoterList, type VoteRow } from './VoterList';
 import { AddressLink } from './AddressLink';
 import { cn } from './ui/cn';
+import type { LifecycleTxs } from '@/lib/lifecycle-txs';
 
 type ProposalShape = {
   id: string;
@@ -100,6 +101,7 @@ type Props = {
   initialExecutions: ExecutionRow[];
   initialVotes: VoteRow[];
   initialEns?: Record<string, string | null>;
+  initialLifecycleTxs?: LifecycleTxs;
 };
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -129,8 +131,12 @@ export function ProposalDetail({
   initialExecutions,
   initialVotes,
   initialEns,
+  initialLifecycleTxs,
 }: Props) {
   const toast = useToast();
+
+  const fallbackTxs: LifecycleTxs =
+    initialLifecycleTxs ?? { payloadQueued: {}, payloadExecuted: {} };
 
   const { data } = useSWR<{
     proposal: ProposalShape;
@@ -138,6 +144,7 @@ export function ProposalDetail({
     recentExecutions: ExecutionRow[];
     votes: VoteRow[];
     ens: Record<string, string | null>;
+    lifecycleTxs: LifecycleTxs;
   }>(`/api/proposals/${initialProposal.id}`, fetcher, {
     fallbackData: {
       proposal: initialProposal,
@@ -145,6 +152,7 @@ export function ProposalDetail({
       recentExecutions: initialExecutions,
       votes: initialVotes,
       ens: initialEns ?? {},
+      lifecycleTxs: fallbackTxs,
     },
     refreshInterval: 15_000,
     keepPreviousData: true,
@@ -153,8 +161,10 @@ export function ProposalDetail({
 
   const proposal = data?.proposal ?? initialProposal;
   const payloads = data?.payloads ?? initialPayloads;
+  const executions = data?.recentExecutions ?? initialExecutions;
   const proposalVotes = data?.votes ?? initialVotes;
   const ens = data?.ens ?? initialEns ?? {};
+  const lifecycleTxs = data?.lifecycleTxs ?? fallbackTxs;
   const elig = proposal.eligibility;
   const votes = pickVoteSource(proposal);
   const thresholds = {
@@ -340,7 +350,12 @@ export function ProposalDetail({
             ) : (
               <div className="grid grid-cols-1 gap-3">
                 {payloads.map((p) => (
-                  <PayloadCard key={`${p.chainId}-${p.payloadId}`} payload={p} />
+                  <PayloadCard
+                    key={`${p.chainId}-${p.payloadId}`}
+                    payload={p}
+                    queuedTx={lifecycleTxs.payloadQueued[`${p.chainId}-${p.payloadId}`]}
+                    executedTx={lifecycleTxs.payloadExecuted[`${p.chainId}-${p.payloadId}`]}
+                  />
                 ))}
               </div>
             )}
@@ -349,6 +364,11 @@ export function ProposalDetail({
           {/* Voters */}
           <Section title="Voters" count={proposalVotes.length}>
             <VoterList votes={proposalVotes} ens={ens} />
+          </Section>
+
+          {/* Activity (UI-triggered transactions) */}
+          <Section title="Activity" count={executions.length}>
+            <ExecutionList executions={executions} />
           </Section>
 
           {/* Body */}
@@ -411,7 +431,7 @@ export function ProposalDetail({
               <CardTitle eyebrow="lifecycle">Timeline</CardTitle>
             </CardHeader>
             <CardBody>
-              <Timeline proposal={proposal} />
+              <Timeline proposal={proposal} lifecycleTxs={lifecycleTxs} />
             </CardBody>
           </Card>
         </aside>

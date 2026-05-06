@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ChevronRight, Copy, ExternalLink, Zap, ShieldAlert, Coins } from 'lucide-react';
 import { fmtAbsolute } from '@/lib/format';
+import { txExplorerUrl } from '@/lib/explorer-client';
+import type { TxRef } from '@/lib/lifecycle-txs';
 import { Card, CardBody, CardHeader, CardTitle } from './ui/Card';
 import { Badge, stateBadgeTone } from './ui/Badge';
 import { ActionButton } from './ActionButton';
@@ -54,7 +56,15 @@ const accessLevelLabel = (a: number): string => {
   }
 };
 
-export function PayloadCard({ payload }: { payload: PayloadShape }) {
+export function PayloadCard({
+  payload,
+  queuedTx,
+  executedTx,
+}: {
+  payload: PayloadShape;
+  queuedTx?: TxRef;
+  executedTx?: TxRef;
+}) {
   const [expanded, setExpanded] = useState(false);
   const raw = payload.raw;
   const actions = raw?.executionActions ?? [];
@@ -67,6 +77,7 @@ export function PayloadCard({ payload }: { payload: PayloadShape }) {
         </CardTitle>
         <div className="flex items-center gap-2">
           <Badge tone={stateBadgeTone(payload.stateName)}>{payload.stateName}</Badge>
+          <TxPill chainId={payload.chainId} tx={executedTx ?? queuedTx} />
         </div>
       </CardHeader>
       <CardBody className="space-y-4 px-4 sm:px-5">
@@ -78,7 +89,12 @@ export function PayloadCard({ payload }: { payload: PayloadShape }) {
         </div>
 
         {raw && (
-          <PayloadTiming raw={raw} />
+          <PayloadTiming
+            raw={raw}
+            chainId={payload.chainId}
+            queuedTx={queuedTx}
+            executedTx={executedTx}
+          />
         )}
 
         {actions.length > 0 && (
@@ -119,21 +135,72 @@ export function PayloadCard({ payload }: { payload: PayloadShape }) {
   );
 }
 
-function PayloadTiming({ raw }: { raw: NonNullable<PayloadRaw> }) {
+function TxPill({ chainId, tx }: { chainId: number; tx: TxRef | undefined }) {
+  if (!tx) return null;
+  const url = txExplorerUrl(chainId, tx.txHash);
+  return (
+    <a
+      href={url ?? '#'}
+      target={url ? '_blank' : undefined}
+      rel={url ? 'noreferrer' : undefined}
+      className="inline-flex items-center gap-1 rounded border border-border bg-surface-elev px-1.5 py-0.5 font-mono text-[10px] text-fg-muted hover:border-accent-border hover:text-accent transition-colors"
+      title={`View tx ${tx.txHash}`}
+    >
+      tx
+      <ExternalLink size={9} strokeWidth={2.25} className="opacity-70" />
+    </a>
+  );
+}
+
+function InlineTxLink({ chainId, tx }: { chainId: number; tx: TxRef | undefined }) {
+  if (!tx) return null;
+  const url = txExplorerUrl(chainId, tx.txHash);
+  return (
+    <a
+      href={url ?? '#'}
+      target={url ? '_blank' : undefined}
+      rel={url ? 'noreferrer' : undefined}
+      className="inline-flex items-center gap-0.5 text-[10px] text-fg-muted hover:text-accent transition-colors"
+      title={`View tx ${tx.txHash}`}
+    >
+      tx <ExternalLink size={9} strokeWidth={2.25} className="opacity-70" />
+    </a>
+  );
+}
+
+function PayloadTiming({
+  raw,
+  chainId,
+  queuedTx,
+  executedTx,
+}: {
+  raw: NonNullable<PayloadRaw>;
+  chainId: number;
+  queuedTx?: TxRef;
+  executedTx?: TxRef;
+}) {
   const items = [
-    { label: 'created', ts: raw.createdAt },
-    { label: 'queued', ts: raw.queuedAt },
-    { label: 'executed', ts: raw.executedAt },
-    { label: 'cancelled', ts: raw.cancelledAt },
-  ].filter((i) => i.ts && i.ts > 0) as Array<{ label: string; ts: number }>;
+    { label: 'created' as const, ts: raw.createdAt },
+    { label: 'queued' as const, ts: raw.queuedAt },
+    { label: 'executed' as const, ts: raw.executedAt },
+    { label: 'cancelled' as const, ts: raw.cancelledAt },
+  ].filter((i) => i.ts && i.ts > 0) as Array<{
+    label: 'created' | 'queued' | 'executed' | 'cancelled';
+    ts: number;
+  }>;
   if (items.length === 0 && !raw.delay) return null;
   return (
     <dl className="grid grid-cols-[80px_1fr] gap-y-1 gap-x-3 text-[12px]">
       {items.map((it) => (
         <div key={it.label} className="contents">
           <dt className="text-fg-dim">{it.label}</dt>
-          <dd className="font-mono text-fg" suppressHydrationWarning>
+          <dd
+            className="font-mono text-fg flex items-center gap-1.5"
+            suppressHydrationWarning
+          >
             {fmtAbsolute(it.ts)}
+            {it.label === 'queued' && <InlineTxLink chainId={chainId} tx={queuedTx} />}
+            {it.label === 'executed' && <InlineTxLink chainId={chainId} tx={executedTx} />}
           </dd>
         </div>
       ))}

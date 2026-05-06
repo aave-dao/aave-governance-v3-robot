@@ -32,6 +32,22 @@ export default async function ProposalDetailPage(props: { params: Promise<{ id: 
         </main>
       );
     }
+  } else if (
+    bundle.payloads.length === 0 &&
+    Array.isArray((bundle.proposal.raw as { payloads?: unknown[] } | null)?.payloads) &&
+    ((bundle.proposal.raw as { payloads: unknown[] }).payloads.length ?? 0) > 0
+  ) {
+    // Self-heal stale rows: pre-migration the payloads table used (chain_id, payload_id) as
+    // a unique key, so two proposals sharing payloads (e.g. rsETH #477+#478) clobbered each
+    // other and one always rendered "No payloads". Post-migration the upsert is per-proposal,
+    // but older cached proposals outside the cron's last-20 window still have empty rows
+    // until something re-inspects them. Re-inspect on visit.
+    try {
+      await inspectAndCacheProposal(proposalId);
+      bundle = (await loadProposalDetail(proposalId)) ?? bundle;
+    } catch {
+      // best-effort — fall through with the stale bundle so the rest of the page still renders
+    }
   }
   if (!bundle) {
     return (
@@ -48,6 +64,7 @@ export default async function ProposalDetailPage(props: { params: Promise<{ id: 
       initialExecutions={jsonSafe(bundle.executions) as React.ComponentProps<typeof ProposalDetail>['initialExecutions']}
       initialVotes={jsonSafe(bundle.votes) as React.ComponentProps<typeof ProposalDetail>['initialVotes']}
       initialEns={bundle.ens}
+      initialLifecycleTxs={bundle.lifecycleTxs}
     />
   );
 }

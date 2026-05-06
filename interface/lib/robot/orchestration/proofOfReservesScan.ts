@@ -2,6 +2,7 @@ import type {Address} from 'viem';
 import {proofOfReservesAction} from '../core/actions';
 import {PROOF_OF_RESERVE_CHAINS} from '../core/chains';
 import type {ReadContext, WriteContext} from '../core/context';
+import {notifyError} from '../core/notify';
 
 export type ScannedExecutor = {executor: Address; label: string};
 
@@ -69,6 +70,16 @@ export const runProofOfReservesScan = async (
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       ctx.logger.error('proofOfReservesScan: action failed', {executor, label, error: msg});
+      // Surface per-item failures to Slack/Telegram. The outer cron wrapper only notifies
+      // when the whole run throws — without this call, a tx that broadcasts then reverts
+      // (or fails to broadcast) would be silently buried in the results summary.
+      await notifyError({
+        source: 'proofOfReserves',
+        error: err,
+        chainId: ctx.chainId,
+        meta: {executor, label},
+        logger: ctx.logger,
+      });
       results.push({executor, label, error: msg});
     }
   }

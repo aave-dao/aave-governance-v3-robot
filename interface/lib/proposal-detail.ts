@@ -5,6 +5,7 @@ import { asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { ensNames, executions, payloads, proposals, votes } from '@/db/schema';
 import { getEnsForAddresses } from './ens-resolve';
+import { loadLifecycleTxs, type LifecycleTxs } from './lifecycle-txs';
 
 export type VoteWithEns = {
   proposalId: bigint;
@@ -28,6 +29,8 @@ export type ProposalDetailBundle = {
   votes: VoteWithEns[];
   /** Map of lowercased address → ENS name (or null). Includes voters + creator + portal. */
   ens: EnsLookup;
+  /** Tx hashes for the proposal's on-chain lifecycle events (best-effort). */
+  lifecycleTxs: LifecycleTxs;
 };
 
 const lower = (a: string) => a.toLowerCase();
@@ -91,11 +94,23 @@ export const loadProposalDetail = async (id: bigint): Promise<ProposalDetailBund
     }
   }
 
+  // Lifecycle event tx hashes are indexed asynchronously by `lib/lifecycle-index.ts` (runs
+  // from `upsertReport()` during cache-refresh + first-visit fallback). Here we just read
+  // the cache — no RPC at request time. Empty result is fine; the next cron tick will fill
+  // in any newly-emitted events.
+  let lifecycleTxs: LifecycleTxs = { payloadQueued: {}, payloadExecuted: {} };
+  try {
+    lifecycleTxs = await loadLifecycleTxs(id, proposal.votingPortal ?? null);
+  } catch {
+    // best-effort — page still renders without these links.
+  }
+
   return {
     proposal,
     payloads: proposalPayloads,
     executions: recentExecutions,
     votes: proposalVotes as VoteWithEns[],
     ens,
+    lifecycleTxs,
   };
 };

@@ -1,7 +1,7 @@
 'use client';
 
-import { Check, Loader2, AlertCircle, Clock, ExternalLink } from 'lucide-react';
-import { txExplorerUrl } from '@/lib/explorer-client';
+import { Check, Loader2, AlertCircle, Clock, ExternalLink, User } from 'lucide-react';
+import { txExplorerUrl, addressExplorerUrl } from '@/lib/explorer-client';
 import { cn } from './ui/cn';
 
 export type ExecutionRow = {
@@ -13,6 +13,7 @@ export type ExecutionRow = {
   status: 'pending' | 'submitted' | 'confirmed' | 'failed';
   txHash: string | null;
   error: string | null;
+  requestedBy: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -31,6 +32,17 @@ const TONE: Record<ExecutionRow['status'], string> = {
 };
 
 const short = (h: string) => (h.length > 14 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h);
+const shortAddr = (a: string) => (a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a);
+const isAddressLike = (s: string) => /^0x[a-fA-F0-9]{40}$/.test(s);
+
+const fmtAge = (iso: string): string => {
+  try {
+    const d = new Date(iso);
+    return d.toISOString().slice(0, 16).replace('T', ' ') + 'Z';
+  } catch {
+    return iso;
+  }
+};
 
 export function ExecutionList({ executions }: { executions: ExecutionRow[] }) {
   if (executions.length === 0) {
@@ -42,14 +54,26 @@ export function ExecutionList({ executions }: { executions: ExecutionRow[] }) {
   }
   return (
     <div className="rounded-lg border border-border bg-surface overflow-hidden">
+      <div className="hidden sm:grid grid-cols-[1fr_110px_120px_180px_140px_140px] gap-3 border-b border-border bg-surface-elev/50 px-4 sm:px-5 py-2.5 text-[10px] font-medium uppercase tracking-[0.06em] text-fg-dim">
+        <div>Action</div>
+        <div>Status</div>
+        <div>Chain</div>
+        <div>Tx</div>
+        <div>By</div>
+        <div className="text-right">When</div>
+      </div>
       {executions.map((e) => {
         const url = e.txHash ? txExplorerUrl(e.chainId, e.txHash) : null;
+        const byUrl =
+          e.requestedBy && isAddressLike(e.requestedBy)
+            ? addressExplorerUrl(e.chainId, e.requestedBy)
+            : null;
         return (
           <div
             key={e.id}
-            className="grid grid-cols-[1fr_120px_80px_220px] items-center gap-4 border-b border-border px-5 py-3 text-[12px] last:border-b-0"
+            className="flex flex-col gap-1.5 border-b border-border px-4 sm:px-5 py-3 text-[12px] last:border-b-0 sm:grid sm:grid-cols-[1fr_110px_120px_180px_140px_140px] sm:items-center sm:gap-3"
           >
-            <div className="font-mono text-fg">{e.action}</div>
+            <div className="font-mono font-semibold text-fg">{e.action}</div>
             <div>
               <span
                 className={cn(
@@ -80,6 +104,34 @@ export function ExecutionList({ executions }: { executions: ExecutionRow[] }) {
               ) : (
                 <span className="text-fg-dim">{e.error?.slice(0, 60) ?? '—'}</span>
               )}
+            </div>
+            <div className="font-mono text-fg-dim truncate">
+              {e.requestedBy ? (
+                isAddressLike(e.requestedBy) && byUrl ? (
+                  <a
+                    href={byUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 hover:text-accent"
+                  >
+                    <User size={10} strokeWidth={2.25} className="opacity-60" />
+                    {shortAddr(e.requestedBy)}
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    <User size={10} strokeWidth={2.25} className="opacity-60" />
+                    {e.requestedBy.length > 18 ? `${e.requestedBy.slice(0, 16)}…` : e.requestedBy}
+                  </span>
+                )
+              ) : (
+                <span className="opacity-60">—</span>
+              )}
+            </div>
+            <div
+              className="font-mono text-fg-dim sm:text-right truncate"
+              suppressHydrationWarning
+            >
+              {fmtAge(e.createdAt)}
             </div>
           </div>
         );

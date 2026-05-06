@@ -205,6 +205,28 @@ export const votes = pgTable(
   }),
 );
 
+export const lifecycleTxs = pgTable(
+  'lifecycle_txs',
+  {
+    proposalId: bigint('proposal_id', { mode: 'bigint' }).notNull(),
+    /** One of: votingActivated | queued | executed | cancelled | votingBridged
+     *  | storageRootsSubmitted | voteStarted | resultsSent | payloadQueued | payloadExecuted */
+    kind: text('kind').notNull(),
+    /** Chain where the event was emitted (L1 / voting / execution chain). */
+    chainId: integer('chain_id').notNull(),
+    /** -1 sentinel for non-payload kinds — keeps the unique key NULL-free. */
+    payloadId: integer('payload_id').notNull().default(-1),
+    txHash: text('tx_hash').notNull(),
+    blockNumber: bigint('block_number', { mode: 'bigint' }).notNull(),
+    logIndex: integer('log_index').notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    pk: uniqueIndex('lifecycle_txs_pk').on(t.proposalId, t.kind, t.chainId, t.payloadId),
+    proposalIdx: index('lifecycle_txs_proposal_idx').on(t.proposalId),
+  }),
+);
+
 export type Proposal = typeof proposals.$inferSelect;
 export type Payload = typeof payloads.$inferSelect;
 export type Execution = typeof executions.$inferSelect;
@@ -212,3 +234,4 @@ export type CronRun = typeof cronRuns.$inferSelect;
 export type Cursor = typeof cursors.$inferSelect;
 export type Vote = typeof votes.$inferSelect;
 export type EnsName = typeof ensNames.$inferSelect;
+export type LifecycleTx = typeof lifecycleTxs.$inferSelect;

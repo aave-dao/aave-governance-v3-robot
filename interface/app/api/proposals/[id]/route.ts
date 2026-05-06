@@ -39,6 +39,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       recentExecutions: jsonSafe(bundle.executions),
       votes: jsonSafe(bundle.votes),
       ens: bundle.ens,
+      lifecycleTxs: bundle.lifecycleTxs,
     },
     { headers: { 'cache-control': 'no-store' } },
   );

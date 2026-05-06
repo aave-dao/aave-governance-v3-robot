@@ -106,6 +106,29 @@ export const governanceAbi = [
     outputs: [],
   },
   {
+    name: 'redeemCancellationFee',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [{name: 'proposalIds', type: 'uint256[]'}],
+    outputs: [],
+  },
+  {
+    // Live proposal state (computes Failed/Expired dynamically from timestamps —
+    // unlike the stored state in `getProposal`).
+    name: 'getProposalState',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{name: 'proposalId', type: 'uint256'}],
+    outputs: [{name: '', type: 'uint8'}],
+  },
+  {
+    name: 'getCancellationFee',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{name: '', type: 'uint256'}],
+  },
+  {
     name: 'VotingActivated',
     type: 'event',
     anonymous: false,

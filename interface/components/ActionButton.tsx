@@ -70,6 +70,17 @@ export function ActionButton({
   const isClientMode = config?.mode === 'client';
   const friendlyLabelFor = LABELS[action] ?? action;
 
+  // "Stale lock": the cache says the action isn't eligible but the ETA already passed. The
+  // cache-refresh cron only runs every minute, so for up to ~60s we can be locked when on-chain
+  // is actually ready. Treat this as eligible in the UI and let the server's pre-flight `check()`
+  // re-validate when the user clicks. Worst case: server returns `not eligible: <reason>` and
+  // the toast surfaces it, which is the same behavior as before.
+  const isStaleLock =
+    !eligibility.eligible &&
+    !eligibility.done &&
+    eligibility.etaAt !== undefined &&
+    eligibility.etaAt <= now;
+
   // Server-signer flow: POST /api/execute, server signs and sends.
   const sendViaServer = async () => {
     const res = await fetch('/api/execute', {
@@ -155,7 +166,7 @@ export function ActionButton({
   const friendlyLabel = label ?? LABELS[action] ?? action;
   const buttonVariant = variantToButton(variant);
 
-  if (!eligibility.eligible) {
+  if (!eligibility.eligible && !isStaleLock) {
     const isDone = eligibility.done === true;
     return (
       <div className="inline-flex flex-col items-stretch gap-1 min-w-0">
@@ -204,7 +215,11 @@ export function ActionButton({
         >
           {friendlyLabel}
         </Button>
-        <ReadyLine clientMode={isClientMode} walletConnected={!!wallet.account} />
+        <ReadyLine
+          clientMode={isClientMode}
+          walletConnected={!!wallet.account}
+          stale={isStaleLock}
+        />
       </div>
       <ConfirmModal
         open={showConfirm}
@@ -270,15 +285,25 @@ function ReasonLine({
 function ReadyLine({
   clientMode,
   walletConnected,
+  stale,
 }: {
   clientMode: boolean;
   walletConnected: boolean;
+  stale?: boolean;
 }) {
   if (clientMode && !walletConnected) {
     return (
       <div className="flex items-center gap-1 text-[10.5px] font-mono leading-snug text-warn">
         <Wallet size={9} strokeWidth={2.5} className="shrink-0" />
         <span>connect wallet to sign</span>
+      </div>
+    );
+  }
+  if (stale) {
+    return (
+      <div className="flex items-center gap-1 text-[10.5px] font-mono leading-snug text-success">
+        <Zap size={9} strokeWidth={2.5} className="shrink-0" />
+        <span>ready · server will re-check</span>
       </div>
     );
   }

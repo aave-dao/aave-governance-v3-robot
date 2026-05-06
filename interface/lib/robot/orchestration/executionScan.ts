@@ -2,6 +2,7 @@ import {MULTICALL3_ADDRESS, payloadsControllerAbi} from '../core/abis';
 import {EXECUTION_CHAINS} from '../core/chains';
 import {executePayloadAction} from '../core/actions';
 import type {ReadContext, WriteContext} from '../core/context';
+import {notifyError} from '../core/notify';
 import {PayloadState} from '../core/state';
 
 /**
@@ -117,6 +118,16 @@ export const runExecutionScan = async (
       ctx.logger.error('executionScan: action failed', {
         payloadId: payloadId.toString(),
         error: msg,
+      });
+      // Surface per-item failures to Slack/Telegram. The outer cron wrapper only notifies
+      // when the whole run throws — without this call, a tx that broadcasts then reverts
+      // (or fails to broadcast) would be silently buried in the results summary.
+      await notifyError({
+        source: 'executePayload',
+        error: err,
+        chainId: ctx.chainId,
+        meta: {payloadId: payloadId.toString()},
+        logger: ctx.logger,
       });
       results.push({payloadId, error: msg});
     }

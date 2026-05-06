@@ -3,6 +3,7 @@ import type {Address} from 'viem';
 import {MULTICALL3_ADDRESS, governanceAbi} from '../core/abis';
 import {activateVotingAction, cancelProposalAction, executeProposalAction} from '../core/actions';
 import type {ActionModule, ReadContext, WriteContext} from '../core/context';
+import {notifyError} from '../core/notify';
 import {isProposalFinal} from '../core/state';
 
 const GOVERNANCE = GovernanceV3Ethereum.GOVERNANCE as Address;
@@ -156,6 +157,16 @@ export const runGovernanceScan = async (
         proposalId: item.proposalId.toString(),
         action: item.action.name,
         error: msg,
+      });
+      // Surface per-item failures to Slack/Telegram. The outer cron wrapper only notifies
+      // when the whole run throws — without this call, a tx that broadcasts then reverts
+      // (or fails to broadcast) would be silently buried in the results summary.
+      await notifyError({
+        source: item.action.name,
+        error: err,
+        chainId: ctx.chainId,
+        meta: {proposalId: item.proposalId.toString()},
+        logger: ctx.logger,
       });
       results.push({proposalId: item.proposalId, action: item.action.name, error: msg});
     }
