@@ -1,0 +1,19 @@
+tenderly/src/core/disabledPayloads.ts
+  h_739c25e72c37fb 29-33
+interface/lib/robot/core/disabledPayloads.ts
+  h_739c25e72c37fb 29-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "09d8c79b28e638ba3f0a8b8de85dafd130792fbf",
+  "prompts": {},
+  "humans": {
+    "h_739c25e72c37fb": {
+      "author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    },
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
