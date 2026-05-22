@@ -63,6 +63,9 @@ export const proposals = pgTable(
     id: bigint('id', { mode: 'bigint' }).primaryKey(),
     state: integer('state').notNull(),
     stateName: text('state_name').notNull(),
+    /** UI-facing label (handles the L1-Executed-but-payloads-still-running case). Written
+     *  by upsertReport via lib/display-state.ts. Indexed for server-side state filtering. */
+    displayState: text('display_state').notNull(),
     creator: text('creator').notNull(),
     creationTime: integer('creation_time').notNull(),
     votingActivationTime: integer('voting_activation_time').notNull(),
@@ -100,6 +103,7 @@ export const proposals = pgTable(
   (t) => ({
     stateIdx: index('proposals_state_idx').on(t.state),
     refreshedAtIdx: index('proposals_refreshed_at_idx').on(t.refreshedAt),
+    displayStateIdx: index('proposals_display_state_idx').on(t.displayState),
   }),
 );
 

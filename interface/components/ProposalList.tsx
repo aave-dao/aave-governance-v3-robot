@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Inbox, Loader2, Zap, Clock, Check, X as XIcon, AlertCircle } from 'lucide-react';
 import useSWRInfinite from 'swr/infinite';
@@ -12,7 +12,7 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { StateBadge } from './StateBadge';
 import { VoteBar } from './VoteBar';
-import { ProposalFilters, type FilterState, useFilterState } from './ProposalFilters';
+import { ProposalFilters, useFilterState } from './ProposalFilters';
 import { ProposalListSkeleton } from './skeletons/ProposalListSkeleton';
 import { cn } from './ui/cn';
 
@@ -31,30 +31,61 @@ export type ProposalRow = {
   vmStateName: string | null;
 };
 
-type Page = { proposals: ProposalRow[]; nextCursor: string | null };
+type Page = {
+  proposals: ProposalRow[];
+  nextCursor: string | null;
+  /** Total proposals in the DB (no filter applied). First page only. */
+  total?: number;
+  /** Total proposals matching the current filter. First page only. */
+  matching?: number;
+};
 
 const fetcher = (url: string): Promise<Page> => fetch(url).then((r) => r.json());
 
 const PAGE_SIZE = 20;
+const Q_DEBOUNCE_MS = 200;
 
 export function ProposalList({ initial }: { initial: ProposalRow[] }) {
   const [filters, setFilters] = useFilterState();
 
+  // Debounce `q` so each keystroke doesn't fire a request. `states` (toggle chips) is
+  // discrete and changes infrequently, so we pass it straight through.
+  const [debouncedQ, setDebouncedQ] = useState(filters.q);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedQ(filters.q), Q_DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+  }, [filters.q]);
+
+  const queryString = useMemo(() => {
+    const sp = new URLSearchParams();
+    sp.set('limit', String(PAGE_SIZE));
+    if (debouncedQ) sp.set('q', debouncedQ);
+    if (filters.states.length > 0) sp.set('state', filters.states.join(','));
+    return sp.toString();
+  }, [debouncedQ, filters.states]);
+
+  const isUnfiltered = !debouncedQ && filters.states.length === 0;
+
   const { data, size, setSize, isValidating, isLoading } = useSWRInfinite<Page>(
     (index, prev) => {
       if (prev && prev.nextCursor === null) return null;
-      if (index === 0) return `/api/proposals?limit=${PAGE_SIZE}`;
-      return `/api/proposals?limit=${PAGE_SIZE}&cursor=${prev!.nextCursor}`;
+      if (index === 0) return `/api/proposals?${queryString}`;
+      return `/api/proposals?${queryString}&cursor=${prev!.nextCursor}`;
     },
     fetcher,
     {
-      fallbackData: [
-        {
-          proposals: initial,
-          nextCursor:
-            initial.length === PAGE_SIZE ? initial[initial.length - 1]!.id : null,
-        },
-      ],
+      // Only seed initial data when there's no filter active — the SSR'd top-20 doesn't
+      // match an arbitrary filter, so trying to use it as a starting page would render
+      // wrong content for a flash before the real query lands.
+      fallbackData: isUnfiltered
+        ? [
+            {
+              proposals: initial,
+              nextCursor:
+                initial.length === PAGE_SIZE ? initial[initial.length - 1]!.id : null,
+            },
+          ]
+        : undefined,
       refreshInterval: 30_000,
       revalidateOnFocus: false,
       keepPreviousData: true,
@@ -62,23 +93,32 @@ export function ProposalList({ initial }: { initial: ProposalRow[] }) {
     },
   );
 
+  // When the query changes, reset pagination to page 1. Without this, switching to a
+  // narrower filter would re-fetch as many pages as you'd previously loaded — wasted work.
+  useEffect(() => {
+    setSize(1);
+  }, [queryString, setSize]);
+
   const pages = data ?? [];
   const allRows = pages.flatMap((p) => p.proposals);
-  const filtered = useMemo(() => filterProposals(allRows, filters), [allRows, filters]);
   const lastPage = pages[pages.length - 1];
   const canLoadMore = !!lastPage && lastPage.nextCursor !== null;
+  // First page carries totals (server-side counts). Fall back to loaded length if absent
+  // (e.g. SSR fallback for the unfiltered first paint).
+  const total = pages[0]?.total ?? allRows.length;
+  const matching = pages[0]?.matching ?? allRows.length;
 
   // Pick the smallest upcoming `nextEventAt` so the live clock ticks with the right cadence.
   const nextEventAt = useMemo(() => {
     let earliest: number | undefined;
-    for (const p of filtered) {
+    for (const p of allRows) {
       const next = nextActionLabel(p);
       if (next.nextEventAt && (!earliest || next.nextEventAt < earliest)) {
         earliest = next.nextEventAt;
       }
     }
     return earliest ?? null;
-  }, [filtered]);
+  }, [allRows]);
   const now = useNow(nextEventAt);
 
   if (isLoading && allRows.length === 0) {
@@ -90,21 +130,21 @@ export function ProposalList({ initial }: { initial: ProposalRow[] }) {
       <ProposalFilters
         value={filters}
         onChange={setFilters}
-        total={allRows.length}
-        showing={filtered.length}
+        total={total}
+        showing={isUnfiltered ? allRows.length : matching}
       />
 
-      {filtered.length === 0 ? (
+      {allRows.length === 0 ? (
         <EmptyState onClear={() => setFilters({ q: '', states: [] })} />
       ) : (
         <div className="flex flex-col gap-2">
-          {filtered.map((p) => (
+          {allRows.map((p) => (
             <ProposalRowCard key={p.id} p={p} now={now} />
           ))}
         </div>
       )}
 
-      {canLoadMore && filtered.length > 0 && (
+      {canLoadMore && allRows.length > 0 && (
         <div className="flex justify-center pt-2">
           <Button
             variant="default"
@@ -213,22 +253,6 @@ function EmptyState({ onClear }: { onClear: () => void }) {
       </Button>
     </Card>
   );
-}
-
-function filterProposals(rows: ProposalRow[], filters: FilterState): ProposalRow[] {
-  const q = filters.q.trim().toLowerCase();
-  const stateSet = new Set(filters.states.map((s) => s.toLowerCase()));
-  return rows.filter((p) => {
-    if (stateSet.size > 0) {
-      const display = displayStateName(p.state, p.stateName, p.eligibility?.payloads).toLowerCase();
-      if (!stateSet.has(display)) return false;
-    }
-    if (!q) return true;
-    if (p.id.includes(q)) return true;
-    if (p.metadata?.title?.toLowerCase().includes(q)) return true;
-    if (p.creator.toLowerCase().includes(q)) return true;
-    return false;
-  });
 }
 
 // AlertCircle import keeps lint happy when used in skeletons module if we re-export later.

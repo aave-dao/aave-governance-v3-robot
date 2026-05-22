@@ -18,11 +18,17 @@ import {
 } from '@/db/schema';
 import type { Hex } from 'viem';
 import { buildInspectorClientsFromEnv } from './context-factory';
+import { displayStateName } from './display-state';
 import { indexLifecycleTxs } from './lifecycle-index';
 import { jsonSafe } from './serialize';
 import { syncVotesForProposal, type VotesSyncSummary } from './votes-sync';
 
 const N_PROPOSALS = 20;
+/** Per-tick cap for inspecting OLDER missing proposals (those outside the top-N window).
+ *  Bounded so a fresh DB doesn't try to inspect 500 proposals in one cron run — at 10/tick
+ *  every 5 min a fully-empty DB fills in ~4 hours. Once the table is fully populated this
+ *  loop is a no-op. */
+const BACKFILL_PER_TICK = 10;
 
 const toCheck = (a: ActionStatus | undefined): EligibilityCheck => {
   if (!a) return { eligible: false, reason: 'no status' };
@@ -100,6 +106,11 @@ const upsertReport = async (
     id,
     state: rep.governance.stateNumber,
     stateName: rep.governance.state,
+    displayState: displayStateName(
+      rep.governance.stateNumber,
+      rep.governance.state,
+      eligibility.payloads,
+    ),
     creator: rep.governance.creator,
     creationTime: rep.governance.creationTime,
     votingActivationTime: rep.governance.votingActivationTime,
@@ -142,6 +153,7 @@ const upsertReport = async (
       set: {
         state: proposalRow.state,
         stateName: proposalRow.stateName,
+        displayState: proposalRow.displayState,
         creator: proposalRow.creator,
         creationTime: proposalRow.creationTime,
         votingActivationTime: proposalRow.votingActivationTime,
@@ -341,10 +353,61 @@ export const runCacheRefresh = async (): Promise<RefreshSummary> => {
     }
   }
 
+  // Backfill: pick up to BACKFILL_PER_TICK older proposals NOT YET in the DB and inspect
+  // them. Walks newest-first below the top-N window so the list view fills in from the
+  // top down. Once every id is cached this becomes a single cheap SELECT + no work.
+  let backfilled = 0;
+  if (total > BigInt(N_PROPOSALS)) {
+    const existingRows = await db.select({ id: proposals.id }).from(proposals);
+    const existing = new Set(existingRows.map((r) => r.id.toString()));
+    const missing: bigint[] = [];
+    const windowEnd = total - 1n - BigInt(N_PROPOSALS);
+    for (let id = windowEnd; id >= 0n && missing.length < BACKFILL_PER_TICK; id--) {
+      if (!existing.has(id.toString())) missing.push(id);
+    }
+    if (missing.length > 0) {
+      bundle.logger.info('refresh: backfilling missing proposals', {
+        count: missing.length,
+        oldest: missing[missing.length - 1]!.toString(),
+        newest: missing[0]!.toString(),
+      });
+      const backfillSettled = await Promise.allSettled(
+        missing.map((id) =>
+          inspectProposal(
+            {
+              l1Public: bundle.govPublic,
+              votingClients: bundle.votingClients,
+              executionClients: bundle.executionClients,
+              logger: bundle.logger,
+            },
+            id,
+          ),
+        ),
+      );
+      for (const [i, result] of backfillSettled.entries()) {
+        const id = missing[i]!;
+        if (result.status === 'rejected') {
+          const err = result.reason instanceof Error ? result.reason.message : String(result.reason);
+          errors.push({ proposalId: id.toString(), error: err });
+          continue;
+        }
+        try {
+          await upsertReport(bundle, id, result.value);
+          backfilled += 1;
+        } catch (err) {
+          errors.push({
+            proposalId: id.toString(),
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    }
+  }
+
   return {
     totalProposals: Number(total),
-    inspected: ids.length,
-    upserted,
+    inspected: ids.length + backfilled,
+    upserted: upserted + backfilled,
     errors,
   };
 };

@@ -127,6 +127,22 @@ const NOTIFIED_AT = Symbol.for('aave-gov-robot.notified');
 const isAlreadyNotified = (err: unknown): boolean =>
   typeof err === 'object' && err !== null && (err as {[k: symbol]: unknown})[NOTIFIED_AT] === true;
 
+/**
+ * Benign "the action wasn't applicable" failures: precondition `check()` returned
+ * `{ok: false}` and the orchestration / execute-action layer turned that into a thrown
+ * Error. Common causes:
+ *   - operator clicked execute twice
+ *   - the cron scan saw a payload as Queued, but another keeper executed it before us
+ *   - state moved on between scan and execute (Cancelled, Expired, …)
+ *
+ * These are NOT system faults and shouldn't page anyone. They're recorded in the
+ * `executions` table / cron summary either way.
+ */
+const isPreconditionFailure = (err: unknown): boolean => {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /\bnot eligible:|\bprecheck failed:/.test(msg);
+};
+
 const markNotified = (err: unknown): void => {
   if (typeof err === 'object' && err !== null) {
     try {
@@ -304,6 +320,18 @@ export type NotifyErrorParams = {
 export const notifyError = async (p: NotifyErrorParams): Promise<void> => {
   if (isAlreadyNotified(p.error)) return;
   markNotified(p.error);
+
+  // Benign "wrong state" / "precheck failed" errors aren't worth alerting — the action
+  // simply wasn't applicable at the time it was attempted (race with another keeper, an
+  // operator double-click, etc.). Silently drop. The execution row still records `failed`
+  // for forensics.
+  if (isPreconditionFailure(p.error)) {
+    p.logger?.debug('notify: skipping precondition failure', {
+      source: p.source,
+      message: p.error instanceof Error ? p.error.message : String(p.error),
+    });
+    return;
+  }
 
   if (
     !process.env.SLACK_WEBHOOK_URL &&
