@@ -26,3 +26,9 @@ export {
   execZksync,
 } from './executionAction';
 export {proofOfReservesAvalanche, proofOfReservesAll} from './proofOfReservesAction';
+export {
+  l1GovernanceEventListener,
+  votingMachineEthListener,
+  votingMachinePolygonListener,
+  votingMachineAvalancheListener,
+} from './lifecycleListeners';

@@ -457,5 +457,23 @@ export const notifyHealth = async (p: NotifyHealthParams): Promise<void> => {
   await fanOut(p.slack, p.tg, p.plain, p.logger);
 };
 
+/**
+ * Generic "info" notification — caller renders the three flavours (Slack mrkdwn /
+ * Telegram HTML / plain) and we just fan-out. Same shape as `notifyHealth` but named
+ * for non-health success/event-style notifications (proposal lifecycle, etc.). Bypasses
+ * the dedupe store on purpose — these are positive signals, not errors.
+ */
+export type NotifyInfoParams = NotifyHealthParams;
+export const notifyInfo = async (p: NotifyInfoParams): Promise<void> => {
+  if (
+    !process.env.SLACK_WEBHOOK_URL &&
+    !process.env.TELEGRAM_BOT_TOKEN &&
+    !process.env.TELEGRAM_WEBHOOK_URL
+  ) {
+    return;
+  }
+  await fanOut(p.slack, p.tg, p.plain, p.logger);
+};
+
 // Re-export so callers don't need a separate import for the explorer URL.
 export {explorerBaseUrl, txUrl};

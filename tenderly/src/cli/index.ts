@@ -25,6 +25,9 @@ import {inspectProposal, type InspectorConfig} from '../orchestration/proposalIn
 import {formatInspectorReport} from './format';
 import {decodeProposal, formatDecodeResult} from './decode';
 import {fetchIpfsText, ipfsHashToCidV0, parseProposalMarkdown} from '../core/ipfs';
+import {notifyProposalEvent} from '../core/notifyEvent';
+import {LIFECYCLE_EVENTS, type LifecycleEventName} from '../core/lifecycle-events';
+import {getPublicClient} from '../core/clients';
 import {findRedeemable, formatRedeemableReport} from './redeemable';
 import {collectHealth, formatHealthAlert, formatHealthFull, formatHealthReport} from './health';
 import {runGovernanceScan} from '../orchestration/governanceScan';
@@ -269,6 +272,95 @@ program
     const report = await findRedeemable({author: opts.author, count});
     process.stdout.write(formatRedeemableReport(report) + '\n');
   });
+
+// -------- notify-test --------
+//
+// Local-only test harness for the proposal-lifecycle notification path. Synthesizes a
+// tx with a deterministic hash and routes through `notifyProposalEvent` so we can verify
+// rendering BEFORE deploying any tenderly.yaml change. Use --dry-run to skip the actual
+// Slack/TG fan-out (just prints the rendered bodies to stdout); omit --dry-run to fire
+// against whatever webhook env is configured.
+program
+  .command('notify-test')
+  .description(
+    "Dry-render (or fire) a proposal lifecycle notification for local testing. Useful " +
+      'before changing tenderly.yaml.',
+  )
+  .requiredOption('--event <name>', `lifecycle event (one of: ${Object.keys(LIFECYCLE_EVENTS).join(', ')})`)
+  .requiredOption('--proposalId <id>', 'proposal id (decimal)')
+  .option('--chain <name>', 'chain name where the event fired (default: ethereum)', 'ethereum')
+  .option(
+    '--from <addr>',
+    'tx.from override — set to your signer address to verify dedupe skip path. Default: 0xdead…dead (non-matching).',
+    '0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead',
+  )
+  .option('--dry-run', 'print rendered Slack/Telegram/plain bodies; do NOT post')
+  .action(
+    async (opts: {event: string; proposalId: string; chain: string; from: string; dryRun?: boolean}) => {
+      const env = loadEnv();
+      const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
+
+      const eventName = opts.event as LifecycleEventName;
+      if (!(eventName in LIFECYCLE_EVENTS)) {
+        throw new Error(
+          `unknown --event "${opts.event}". Valid: ${Object.keys(LIFECYCLE_EVENTS).join(', ')}`,
+        );
+      }
+      const proposalId = BigInt(opts.proposalId);
+
+      // Resolve the chain. For VM events the user usually wants a non-eth chain; default
+      // is ethereum since L1 events are most common.
+      const resolveChainId = (name: string): number => {
+        if (name === 'ethereum') return GOVERNANCE_CHAIN_ID;
+        const vmId = Object.keys(VOTING_CHAINS).map(Number).find((id) => VOTING_CHAINS[id as VotingChainId]?.name === name);
+        if (vmId) return vmId;
+        throw new Error(`--chain "${name}" not in VOTING_CHAINS (or 'ethereum')`);
+      };
+      const chainId = resolveChainId(opts.chain);
+      const l1Client = getPublicClient(GOVERNANCE_CHAIN_ID) as unknown as Parameters<
+        typeof notifyProposalEvent
+      >[0]['l1Client'];
+
+      // Synthesize tx-from: when the user passes --from = our signer address, the listener
+      // would skip in real life. We can't run the listener here without a real Tenderly
+      // Event, but the notify itself doesn't know about tx.from — we just print whether
+      // the dedupe WOULD have skipped, to make manual verification of step 4 easier.
+      const txFrom = opts.from.toLowerCase();
+      const expectedSigner = env.PRIVATE_KEY
+        ? (await import('../core/clients')).accountFromPrivateKey(env.PRIVATE_KEY).toLowerCase()
+        : null;
+      const wouldDedupe = expectedSigner !== null && txFrom === expectedSigner;
+      if (wouldDedupe) {
+        process.stdout.write(
+          `[notify-test] tx.from (${opts.from}) matches our signer — listener WOULD skip notification.\n`,
+        );
+      }
+
+      const rendered = await notifyProposalEvent({
+        proposalId,
+        event: eventName,
+        chainId,
+        chainName: opts.chain,
+        // Deterministic fake tx hash so the rendered output is stable across runs.
+        txHash: ('0x' + '11'.repeat(32)) as `0x${string}`,
+        l1Client,
+        envelopeIds:
+          eventName === 'ProposalExecuted' || eventName === 'ProposalResultsSent'
+            ? [('0x' + '22'.repeat(32)) as `0x${string}`]
+            : [],
+        logger,
+        dryRun: opts.dryRun ?? false,
+      });
+
+      if (opts.dryRun) {
+        process.stdout.write('\n=== Slack ===\n' + rendered.slack + '\n');
+        process.stdout.write('\n=== Telegram (HTML) ===\n' + rendered.tg + '\n');
+        process.stdout.write('\n=== Plain ===\n' + rendered.plain + '\n');
+      } else {
+        process.stdout.write('[notify-test] sent (or skipped if no webhook configured)\n');
+      }
+    },
+  );
 
 // -------- ipfs --------
 program
