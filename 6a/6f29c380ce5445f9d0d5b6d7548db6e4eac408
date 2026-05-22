@@ -1,0 +1,48 @@
+interface/lib/robot/core/notify.ts
+  s_973ea4bfbb3fb0::t_2c033f1cd28004 324-335
+  s_973ea4bfbb3fb0::t_b48678af154f4d 130-145
+interface/db/migrations/0009_proposal_display_state.sql
+  s_973ea4bfbb3fb0::t_d9db509528df4f 1-15
+interface/db/schema.ts
+  s_973ea4bfbb3fb0::t_5617fc814160f3 66-68
+  s_973ea4bfbb3fb0::t_260ea70f188a39 106
+interface/lib/refresh.ts
+  s_973ea4bfbb3fb0::t_3e45b9070dcf60 27-31
+  s_973ea4bfbb3fb0::t_9072ee0c14227d 109-113
+  s_973ea4bfbb3fb0::t_a5f2a9760cb0c3 21
+  s_973ea4bfbb3fb0::t_e6b0739b9e75d0 156
+  s_973ea4bfbb3fb0::t_59b522a77ed448 356-406,409-410
+interface/components/ProposalList.tsx
+  s_973ea4bfbb3fb0::t_0ea5966bdd3e6a 3,15
+  s_973ea4bfbb3fb0::t_9e0bf2191fb94a 34-41,46,51-68,72-73,77-88,96-101,106-109,114,121,133-134,137,141,147
+interface/app/api/proposals/route.ts
+  s_973ea4bfbb3fb0::t_11ac46d44f362c 77-78,80-81
+  s_973ea4bfbb3fb0::t_fafae5b3018c4e 1-9,11,26-31,46-76,79,82-85,92
+tenderly/src/core/notify.ts
+  s_973ea4bfbb3fb0::t_1715efa6eeff93 324-335
+  s_973ea4bfbb3fb0::t_d573566b914a99 130-145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "6a6f29c380ce5445f9d0d5b6d7548db6e4eac408",
+  "prompts": {},
+  "humans": {
+    "h_739c25e72c37fb": {
+      "author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    },
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_973ea4bfbb3fb0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d65e8abb-e691-47e6-9e88-4248a44b42f7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
