@@ -24,15 +24,59 @@ import type {SupportedChainIds} from '@bgd-labs/toolbox';
  * Each chain gets a viem `fallback()` transport composed in this order:
  *   1. Operator-specified `RPC_<NETWORK>` env var (single URL or comma-separated list).
  *   2. Toolbox-resolved URL (Alchemy via ALCHEMY_API_KEY, or toolbox's own table).
- *   3. The public RPC URLs that ship with the viem chain definition.
+ *   3. Tenderly Gateway URL (per-chain slug + TENDERLY_GATEWAY_KEY) — supports much larger
+ *      `eth_getLogs` ranges than viem's public defaults, which matters for the lifecycle
+ *      indexer's wide event scans.
+ *   4. Viem's chain-default public RPCs (last-resort; usually rate-limited and capped).
  *
  * Any single transport that times out or returns a 5xx is automatically retried on the
- * next URL in the list. With Alchemy as primary and viem's public RPCs as backup we get
- * graceful degradation when one provider hiccups.
+ * next URL in the list. With Alchemy as primary and Tenderly as a beefy backup, a transient
+ * Alchemy hiccup doesn't drop us straight onto a 2048-block-limited public node.
  *
  * Clients are memoized per chainId / signer so a single Tenderly Action invocation doesn't
  * open multiple transports.
  */
+
+/**
+ * Default Tenderly Gateway API key. Override with `TENDERLY_GATEWAY_KEY` env var.
+ *
+ * Per-chain slugs probed and verified against the live gateway — chains absent from this
+ * map (currently just BNB / chain 56) aren't supported by Tenderly Gateway and skip the
+ * Tenderly fallback. To extend, hit `https://<slug>.gateway.tenderly.co/<key>` with
+ * `eth_blockNumber`; if it returns a result the slug is live.
+ */
+const TENDERLY_GATEWAY_KEY_DEFAULT = '7OkquWA8RZvYUIuM5i2K4d';
+
+const TENDERLY_SLUG_BY_CHAIN_ID: Record<number, string> = {
+  1: 'mainnet',
+  10: 'optimism',
+  100: 'gnosis',
+  137: 'polygon',
+  146: 'sonic',
+  196: 'xlayer',
+  324: 'zksync',
+  1088: 'metis-andromeda',
+  1868: 'soneium',
+  4326: 'megaeth',
+  5000: 'mantle',
+  8453: 'base',
+  9745: 'plasma',
+  42161: 'arbitrum',
+  42220: 'celo',
+  43114: 'avalanche',
+  57073: 'ink',
+  59144: 'linea',
+  534352: 'scroll-mainnet',
+  // 56 (BNB) intentionally omitted — Tenderly Gateway returns 404 for every BNB slug.
+};
+
+const tenderlyGatewayUrl = (chainId: number): string | undefined => {
+  const slug = TENDERLY_SLUG_BY_CHAIN_ID[chainId];
+  if (!slug) return undefined;
+  const key = process.env.TENDERLY_GATEWAY_KEY ?? TENDERLY_GATEWAY_KEY_DEFAULT;
+  if (!key) return undefined;
+  return `https://${slug}.gateway.tenderly.co/${key}`;
+};
 const publicCache = new Map<number, PublicClient>();
 const walletCache = new Map<string, WalletClient>(); // key = `${chainId}:${signerAddress}`
 
@@ -56,6 +100,7 @@ const viemChainByChainId = (chainId: number): Chain | undefined => {
  */
 export const describeRpcSource = (chainId: number, url: string): string => {
   if (url.includes('alchemy')) return 'alchemy';
+  if (url.includes('gateway.tenderly.co')) return 'tenderly';
   let envName: string | undefined;
   try {
     envName = getNetworkEnv(chainId as SupportedChainIds);
@@ -74,6 +119,11 @@ export const getRpcUrl = (chainId: number): string => {
   const alchemyKey = process.env.ALCHEMY_API_KEY;
   const url = toolboxGetRpcUrl(chainId as SupportedChainIds, {alchemyKey});
   if (url) return url;
+
+  // Prefer Tenderly Gateway over viem's public-default URL — public RPCs are typically
+  // rate-limited and apply tight `eth_getLogs` block-range caps that break wide scans.
+  const tenderly = tenderlyGatewayUrl(chainId);
+  if (tenderly) return tenderly;
 
   // Toolbox doesn't know about this chain; fall back to viem default if any.
   const chain = viemChainByChainId(chainId);
@@ -141,7 +191,12 @@ export const candidateUrls = (chainId: number): string[] => {
     }
   }
 
-  // 3. Viem public RPCs as last-resort backups.
+  // 3. Tenderly Gateway — supports wide `eth_getLogs` ranges where viem's public defaults
+  //    cap at a couple-thousand blocks. Always added (if a slug exists for this chain) so a
+  //    transient Alchemy hiccup doesn't drop straight onto a rate-limited public node.
+  add(tenderlyGatewayUrl(chainId));
+
+  // 4. Viem public RPCs as last-resort backups.
   if (chain) {
     for (const u of chain.rpcUrls.default.http) add(u);
   }
