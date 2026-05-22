@@ -222,6 +222,126 @@ const fingerprintError = (
   return createHash('sha256').update(raw).digest('hex').slice(0, 32);
 };
 
+// ---------------- proposal-context enrichment for notifyTxSuccess ---------------
+
+/**
+ * When the tx is associated with a proposal (`meta.proposalId` is set), enrich the
+ * success notification with: IPFS title/author, public vote dashboard + operator
+ * dashboard deep-links, and (for cross-chain-emitting actions) ADI envelope links.
+ *
+ * Returns line fragments in three flavors. Every step is independently try-catched —
+ * a failed enrichment NEVER blocks the underlying notification, it just drops the
+ * relevant line.
+ */
+type EnrichmentLines = {
+  preMeta: {slack: string[]; tg: string[]; plain: string[]};
+  postTx: {slack: string[]; tg: string[]; plain: string[]};
+};
+
+const EMPTY_ENRICHMENT: EnrichmentLines = {
+  preMeta: {slack: [], tg: [], plain: []},
+  postTx: {slack: [], tg: [], plain: []},
+};
+
+const enrichProposalContext = async (
+  proposalId: string | undefined,
+  chainId: number,
+  receiptLogs: ReadonlyArray<{address: string; topics: readonly string[] | string[]}>,
+  logger?: Logger,
+): Promise<EnrichmentLines> => {
+  if (!proposalId) return EMPTY_ENRICHMENT;
+
+  const out: EnrichmentLines = {
+    preMeta: {slack: [], tg: [], plain: []},
+    postTx: {slack: [], tg: [], plain: []},
+  };
+
+  // 1. Title + author from L1 IPFS. Lazy imports to avoid circular module init issues.
+  try {
+    const [{getPublicClient}, {governanceAbi}, {fetchProposalMetadataSafe}, {GOVERNANCE_CHAIN_ID}] =
+      await Promise.all([
+        import('./clients'),
+        import('./abis'),
+        import('./ipfs'),
+        import('./chains'),
+      ]);
+    const {GovernanceV3Ethereum} = await import('@aave-dao/aave-address-book');
+    const l1 = getPublicClient(GOVERNANCE_CHAIN_ID);
+    const proposal = (await l1.readContract({
+      address: GovernanceV3Ethereum.GOVERNANCE as `0x${string}`,
+      abi: governanceAbi,
+      functionName: 'getProposal',
+      args: [BigInt(proposalId)],
+    })) as {ipfsHash: `0x${string}`};
+    const ZERO = ('0x' + '00'.repeat(32)) as `0x${string}`;
+    if (proposal.ipfsHash && proposal.ipfsHash !== ZERO) {
+      const md = await fetchProposalMetadataSafe(proposal.ipfsHash);
+      if (md?.title) {
+        out.preMeta.slack.push(`title: ${md.title}`);
+        out.preMeta.tg.push(`title: ${escapeHtml(md.title)}`);
+        out.preMeta.plain.push(`title: ${md.title}`);
+      }
+      if (md?.author) {
+        out.preMeta.slack.push(`author: ${md.author}`);
+        out.preMeta.tg.push(`author: ${escapeHtml(md.author)}`);
+        out.preMeta.plain.push(`author: ${md.author}`);
+      }
+    }
+  } catch (err) {
+    logger?.warn('notifyTxSuccess: ipfs enrichment failed', {
+      proposalId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // 2. Dashboard deep-links — each try/catch independently so one failure doesn't drop
+  //    the other.
+  try {
+    const {aaveVoteUrl} = await import('./links');
+    const url = aaveVoteUrl(proposalId);
+    out.postTx.slack.push(`<${url}|vote dashboard>`);
+    out.postTx.tg.push(`<a href="${url}">vote dashboard</a>`);
+    out.postTx.plain.push(url);
+  } catch (err) {
+    logger?.warn('notifyTxSuccess: vote-link build failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+  try {
+    const {operatorDashboardUrl} = await import('./links');
+    const url = operatorDashboardUrl(proposalId);
+    out.postTx.slack.push(`<${url}|operator dashboard>`);
+    out.postTx.tg.push(`<a href="${url}">operator dashboard</a>`);
+    out.postTx.plain.push(url);
+  } catch (err) {
+    logger?.warn('notifyTxSuccess: operator-link build failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // 3. ADI envelope links — only present when the tx actually emitted `EnvelopeRegistered`
+  //    logs. Source-chain CrossChainController address comes from the chainId we just
+  //    confirmed the tx on.
+  try {
+    const {crossChainControllerFor, extractEnvelopeIds} = await import('./adi');
+    const {adiEnvelopeUrl} = await import('./links');
+    const envelopes = extractEnvelopeIds(receiptLogs, crossChainControllerFor(chainId));
+    for (const id of envelopes) {
+      const url = adiEnvelopeUrl(id);
+      const short = `${id.slice(0, 8)}…${id.slice(-4)}`;
+      out.postTx.slack.push(`envelope: <${url}|${short}>`);
+      out.postTx.tg.push(`envelope: <a href="${url}">${escapeHtml(short)}</a>`);
+      out.postTx.plain.push(`envelope: ${url}`);
+    }
+  } catch (err) {
+    logger?.warn('notifyTxSuccess: envelope enrichment failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  return out;
+};
+
 // ---------------- public API ----------------
 
 export type NotifyTxParams = {
@@ -282,12 +402,31 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
   const short = shortHash(p.txHash);
   const meta = renderMeta({...p.meta, block: receipt.blockNumber.toString()});
 
+  // Proposal-context enrichment: when meta.proposalId is set, fetch IPFS title/author,
+  // build vote+operator dashboard deep-links, and parse ADI envelope IDs from receipt.logs.
+  // Every step internally try-catched — a single failure drops only that line, never the
+  // notification itself.
+  const proposalId =
+    typeof p.meta?.proposalId === 'string' || typeof p.meta?.proposalId === 'number'
+      ? String(p.meta.proposalId)
+      : undefined;
+  const enrichment = await enrichProposalContext(
+    proposalId,
+    p.chainId,
+    receipt.logs as ReadonlyArray<{address: string; topics: readonly string[] | string[]}>,
+    p.logger,
+  );
+
+  const joinLines = (lines: string[]): string => (lines.length > 0 ? '\n' + lines.join('\n') : '');
+
   // Slack: mrkdwn — `<URL|text>` for a link, backticks for inline code.
   const slackTxLine = url ? `tx: <${url}|${short}>` : `tx: \`${p.txHash}\``;
   const slack =
     `:white_check_mark: *${p.action}* on \`${chain}\`` +
+    joinLines(enrichment.preMeta.slack) +
     (meta.slack ? `\n${meta.slack}` : '') +
-    `\n${slackTxLine}`;
+    `\n${slackTxLine}` +
+    joinLines(enrichment.postTx.slack);
 
   // Telegram HTML: <b>, <code>, <a href>.
   const tgTxLine = url
@@ -295,14 +434,18 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
     : `tx: <code>${escapeHtml(p.txHash)}</code>`;
   const tg =
     `✅ <b>${escapeHtml(p.action)}</b> on <code>${escapeHtml(chain)}</code>` +
+    joinLines(enrichment.preMeta.tg) +
     (meta.tg ? `\n${meta.tg}` : '') +
-    `\n${tgTxLine}`;
+    `\n${tgTxLine}` +
+    joinLines(enrichment.postTx.tg);
 
   // Plain text fallback for the relay — still includes the explorer URL, just unlinked.
   const plain =
     `✅ ${p.action} on ${chain}` +
+    joinLines(enrichment.preMeta.plain) +
     (meta.plain ? `\n${meta.plain}` : '') +
-    `\ntx: ${url ?? p.txHash}`;
+    `\ntx: ${url ?? p.txHash}` +
+    joinLines(enrichment.postTx.plain);
 
   await fanOut(slack, tg, plain, p.logger);
 };
