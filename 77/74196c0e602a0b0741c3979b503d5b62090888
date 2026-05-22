@@ -1,0 +1,32 @@
+interface/lib/robot/core/clients.ts
+  s_973ea4bfbb3fb0::t_5273b3d888e9ef 103
+  s_973ea4bfbb3fb0::t_9dfd960d4257c5 26-30,33-34,39-79
+  s_973ea4bfbb3fb0::t_a3fe730da689d9 124-128
+  s_973ea4bfbb3fb0::t_91c6029f68d809 194-199
+tenderly/src/core/clients.ts
+  s_973ea4bfbb3fb0::t_6219d2fa11267a 27-30,33-34,39-79
+  s_973ea4bfbb3fb0::t_22ceb0a1977b7c 194-199
+  s_973ea4bfbb3fb0::t_944c4f5f9974db 123-127
+  s_973ea4bfbb3fb0::t_39ea04726965fe 103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "7774196c0e602a0b0741c3979b503d5b62090888",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_973ea4bfbb3fb0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d65e8abb-e691-47e6-9e88-4248a44b42f7",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
