@@ -1,0 +1,47 @@
+tenderly/tenderly.yaml
+  s_8d8cf4daab5ef1::t_7a1f6073f0773f 59-78,80-85,87-92,94-99,101-106,108-122,124-129,131-136,138-152,154-159,161-166,168-182,184-189,191-196,198-199
+  h_739c25e72c37fb 79,86,93,100,107,123,130,137,153,160,167,183,190,197,217-276
+tenderly/src/core/links.ts
+  s_8d8cf4daab5ef1::t_d3861fe9420639 1-22
+tenderly/src/core/notify.ts
+  s_8d8cf4daab5ef1::t_ced88e9e84d9c2 460-477
+tenderly/src/core/notifyEvent.ts
+  s_8d8cf4daab5ef1::t_83c7ada06faec7 1-218
+tenderly/src/cli/index.ts
+  s_8d8cf4daab5ef1::t_7246f041ec4d32 28-30
+  s_8d8cf4daab5ef1::t_762e5942d6d900 276-364
+tenderly/src/tenderly/index.ts
+  s_8d8cf4daab5ef1::t_db22adbd9556f7 29-34
+tenderly/src/core/adi.ts
+  s_8d8cf4daab5ef1::t_dfe832fb3c65df 1-110
+tenderly/src/core/lifecycle-events.ts
+  s_8d8cf4daab5ef1::t_c2a721dd0bcda9 1-149
+tenderly/src/tenderly/lifecycleListeners.ts
+  s_8d8cf4daab5ef1::t_abe6fdb4632d88 1-23,25-42,44-214
+  s_8d8cf4daab5ef1::t_7e8e75bca86917 24
+  s_8d8cf4daab5ef1::t_e2e7fdbeb71fbe 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "b6bc2ddb1a97d43ef09651f5f6016e55ae6d6519",
+  "prompts": {},
+  "humans": {
+    "h_739c25e72c37fb": {
+      "author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    },
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_8d8cf4daab5ef1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c1b6f4-2a07-422a-805f-74ac1d611287",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
