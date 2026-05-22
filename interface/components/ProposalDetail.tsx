@@ -1,7 +1,10 @@
 'use client';
 
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
+  AlertCircle,
   ArrowLeft,
   Clock,
   Zap,
@@ -10,6 +13,7 @@ import {
   ExternalLink,
   Copy,
   Hash,
+  RefreshCw,
 } from 'lucide-react';
 import useSWR from 'swr';
 import { ipfsHashToCidV0 } from '@robot/core/ipfs';
@@ -64,6 +68,12 @@ type ProposalShape = {
   raw: unknown;
   refreshedAt: string;
   updatedAt: string;
+  /** Most recent inspector failure for this proposal (truncated). Null when the row is
+   *  healthy. Populated by `recordProposalError` in lib/refresh.ts. */
+  lastError?: string | null;
+  /** When `lastError` was recorded. Compare against `refreshedAt` — if it's newer, the
+   *  row is in a failing state and we should surface that to the operator. */
+  lastErrorAt?: string | null;
 };
 
 type PayloadShape = {
@@ -252,11 +262,14 @@ export function ProposalDetail({
               </span>
             </div>
           </div>
-          <div
-            className="text-[11px] font-mono text-fg-dim sm:text-right whitespace-nowrap"
-            suppressHydrationWarning
-          >
-            refreshed {fmtAbsolute(Math.floor(new Date(proposal.refreshedAt).getTime() / 1000))}
+          <div className="flex flex-col items-end gap-1 text-[11px] font-mono text-fg-dim whitespace-nowrap">
+            <RefreshControls
+              proposalId={proposal.id}
+              refreshedAt={proposal.refreshedAt}
+              lastError={proposal.lastError ?? null}
+              lastErrorAt={proposal.lastErrorAt ?? null}
+              now={now}
+            />
           </div>
         </div>
       </div>
@@ -538,6 +551,99 @@ function EmptyMini({ children }: { children: React.ReactNode }) {
     <div className="rounded-lg border border-border bg-surface px-5 py-6 text-center text-[12px] text-fg-dim italic">
       {children}
     </div>
+  );
+}
+
+/**
+ * Header-right block: `refreshed YYYY-MM-DD …` timestamp, a manual "Refresh" button, and
+ * (when the proposal's last refresh attempt failed) a red dot + tooltip with the error.
+ *
+ * The detail page already self-heals on visit when the row is stale + non-final; this
+ * button is for the case where the auto-heal itself fails (which sets last_error_at), and
+ * the operator wants to retry without leaving the page.
+ */
+function RefreshControls({
+  proposalId,
+  refreshedAt,
+  lastError,
+  lastErrorAt,
+  now,
+}: {
+  proposalId: string;
+  refreshedAt: string;
+  lastError: string | null;
+  lastErrorAt: string | null;
+  now: number;
+}) {
+  const router = useRouter();
+  const toast = useToast();
+  const [isPending, startTransition] = useTransition();
+  const [submitting, setSubmitting] = useState(false);
+
+  // "Failing" means a refresh attempt happened AFTER the last successful one.
+  const isFailing =
+    lastErrorAt !== null &&
+    new Date(lastErrorAt).getTime() > new Date(refreshedAt).getTime();
+
+  const onRefresh = async () => {
+    if (submitting || isPending) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/proposals/${proposalId}/refresh`, { method: 'POST' });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || body.ok === false) {
+        toast.error(`Refresh failed: ${body.error ?? `HTTP ${res.status}`}`);
+      } else {
+        toast.success('Refreshed');
+      }
+    } catch (err) {
+      toast.error(`Refresh failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setSubmitting(false);
+      // router.refresh() re-runs the server component, picking up the updated row whether
+      // the refresh succeeded (fresh data) OR failed (new last_error to display).
+      startTransition(() => router.refresh());
+    }
+  };
+
+  const busy = submitting || isPending;
+  const refreshedSec = Math.floor(new Date(refreshedAt).getTime() / 1000);
+  const errorAgo =
+    lastErrorAt && isFailing ? fmtRelative(Math.floor(new Date(lastErrorAt).getTime() / 1000), now) : null;
+
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <span suppressHydrationWarning>refreshed {fmtAbsolute(refreshedSec)}</span>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={busy}
+          title="Refresh this proposal now"
+          aria-label="Refresh"
+          className={cn(
+            'inline-flex h-5 w-5 items-center justify-center rounded text-fg-dim transition-colors',
+            'hover:bg-surface-elev hover:text-fg',
+            busy && 'opacity-50 cursor-wait',
+          )}
+        >
+          <RefreshCw
+            size={11}
+            strokeWidth={2.5}
+            className={cn(busy && 'animate-spin')}
+          />
+        </button>
+      </div>
+      {isFailing && (
+        <div
+          className="flex items-center gap-1 text-danger"
+          title={lastError ?? 'last refresh failed'}
+        >
+          <AlertCircle size={10} strokeWidth={2.5} />
+          <span suppressHydrationWarning>last refresh failed · {errorAgo}</span>
+        </div>
+      )}
+    </>
   );
 }
 

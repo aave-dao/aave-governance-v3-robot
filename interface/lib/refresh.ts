@@ -1,6 +1,8 @@
 import { GovernanceV3Ethereum } from '@aave-dao/aave-address-book';
-import type { Address } from 'viem';
+import { eq } from 'drizzle-orm';
+import type { Address, Hex } from 'viem';
 import { governanceAbi } from '@robot/core/abis';
+import { notifyError } from '@robot/core/notify';
 import {
   inspectProposal,
   type ActionStatus,
@@ -16,7 +18,6 @@ import {
   type NextRecommendedBlob,
   type ProposalMetadataBlob,
 } from '@/db/schema';
-import type { Hex } from 'viem';
 import { buildInspectorClientsFromEnv } from './context-factory';
 import { displayStateName } from './display-state';
 import { indexLifecycleTxs } from './lifecycle-index';
@@ -179,6 +180,9 @@ const upsertReport = async (
         raw: proposalRow.raw,
         refreshedAt: proposalRow.refreshedAt,
         updatedAt: proposalRow.updatedAt,
+        // Successful refresh clears any previous failure state for this proposal.
+        lastError: null,
+        lastErrorAt: null,
       },
     });
 
@@ -286,19 +290,71 @@ export type RefreshSummary = {
   errors: Array<{ proposalId: string; error: string }>;
 };
 
+/**
+ * Record a per-proposal inspector failure. Sets `last_error` + `last_error_at` WITHOUT
+ * touching `refreshed_at` or any other field, so the row's last-successful-refresh
+ * timestamp is preserved (the UI uses that to detect staleness). Also fires a Slack/Telegram
+ * alert — the notify layer's existing 6h fingerprint dedupe ([@robot/core/notify]) prevents
+ * tick-by-tick spam for a persistently-failing proposal.
+ *
+ * Defensive: if the proposal row doesn't exist yet (e.g. failure happened during the very
+ * first inspection attempt), the UPDATE is a no-op rather than creating a half-row. The
+ * cron will eventually re-inspect on a future tick.
+ */
+const recordProposalError = async (
+  id: bigint,
+  reason: unknown,
+  logger: import('@robot/core/logger').Logger,
+): Promise<void> => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  try {
+    await db
+      .update(proposals)
+      .set({
+        // Truncate so a megabyte stack trace doesn't bloat the row.
+        lastError: message.slice(0, 4_000),
+        lastErrorAt: new Date(),
+      })
+      .where(eq(proposals.id, id));
+  } catch (dbErr) {
+    logger.warn('refresh: failed to record per-proposal error', {
+      proposalId: id.toString(),
+      error: dbErr instanceof Error ? dbErr.message : String(dbErr),
+    });
+  }
+  try {
+    await notifyError({
+      source: 'inspectProposal',
+      error: reason,
+      meta: { proposalId: id.toString() },
+      logger,
+    });
+  } catch {
+    /* notifyError itself is best-effort and never throws — defensive catch anyway */
+  }
+};
+
 export const inspectAndCacheProposal = async (id: bigint): Promise<InspectorReport> => {
   const bundle = buildInspectorClientsFromEnv();
-  const rep = await inspectProposal(
-    {
-      l1Public: bundle.govPublic,
-      votingClients: bundle.votingClients,
-      executionClients: bundle.executionClients,
-      logger: bundle.logger,
-    },
-    id,
-  );
-  await upsertReport(bundle, id, rep);
-  return rep;
+  try {
+    const rep = await inspectProposal(
+      {
+        l1Public: bundle.govPublic,
+        votingClients: bundle.votingClients,
+        executionClients: bundle.executionClients,
+        logger: bundle.logger,
+      },
+      id,
+    );
+    await upsertReport(bundle, id, rep);
+    return rep;
+  } catch (err) {
+    // Mirror the cron's per-proposal error handling so on-visit self-heal AND the manual
+    // refresh button both populate last_error / fire the alert. Then re-throw so callers
+    // can react (e.g. show an error message to the user).
+    await recordProposalError(id, err, bundle.logger);
+    throw err;
+  }
 };
 
 export const runCacheRefresh = async (): Promise<RefreshSummary> => {
@@ -340,6 +396,7 @@ export const runCacheRefresh = async (): Promise<RefreshSummary> => {
     if (result.status === 'rejected') {
       const err = result.reason instanceof Error ? result.reason.message : String(result.reason);
       errors.push({ proposalId: id.toString(), error: err });
+      await recordProposalError(id, result.reason, bundle.logger);
       continue;
     }
     try {
@@ -350,6 +407,7 @@ export const runCacheRefresh = async (): Promise<RefreshSummary> => {
         proposalId: id.toString(),
         error: err instanceof Error ? err.message : String(err),
       });
+      await recordProposalError(id, err, bundle.logger);
     }
   }
 
@@ -389,6 +447,18 @@ export const runCacheRefresh = async (): Promise<RefreshSummary> => {
         if (result.status === 'rejected') {
           const err = result.reason instanceof Error ? result.reason.message : String(result.reason);
           errors.push({ proposalId: id.toString(), error: err });
+          // No row to update yet (these are MISSING from the DB), so recordProposalError
+          // would be a no-op on the UPDATE side. We still want the alert though.
+          try {
+            await notifyError({
+              source: 'inspectProposal',
+              error: result.reason,
+              meta: { proposalId: id.toString(), phase: 'backfill' },
+              logger: bundle.logger,
+            });
+          } catch {
+            /* best-effort */
+          }
           continue;
         }
         try {
@@ -399,6 +469,9 @@ export const runCacheRefresh = async (): Promise<RefreshSummary> => {
             proposalId: id.toString(),
             error: err instanceof Error ? err.message : String(err),
           });
+          // upsertReport succeeded once enough to insert the row (or failed mid-upsert) —
+          // either way, recordProposalError can run as an UPDATE.
+          await recordProposalError(id, err, bundle.logger);
         }
       }
     }

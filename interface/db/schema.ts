@@ -99,6 +99,11 @@ export const proposals = pgTable(
     raw: jsonb('raw').notNull(),
     refreshedAt: timestamp('refreshed_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Most recent inspector failure reason for this proposal (truncated). Cleared on next
+     *  successful upsert. Lets us surface "this proposal hasn't refreshed because X" rather
+     *  than silently freezing the row. */
+    lastError: text('last_error'),
+    lastErrorAt: timestamp('last_error_at', { withTimezone: true }),
   },
   (t) => ({
     stateIdx: index('proposals_state_idx').on(t.state),
