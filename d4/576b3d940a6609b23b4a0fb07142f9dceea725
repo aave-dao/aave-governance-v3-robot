@@ -1,0 +1,126 @@
+interface/lib/robot/core/actions/proofOfReserves.ts
+  s_8d8cf4daab5ef1::t_b2936404fd7704 5,97
+  s_8d8cf4daab5ef1::t_5b6af62dd8db37 86,89-90,92-95
+tenderly/tests/notify.test.ts
+  s_8d8cf4daab5ef1::t_39fdd1357c8c1f 76-81
+tenderly/src/core/adi.ts
+  s_8d8cf4daab5ef1::t_763e6b91eae3ff 105-202
+  s_8d8cf4daab5ef1::t_7a2f81380cb575 34
+  s_8d8cf4daab5ef1::t_d02cfbd11eeefa 46-66
+tenderly/src/core/actions/submitStorageRoots.ts
+  s_8d8cf4daab5ef1::t_b99132d75a767f 405,472
+tenderly/src/core/actions/executePayload.ts
+  s_8d8cf4daab5ef1::t_a702250af5ed72 64,67-68,70-73
+  s_8d8cf4daab5ef1::t_04c48e732fdcd8 62-63,75
+  s_8d8cf4daab5ef1::t_789446dcb14854 5
+interface/lib/robot/core/actions/executeProposal.ts
+  s_8d8cf4daab5ef1::t_b2936404fd7704 5,63-65,77
+  s_8d8cf4daab5ef1::t_5b6af62dd8db37 66,69-70,72-75
+interface/lib/robot/core/gas.ts
+  s_8d8cf4daab5ef1::t_4cf224f60d4d6e 1-52
+tenderly/src/core/notifyEvent.ts
+  s_8d8cf4daab5ef1::t_27068dc394e837 15-16
+  s_8d8cf4daab5ef1::t_3d3747d39c9e4f 34-37
+  s_8d8cf4daab5ef1::t_9b8043596cfaa1 129-163,166-167,175,187,191-193,209,213,225
+interface/lib/robot/core/actions/executePayload.ts
+  s_8d8cf4daab5ef1::t_5b6af62dd8db37 64,67-68,70-73
+  s_8d8cf4daab5ef1::t_b2936404fd7704 5,62-63,75
+tenderly/tenderly.yaml
+  h_739c25e72c37fb 217-275,294-297
+interface/lib/robot/core/actions/activateVoting.ts
+  s_8d8cf4daab5ef1::t_b2936404fd7704 5,58,70
+  s_8d8cf4daab5ef1::t_5b6af62dd8db37 59,62-63,65-68
+interface/lib/robot/core/actions/cancelProposal.ts
+  s_8d8cf4daab5ef1::t_5b6af62dd8db37 89,92-93,95-98
+  s_8d8cf4daab5ef1::t_b2936404fd7704 6,100
+interface/lib/robot/core/actions/createVote.ts
+  s_8d8cf4daab5ef1::t_5b6af62dd8db37 85,88-89,91-94
+  s_8d8cf4daab5ef1::t_b2936404fd7704 4,96
+tenderly/tests/multicall.test.ts
+  s_8d8cf4daab5ef1::t_48ae95d9df9eac 33-34,37,42,52
+  s_8d8cf4daab5ef1::t_dc442fd8da8a11 5
+interface/lib/robot/core/notify.ts
+  s_8d8cf4daab5ef1::t_1ca586297451e6 449,460,468
+  s_8d8cf4daab5ef1::t_84dbc6d29b0a55 260
+  s_8d8cf4daab5ef1::t_bc3cfefe60a9b7 239-240,246
+  s_8d8cf4daab5ef1::t_88414eca5c8877 326-329,331,333-358
+tenderly/src/tenderly/lifecycleListeners.ts
+  s_8d8cf4daab5ef1::t_617a8ae14c98ab 70-73,75-78,83,85
+  s_8d8cf4daab5ef1::t_5a998984d25aad 15-19
+  s_8d8cf4daab5ef1::t_65f49569c59127 116,125
+tenderly/src/core/gas.ts
+  s_8d8cf4daab5ef1::t_e13c8832a297f4 1-52
+interface/lib/robot/core/actions/closeAndSendVote.ts
+  s_8d8cf4daab5ef1::t_b2936404fd7704 4,44,56
+  s_8d8cf4daab5ef1::t_5b6af62dd8db37 45,48-49,51-54
+tenderly/src/cli/index.ts
+  s_8d8cf4daab5ef1::t_d8f85c330696c5 353-375,384
+  s_8d8cf4daab5ef1::t_ce8e097493005a 298-304,306-313
+tenderly/src/core/notify.ts
+  s_8d8cf4daab5ef1::t_8514cb8bb61f68 328-332,334,336-361
+  s_8d8cf4daab5ef1::t_a2f2511698aca5 452,463,471
+  s_8d8cf4daab5ef1::t_dde1ac2d85aa93 239-242,248
+  s_8d8cf4daab5ef1::t_2a51576de2171c 262
+tenderly/src/core/actions/activateVoting.ts
+  s_8d8cf4daab5ef1::t_4a5f2f40844a85 59,62-63,65-68
+  s_8d8cf4daab5ef1::t_4cda3f95734fea 58,70
+  s_8d8cf4daab5ef1::t_06f9ad235d97b1 5
+tenderly/src/core/multicall.ts
+  s_8d8cf4daab5ef1::t_efa78a328242f8 35,38-39,41-44
+  s_8d8cf4daab5ef1::t_1754c3248b7b06 1,3,21-24,26-30,46
+tenderly/src/core/actions/closeAndSendVote.ts
+  s_8d8cf4daab5ef1::t_cd2c6e11e1e3b3 44,56
+  s_8d8cf4daab5ef1::t_4f33df8876f5b4 45,48-49,51-54
+  s_8d8cf4daab5ef1::t_74fb7c3d230695 4
+tenderly/src/core/actions/proofOfReserves.ts
+  s_8d8cf4daab5ef1::t_7a1b7fa799c2f6 5
+  s_8d8cf4daab5ef1::t_3310661dd02cd6 97
+  s_8d8cf4daab5ef1::t_57c2dd89095bdf 86,89-90,92-95
+interface/lib/robot/core/multicall.ts
+  s_8d8cf4daab5ef1::t_285c55f0abfb55 1,3,21-24,26-30,46
+  s_8d8cf4daab5ef1::t_5b6af62dd8db37 35,38-39,41-44
+interface/lib/robot/core/adi.ts
+  s_8d8cf4daab5ef1::t_128e0d62f960ab 46-62
+  s_8d8cf4daab5ef1::t_d7e596e6e2f3dd 34
+  s_8d8cf4daab5ef1::t_840a17bf7eeb8e 101-180
+tenderly/src/core/actions/cancelProposal.ts
+  s_8d8cf4daab5ef1::t_d8c741a5961445 89,92-93,95-98
+  s_8d8cf4daab5ef1::t_0e3d07e3d8934f 100
+  s_8d8cf4daab5ef1::t_862b4477758078 6
+interface/lib/robot/core/actions/submitStorageRoots.ts
+  s_8d8cf4daab5ef1::t_8c4e07a1f7d267 405,472
+tenderly/src/core/actions/createVote.ts
+  s_8d8cf4daab5ef1::t_f443c40815f84a 85,88-89,91-94
+  s_8d8cf4daab5ef1::t_d94b1ed9b7ade1 4
+  s_8d8cf4daab5ef1::t_a4f56e713f42fe 96
+tenderly/tests/helpers/mockClient.ts
+  s_8d8cf4daab5ef1::t_793ef2caff2612 109,111-117
+tenderly/src/core/actions/executeProposal.ts
+  s_8d8cf4daab5ef1::t_8c5e5c53dbebe9 5
+  s_8d8cf4daab5ef1::t_792ca778049cf8 66,69-70,72-75
+  s_8d8cf4daab5ef1::t_1156257c299c3f 63-65,77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "d4576b3d940a6609b23b4a0fb07142f9dceea725",
+  "prompts": {},
+  "humans": {
+    "h_739c25e72c37fb": {
+      "author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    },
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_8d8cf4daab5ef1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c1b6f4-2a07-422a-805f-74ac1d611287",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
