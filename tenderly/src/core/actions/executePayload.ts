@@ -2,6 +2,7 @@ import {payloadsControllerAbi} from '../abis';
 import {EXECUTION_CHAINS} from '../chains';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
 import {isPayloadDisabled} from '../disabledPayloads';
+import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {PayloadState, payloadStateName} from '../state';
 
@@ -58,13 +59,20 @@ const execute = async (ctx: WriteContext, payloadId: bigint): Promise<ExecuteRes
     payloadId: payloadId.toString(),
     chain: config.name,
   });
-  const txHash = await ctx.walletClient.writeContract({
+  // 50% gas margin — payload contents are arbitrary user code; the static estimate can
+  // significantly understate cost under reentrant patterns or storage-state shifts.
+  const call = {
     address: config.payloadsController,
     abi: payloadsControllerAbi,
-    functionName: 'executePayload',
-    args: [Number(payloadId)],
+    functionName: 'executePayload' as const,
+    args: [Number(payloadId)] as const,
     account: ctx.walletClient.account!,
+  };
+  const gas = await estimateGasWithMargin(ctx.publicClient, call);
+  const txHash = await ctx.walletClient.writeContract({
+    ...call,
     chain: ctx.walletClient.chain!,
+    gas,
   });
   ctx.logger.info('executePayload: submitted', {payloadId: payloadId.toString(), txHash});
   await notifyTxSuccess({

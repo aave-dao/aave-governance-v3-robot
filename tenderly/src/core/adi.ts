@@ -31,7 +31,7 @@ import {
   GovernanceV3XLayer,
   GovernanceV3ZkSync,
 } from '@aave-dao/aave-address-book';
-import {toEventSelector, type Address, type Hex} from 'viem';
+import {decodeEventLog, parseAbiItem, toEventSelector, type Address, type Hex} from 'viem';
 
 /**
  * Canonical topic0 of `EnvelopeRegistered`. The Envelope struct is `(uint256, address,
@@ -40,6 +40,28 @@ import {toEventSelector, type Address, type Hex} from 'viem';
  */
 export const ENVELOPE_REGISTERED_TOPIC = toEventSelector(
   'EnvelopeRegistered(bytes32,(uint256,address,address,uint256,uint256,bytes))',
+);
+
+/**
+ * topic0 of `TransactionForwardingAttempted`. Per-envelope-per-adapter attempt log; the
+ * `adapterSuccessful` boolean tells us whether that adapter forwarded successfully.
+ *   event TransactionForwardingAttempted(
+ *     bytes32 transactionId,
+ *     bytes32 indexed envelopeId,
+ *     bytes encodedTransaction,
+ *     uint256 destinationChainId,
+ *     address indexed bridgeAdapter,
+ *     address destinationBridgeAdapter,
+ *     bool indexed adapterSuccessful,
+ *     bytes returnData
+ *   );
+ * Indexed args: envelopeId (topics[1]), bridgeAdapter (topics[2]), adapterSuccessful
+ * (topics[3]). Non-indexed args ABI-packed into data: transactionId, encodedTransaction,
+ * destinationChainId, destinationBridgeAdapter, returnData. We only need
+ * destinationChainId from data — it's the third non-indexed arg.
+ */
+export const TRANSACTION_FORWARDING_ATTEMPTED_TOPIC = toEventSelector(
+  'TransactionForwardingAttempted(bytes32,bytes32,bytes,uint256,address,address,bool,bytes)',
 );
 
 /**
@@ -78,6 +100,104 @@ export const crossChainControllerFor = (chainId: number): Address | undefined =>
 type LogLike = {
   address: string;
   topics: readonly string[] | string[];
+};
+
+// ─── Forwarding-status extractor ─────────────────────────────────────────────
+
+export type EnvelopeForwardStatus = {
+  envelopeId: Hex;
+  destinationChainId: number;
+  /** Total `TransactionForwardingAttempted` logs for this envelope. */
+  attempts: number;
+  /** How many of those had adapterSuccessful=true. */
+  succeeded: number;
+  /** 'ok' iff every adapter for this destination succeeded; 'failed' otherwise
+   *  (including the partial case — operator-chosen, see plan doc). */
+  status: 'ok' | 'failed';
+};
+
+/** Minimal log shape that also includes `data` — needed to decode destinationChainId. */
+type DataLogLike = LogLike & {
+  data: string;
+};
+
+/** AbiEvent for decoding `TransactionForwardingAttempted`. */
+const TRANSACTION_FORWARDING_ATTEMPTED_ABI = parseAbiItem(
+  'event TransactionForwardingAttempted(bytes32 transactionId, bytes32 indexed envelopeId, bytes encodedTransaction, uint256 destinationChainId, address indexed bridgeAdapter, address destinationBridgeAdapter, bool indexed adapterSuccessful, bytes returnData)',
+);
+
+/**
+ * From the source-tx receipt logs, build a per-envelope forwarding-status summary so the
+ * notification can show:
+ *   envelope → mantle: <…>  ❌ 0/3 adapters succeeded
+ *
+ * Each envelope is forwarded via N bridge adapters per destination — every adapter
+ * attempt emits one `TransactionForwardingAttempted` log with an `adapterSuccessful`
+ * bool. We group by `envelopeId`, count attempts vs successes, and mark the envelope
+ * `'ok'` only when EVERY adapter succeeded (per the operator-chosen policy).
+ *
+ * Defensive throughout — a malformed log can never poison the rest of the list, and a
+ * total decode failure returns `[]` (callers wrap in try/catch already).
+ */
+export const extractEnvelopeForwardStatuses = (
+  logs: ReadonlyArray<LogLike>,
+  crossChainController: Address | undefined,
+): EnvelopeForwardStatus[] => {
+  if (!crossChainController) return [];
+  const ccc = crossChainController.toLowerCase();
+  const expectedTopic = TRANSACTION_FORWARDING_ATTEMPTED_TOPIC.toLowerCase();
+
+  // Insertion order preserved — first envelope seen comes first. Matters because the
+  // caller renders envelope lines in this order, and the notification reads more
+  // naturally when destinations appear in the same order as the ADI dashboard.
+  const byEnvelope = new Map<Hex, {destinationChainId: number; attempts: number; succeeded: number}>();
+
+  for (const log of logs) {
+    try {
+      if (!log || !log.address || !Array.isArray(log.topics)) continue;
+      if (log.address.toLowerCase() !== ccc) continue;
+      if ((log.topics[0] ?? '').toLowerCase() !== expectedTopic) continue;
+      const dataLog = log as DataLogLike;
+      if (typeof dataLog.data !== 'string') continue;
+
+      const decoded = decodeEventLog({
+        abi: [TRANSACTION_FORWARDING_ATTEMPTED_ABI],
+        data: dataLog.data as Hex,
+        topics: log.topics as [Hex, ...Hex[]],
+      });
+      const args = decoded.args as {
+        envelopeId: Hex;
+        destinationChainId: bigint;
+        adapterSuccessful: boolean;
+      };
+
+      const envelopeId = args.envelopeId;
+      const destinationChainId = Number(args.destinationChainId);
+      const success = args.adapterSuccessful === true;
+
+      const existing = byEnvelope.get(envelopeId);
+      if (existing) {
+        existing.attempts += 1;
+        if (success) existing.succeeded += 1;
+      } else {
+        byEnvelope.set(envelopeId, {
+          destinationChainId,
+          attempts: 1,
+          succeeded: success ? 1 : 0,
+        });
+      }
+    } catch {
+      // Per-log decode failure: skip this entry. We still record other envelopes' status.
+    }
+  }
+
+  return Array.from(byEnvelope.entries()).map(([envelopeId, v]) => ({
+    envelopeId,
+    destinationChainId: v.destinationChainId,
+    attempts: v.attempts,
+    succeeded: v.succeeded,
+    status: v.attempts > 0 && v.succeeded === v.attempts ? 'ok' : 'failed',
+  }));
 };
 
 /**

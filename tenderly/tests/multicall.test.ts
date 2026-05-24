@@ -2,7 +2,7 @@ import {describe, expect, test} from 'bun:test';
 import {decodeFunctionData, type Address, type Hex} from 'viem';
 import {MULTICALL3_ADDRESS, multicall3Abi} from '../src/core/abis';
 import {encodeAggregate3, sendAggregate3, type Call3} from '../src/core/multicall';
-import {makeMockWalletClient, makeWalletSpy} from './helpers/mockClient';
+import {makeMockClient, makeMockWalletClient, makeWalletSpy} from './helpers/mockClient';
 
 const TARGET = ('0x' + '11'.repeat(20)) as Address;
 
@@ -30,14 +30,16 @@ describe('encodeAggregate3', () => {
 });
 
 describe('sendAggregate3', () => {
+  const pc = makeMockClient({});
+
   test('throws when walletClient has no account', async () => {
     const wc = {chain: {id: 1}} as never;
-    await expect(sendAggregate3(wc, [])).rejects.toThrow('account');
+    await expect(sendAggregate3(pc, wc, [])).rejects.toThrow('account');
   });
 
   test('throws when walletClient has no chain', async () => {
     const wc = {account: {address: '0x' + '00'.repeat(20)}} as never;
-    await expect(sendAggregate3(wc, [])).rejects.toThrow('chain');
+    await expect(sendAggregate3(pc, wc, [])).rejects.toThrow('chain');
   });
 
   test('writes to MULTICALL3_ADDRESS via aggregate3', async () => {
@@ -47,7 +49,7 @@ describe('sendAggregate3', () => {
       account: ('0x' + '22'.repeat(20)) as Address,
     });
     const calls: Call3[] = [{target: TARGET, allowFailure: false, callData: '0xab' as Hex}];
-    const txHash = await sendAggregate3(wc, calls);
+    const txHash = await sendAggregate3(pc, wc, calls);
     expect(txHash).toBe(spy.txHash);
     expect(spy.calls.length).toBe(1);
     expect(spy.calls[0]?.address.toLowerCase()).toBe(MULTICALL3_ADDRESS.toLowerCase());

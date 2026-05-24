@@ -295,8 +295,22 @@ program
     '0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddead',
   )
   .option('--dry-run', 'print rendered Slack/Telegram/plain bodies; do NOT post')
+  .option(
+    '--envelope-status <list>',
+    "Synthetic envelope statuses for ProposalExecuted/ProposalResultsSent: comma-separated " +
+      "list of ok|failed (one per envelope). Each status is assigned a synthetic destination " +
+      "chain (137=polygon, 42161=arbitrum, 5000=mantle, …). Default: a single ok envelope.",
+    '',
+  )
   .action(
-    async (opts: {event: string; proposalId: string; chain: string; from: string; dryRun?: boolean}) => {
+    async (opts: {
+      event: string;
+      proposalId: string;
+      chain: string;
+      from: string;
+      dryRun?: boolean;
+      envelopeStatus: string;
+    }) => {
       const env = loadEnv();
       const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
 
@@ -336,6 +350,29 @@ program
         );
       }
 
+      // Synthetic envelope statuses for envelope-emitting events. Destination chain
+      // assignment is a cycling lookup so the rendered output is recognisable in tests.
+      const SYNTH_DESTS = [137, 42161, 5000, 8453, 10]; // polygon, arbitrum, mantle, base, optimism
+      const buildSyntheticStatuses = (): import('../core/adi').EnvelopeForwardStatus[] => {
+        const isEnvelopeEmitting =
+          eventName === 'ProposalExecuted' || eventName === 'ProposalResultsSent';
+        if (!isEnvelopeEmitting) return [];
+        const raw = opts.envelopeStatus.trim();
+        const items = raw === '' ? ['ok'] : raw.split(',').map((s) => s.trim());
+        return items.map((status, i) => {
+          const isOk = status === 'ok';
+          // Deterministic envelopeId per slot so the rendered link reads sensibly in tests.
+          const envelopeId = (`0x${(i + 0x22).toString(16).padStart(2, '0').repeat(32)}`) as `0x${string}`;
+          return {
+            envelopeId,
+            destinationChainId: SYNTH_DESTS[i % SYNTH_DESTS.length]!,
+            attempts: 3,
+            succeeded: isOk ? 3 : 0,
+            status: isOk ? 'ok' : 'failed',
+          };
+        });
+      };
+
       const rendered = await notifyProposalEvent({
         proposalId,
         event: eventName,
@@ -344,10 +381,7 @@ program
         // Deterministic fake tx hash so the rendered output is stable across runs.
         txHash: ('0x' + '11'.repeat(32)) as `0x${string}`,
         l1Client,
-        envelopeIds:
-          eventName === 'ProposalExecuted' || eventName === 'ProposalResultsSent'
-            ? [('0x' + '22'.repeat(32)) as `0x${string}`]
-            : [],
+        envelopeStatuses: buildSyntheticStatuses(),
         logger,
         dryRun: opts.dryRun ?? false,
       });

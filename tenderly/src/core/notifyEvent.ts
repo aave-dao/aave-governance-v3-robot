@@ -12,6 +12,8 @@
 import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
 import type {Address, Hex, PublicClient} from 'viem';
 import {governanceAbi} from './abis';
+import type {EnvelopeForwardStatus} from './adi';
+import {EXECUTION_CHAINS, VOTING_CHAINS} from './chains';
 import {shortHash, txUrl} from './explorers';
 import {fetchProposalMetadataSafe} from './ipfs';
 import {aaveVoteUrl, adiEnvelopeUrl, operatorDashboardUrl} from './links';
@@ -29,8 +31,10 @@ export type ProposalEventInput = {
   txHash: Hex;
   /** L1 public client — used to look up ipfsHash + creator from `getProposal`. */
   l1Client: PublicClient;
-  /** Pre-extracted ADI envelope IDs (caller knows the source-chain CrossChainController). */
-  envelopeIds?: Hex[];
+  /** Pre-extracted ADI envelope forwarding statuses for this tx — one entry per envelope,
+   *  with destination + per-adapter success counts. Caller (the listener) computes this
+   *  via `extractEnvelopeForwardStatuses` since it has access to the receipt logs. */
+  envelopeStatuses?: EnvelopeForwardStatus[];
   /** Free-form extra fields rendered inline (e.g. {forVotes: '...', againstVotes: '...'}). */
   extraFields?: Record<string, string>;
   logger?: Logger;
@@ -122,17 +126,45 @@ export const notifyProposalEvent = async (
     });
   }
 
-  // 3. Envelope links — try/catch the map call.
-  let envelopeLinks: Array<{id: Hex; url: string}> = [];
-  if (p.envelopeIds && p.envelopeIds.length > 0) {
-    try {
-      envelopeLinks = p.envelopeIds.map((id) => ({id, url: adiEnvelopeUrl(id)}));
-    } catch (err) {
-      p.logger?.warn('notifyProposalEvent: envelope-link build failed', {
-        error: err instanceof Error ? err.message : String(err),
-      });
+  // 3. Envelope lines — per-envelope destination + adapter success/fail. The caller
+  //    passes pre-extracted statuses; we just render them here. Try/catch around each
+  //    entry so a single malformed status doesn't drop the whole envelope section.
+  type EnvelopeLine = {
+    slack: string;
+    tg: string;
+    plain: string;
+  };
+  const envelopeLines: EnvelopeLine[] = [];
+  const failedDests: string[] = [];
+  if (p.envelopeStatuses && p.envelopeStatuses.length > 0) {
+    for (const s of p.envelopeStatuses) {
+      try {
+        const url = adiEnvelopeUrl(s.envelopeId);
+        const short = shortHash(s.envelopeId);
+        const destName =
+          EXECUTION_CHAINS[s.destinationChainId]?.name ??
+          VOTING_CHAINS[s.destinationChainId as keyof typeof VOTING_CHAINS]?.name ??
+          `chain-${s.destinationChainId}`;
+        const badge =
+          s.status === 'ok'
+            ? '✓'
+            : `❌ ${s.succeeded}/${s.attempts} adapters succeeded`;
+        if (s.status !== 'ok') failedDests.push(destName);
+        envelopeLines.push({
+          slack: `envelope → ${destName}: <${url}|${short}>  ${badge}`,
+          tg: `envelope → ${escapeHtml(destName)}: <a href="${url}">${escapeHtml(short)}</a>  ${escapeHtml(badge)}`,
+          plain: `envelope → ${destName}: ${url}  ${badge}`,
+        });
+      } catch (err) {
+        p.logger?.warn('notifyProposalEvent: envelope-line build failed', {
+          envelopeId: s.envelopeId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
   }
+  const titleSuffix =
+    failedDests.length > 0 ? ` ⚠️ envelope FAILED FORWARDING: ${failedDests.join(', ')}` : '';
 
   // ─── Render ───────────────────────────────────────────────────────────────
   const explorer = txUrl(p.chainId, p.txHash);
@@ -140,7 +172,7 @@ export const notifyProposalEvent = async (
 
   // Slack mrkdwn: <url|text> for links, *bold* for emphasis, `mono` for code.
   const slackLines: string[] = [];
-  slackLines.push(`${emoji} *${eventTitle}* · proposal *#${p.proposalId}*`);
+  slackLines.push(`${emoji} *${eventTitle}* · proposal *#${p.proposalId}*${titleSuffix}`);
   if (proposalTitle) slackLines.push(`title: ${proposalTitle}`);
   if (author) slackLines.push(`author: ${author}`);
   slackLines.push(`chain: \`${p.chainName}\``);
@@ -152,13 +184,13 @@ export const notifyProposalEvent = async (
   slackLines.push(explorer ? `tx: <${explorer}|${shortTx}>` : `tx: \`${p.txHash}\``);
   if (voteLink) slackLines.push(`<${voteLink}|vote dashboard>`);
   if (dashboardLink) slackLines.push(`<${dashboardLink}|operator dashboard>`);
-  for (const e of envelopeLinks) {
-    slackLines.push(`envelope: <${e.url}|${shortHash(e.id)}>`);
-  }
+  for (const e of envelopeLines) slackLines.push(e.slack);
 
   // Telegram HTML.
   const tgLines: string[] = [];
-  tgLines.push(`${emoji} <b>${escapeHtml(eventTitle)}</b> · proposal <b>#${p.proposalId}</b>`);
+  tgLines.push(
+    `${emoji} <b>${escapeHtml(eventTitle)}</b> · proposal <b>#${p.proposalId}</b>${escapeHtml(titleSuffix)}`,
+  );
   if (proposalTitle) tgLines.push(`title: ${escapeHtml(proposalTitle)}`);
   if (author) tgLines.push(`author: ${escapeHtml(author)}`);
   tgLines.push(`chain: <code>${escapeHtml(p.chainName)}</code>`);
@@ -174,13 +206,11 @@ export const notifyProposalEvent = async (
   );
   if (voteLink) tgLines.push(`<a href="${voteLink}">vote dashboard</a>`);
   if (dashboardLink) tgLines.push(`<a href="${dashboardLink}">operator dashboard</a>`);
-  for (const e of envelopeLinks) {
-    tgLines.push(`envelope: <a href="${e.url}">${escapeHtml(shortHash(e.id))}</a>`);
-  }
+  for (const e of envelopeLines) tgLines.push(e.tg);
 
   // Plain (Telegram opaque-relay fallback). Same content, no markup.
   const plainLines: string[] = [];
-  plainLines.push(`${emoji} ${eventTitle} · proposal #${p.proposalId}`);
+  plainLines.push(`${emoji} ${eventTitle} · proposal #${p.proposalId}${titleSuffix}`);
   if (proposalTitle) plainLines.push(`title: ${proposalTitle}`);
   if (author) plainLines.push(`author: ${author}`);
   plainLines.push(`chain: ${p.chainName}`);
@@ -192,9 +222,7 @@ export const notifyProposalEvent = async (
   plainLines.push(`tx: ${explorer ?? p.txHash}`);
   if (voteLink) plainLines.push(voteLink);
   if (dashboardLink) plainLines.push(dashboardLink);
-  for (const e of envelopeLinks) {
-    plainLines.push(`envelope: ${e.url}`);
-  }
+  for (const e of envelopeLines) plainLines.push(e.plain);
 
   const rendered: RenderedNotification = {
     slack: slackLines.join('\n'),

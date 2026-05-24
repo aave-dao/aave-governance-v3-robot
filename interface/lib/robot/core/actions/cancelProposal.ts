@@ -3,6 +3,7 @@ import {MULTICALL3_ADDRESS, governanceAbi, powerStrategyAbi} from '../abis';
 import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
 import {formatAave} from '../format';
+import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {ProposalState, proposalStateName, isProposalFinal} from '../state';
 
@@ -85,13 +86,18 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
   if (!check.ok) throw new Error(`cancelProposal precheck failed: ${check.reason}`);
 
   ctx.logger.info('cancelProposal: sending tx', {proposalId: proposalId.toString()});
-  const txHash = await ctx.walletClient.writeContract({
+  const call = {
     address: GOVERNANCE,
     abi: governanceAbi,
-    functionName: 'cancelProposal',
-    args: [proposalId],
+    functionName: 'cancelProposal' as const,
+    args: [proposalId] as const,
     account: ctx.walletClient.account!,
+  };
+  const gas = await estimateGasWithMargin(ctx.publicClient, call);
+  const txHash = await ctx.walletClient.writeContract({
+    ...call,
     chain: ctx.walletClient.chain!,
+    gas,
   });
   ctx.logger.info('cancelProposal: submitted', {proposalId: proposalId.toString(), txHash});
   await notifyTxSuccess({

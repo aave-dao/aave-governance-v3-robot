@@ -402,7 +402,7 @@ export const submitStorageRootsForBlock = async (
     chain: args.config.name,
   });
 
-  const txHash = await sendAggregate3(ctx.walletClient, toSend.map((e) => e.call));
+  const txHash = await sendAggregate3(ctx.publicClient, ctx.walletClient, toSend.map((e) => e.call));
   ctx.logger.info('submitStorageRootsForBlock: submitted', {
     txHash,
     chain: args.config.name,
@@ -469,7 +469,7 @@ export const executeSubmitStorageRoots = async (
     chain: config.name,
   });
 
-  const txHash = await sendAggregate3(ctx.walletClient, toSend.map((e) => e.call));
+  const txHash = await sendAggregate3(ctx.publicClient, ctx.walletClient, toSend.map((e) => e.call));
   ctx.logger.info('submitStorageRoots: submitted', {
     proposalId: args.proposalId.toString(),
     txHash,

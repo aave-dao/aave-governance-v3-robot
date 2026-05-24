@@ -1,6 +1,7 @@
 import {votingMachineAbi} from '../abis';
 import {VOTING_CHAINS, type VotingChainId, type VotingChainConfig} from '../chains';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {VotingMachineProposalState, votingProposalStateName} from '../state';
 
@@ -40,13 +41,19 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
 
   const config = requireVotingChain(ctx.chainId);
   ctx.logger.info('closeAndSendVote: sending tx', {proposalId: proposalId.toString()});
-  const txHash = await ctx.walletClient.writeContract({
+  // 50% gas margin — closeAndSendVote sends an ADI cross-chain msg back to L1.
+  const call = {
     address: config.votingMachine,
     abi: votingMachineAbi,
-    functionName: 'closeAndSendVote',
-    args: [proposalId],
+    functionName: 'closeAndSendVote' as const,
+    args: [proposalId] as const,
     account: ctx.walletClient.account!,
+  };
+  const gas = await estimateGasWithMargin(ctx.publicClient, call);
+  const txHash = await ctx.walletClient.writeContract({
+    ...call,
     chain: ctx.walletClient.chain!,
+    gas,
   });
   ctx.logger.info('closeAndSendVote: submitted', {proposalId: proposalId.toString(), txHash});
   await notifyTxSuccess({

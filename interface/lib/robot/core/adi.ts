@@ -31,7 +31,7 @@ import {
   GovernanceV3XLayer,
   GovernanceV3ZkSync,
 } from '@aave-dao/aave-address-book';
-import {toEventSelector, type Address, type Hex} from 'viem';
+import {decodeEventLog, parseAbiItem, toEventSelector, type Address, type Hex} from 'viem';
 
 /**
  * Canonical topic0 of `EnvelopeRegistered`. The Envelope struct is `(uint256, address,
@@ -40,6 +40,24 @@ import {toEventSelector, type Address, type Hex} from 'viem';
  */
 export const ENVELOPE_REGISTERED_TOPIC = toEventSelector(
   'EnvelopeRegistered(bytes32,(uint256,address,address,uint256,uint256,bytes))',
+);
+
+/**
+ * topic0 of `TransactionForwardingAttempted`. Per-envelope-per-adapter attempt log; the
+ * `adapterSuccessful` boolean tells us whether that adapter forwarded successfully.
+ *   event TransactionForwardingAttempted(
+ *     bytes32 transactionId,
+ *     bytes32 indexed envelopeId,
+ *     bytes encodedTransaction,
+ *     uint256 destinationChainId,
+ *     address indexed bridgeAdapter,
+ *     address destinationBridgeAdapter,
+ *     bool indexed adapterSuccessful,
+ *     bytes returnData
+ *   );
+ */
+export const TRANSACTION_FORWARDING_ATTEMPTED_TOPIC = toEventSelector(
+  'TransactionForwardingAttempted(bytes32,bytes32,bytes,uint256,address,address,bool,bytes)',
 );
 
 /**
@@ -78,6 +96,86 @@ export const crossChainControllerFor = (chainId: number): Address | undefined =>
 type LogLike = {
   address: string;
   topics: readonly string[] | string[];
+};
+
+// ─── Forwarding-status extractor ─────────────────────────────────────────────
+
+export type EnvelopeForwardStatus = {
+  envelopeId: Hex;
+  destinationChainId: number;
+  attempts: number;
+  succeeded: number;
+  /** 'ok' iff every adapter for this destination succeeded; 'failed' otherwise. */
+  status: 'ok' | 'failed';
+};
+
+type DataLogLike = LogLike & {data: string};
+
+const TRANSACTION_FORWARDING_ATTEMPTED_ABI = parseAbiItem(
+  'event TransactionForwardingAttempted(bytes32 transactionId, bytes32 indexed envelopeId, bytes encodedTransaction, uint256 destinationChainId, address indexed bridgeAdapter, address destinationBridgeAdapter, bool indexed adapterSuccessful, bytes returnData)',
+);
+
+/**
+ * Group `TransactionForwardingAttempted` logs by envelopeId so the notification can show:
+ *   envelope → mantle: <…>  ❌ 0/3 adapters succeeded
+ * Returns `[]` on any total failure. Per-log decode failures are silently skipped so a
+ * single malformed log doesn't poison the rest of the list.
+ */
+export const extractEnvelopeForwardStatuses = (
+  logs: ReadonlyArray<LogLike>,
+  crossChainController: Address | undefined,
+): EnvelopeForwardStatus[] => {
+  if (!crossChainController) return [];
+  const ccc = crossChainController.toLowerCase();
+  const expectedTopic = TRANSACTION_FORWARDING_ATTEMPTED_TOPIC.toLowerCase();
+  const byEnvelope = new Map<Hex, {destinationChainId: number; attempts: number; succeeded: number}>();
+
+  for (const log of logs) {
+    try {
+      if (!log || !log.address || !Array.isArray(log.topics)) continue;
+      if (log.address.toLowerCase() !== ccc) continue;
+      if ((log.topics[0] ?? '').toLowerCase() !== expectedTopic) continue;
+      const dataLog = log as DataLogLike;
+      if (typeof dataLog.data !== 'string') continue;
+
+      const decoded = decodeEventLog({
+        abi: [TRANSACTION_FORWARDING_ATTEMPTED_ABI],
+        data: dataLog.data as Hex,
+        topics: log.topics as [Hex, ...Hex[]],
+      });
+      const args = decoded.args as {
+        envelopeId: Hex;
+        destinationChainId: bigint;
+        adapterSuccessful: boolean;
+      };
+
+      const envelopeId = args.envelopeId;
+      const destinationChainId = Number(args.destinationChainId);
+      const success = args.adapterSuccessful === true;
+
+      const existing = byEnvelope.get(envelopeId);
+      if (existing) {
+        existing.attempts += 1;
+        if (success) existing.succeeded += 1;
+      } else {
+        byEnvelope.set(envelopeId, {
+          destinationChainId,
+          attempts: 1,
+          succeeded: success ? 1 : 0,
+        });
+      }
+    } catch {
+      // Per-log decode failure: skip this entry.
+    }
+  }
+
+  return Array.from(byEnvelope.entries()).map(([envelopeId, v]) => ({
+    envelopeId,
+    destinationChainId: v.destinationChainId,
+    attempts: v.attempts,
+    succeeded: v.succeeded,
+    status: v.attempts > 0 && v.succeeded === v.attempts ? 'ok' : 'failed',
+  }));
 };
 
 /**

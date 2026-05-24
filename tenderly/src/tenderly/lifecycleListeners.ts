@@ -12,7 +12,11 @@ import type {ActionFn, Context, Event, TransactionEvent} from '@tenderly/actions
 import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
 import {decodeEventLog, type Address, type Hex} from 'viem';
 import {GOVERNANCE_CHAIN_ID, VOTING_CHAINS} from '../core/chains';
-import {crossChainControllerFor, extractEnvelopeIds} from '../core/adi';
+import {
+  crossChainControllerFor,
+  extractEnvelopeForwardStatuses,
+  type EnvelopeForwardStatus,
+} from '../core/adi';
 import {
   ENVELOPE_EMITTING_EVENTS,
   L1_LIFECYCLE_EVENTS,
@@ -63,19 +67,22 @@ const makeContractEventListener = (spec: ListenerSpec): ActionFn => {
       }
 
       const contract = spec.contractAddress().toLowerCase();
-      // Cache envelope IDs once per tx — multiple matching logs share the same set.
-      let envelopeIds: Hex[] | null = null;
-      const getEnvelopeIds = (): Hex[] => {
-        if (envelopeIds !== null) return envelopeIds;
+      // Cache envelope statuses once per tx — multiple matching logs share the same set.
+      let envelopeStatuses: EnvelopeForwardStatus[] | null = null;
+      const getEnvelopeStatuses = (): EnvelopeForwardStatus[] => {
+        if (envelopeStatuses !== null) return envelopeStatuses;
         try {
-          envelopeIds = extractEnvelopeIds(tx.logs, crossChainControllerFor(spec.chainId));
+          envelopeStatuses = extractEnvelopeForwardStatuses(
+            tx.logs,
+            crossChainControllerFor(spec.chainId),
+          );
         } catch (err) {
           logger?.warn('lifecycle-listener: envelope extraction failed', {
             error: err instanceof Error ? err.message : String(err),
           });
-          envelopeIds = [];
+          envelopeStatuses = [];
         }
-        return envelopeIds;
+        return envelopeStatuses;
       };
 
       let matched = 0;
@@ -106,7 +113,7 @@ const makeContractEventListener = (spec: ListenerSpec): ActionFn => {
           continue;
         }
 
-        const envelopes = ENVELOPE_EMITTING_EVENTS.has(eventInfo.name) ? getEnvelopeIds() : [];
+        const envelopes = ENVELOPE_EMITTING_EVENTS.has(eventInfo.name) ? getEnvelopeStatuses() : [];
 
         await notifyProposalEvent({
           proposalId,
@@ -115,7 +122,7 @@ const makeContractEventListener = (spec: ListenerSpec): ActionFn => {
           chainName: spec.chainName,
           txHash: tx.hash as Hex,
           l1Client: govSetup.read.publicClient,
-          envelopeIds: envelopes,
+          envelopeStatuses: envelopes,
           extraFields,
           logger,
         });

@@ -2,6 +2,7 @@ import type {Address} from 'viem';
 import {governanceAbi} from '../abis';
 import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {ProposalState, proposalStateName} from '../state';
 
@@ -54,13 +55,19 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
   if (!check.ok) throw new Error(`activateVoting precheck failed: ${check.reason}`);
 
   ctx.logger.info('activateVoting: sending tx', {proposalId: proposalId.toString()});
-  const txHash = await ctx.walletClient.writeContract({
+  // 50% gas margin — activateVoting triggers a cross-chain msg to the voting chain.
+  const call = {
     address: GOVERNANCE,
     abi: governanceAbi,
-    functionName: 'activateVoting',
-    args: [proposalId],
+    functionName: 'activateVoting' as const,
+    args: [proposalId] as const,
     account: ctx.walletClient.account!,
+  };
+  const gas = await estimateGasWithMargin(ctx.publicClient, call);
+  const txHash = await ctx.walletClient.writeContract({
+    ...call,
     chain: ctx.walletClient.chain!,
+    gas,
   });
   ctx.logger.info('activateVoting: submitted', {proposalId: proposalId.toString(), txHash});
   await notifyTxSuccess({

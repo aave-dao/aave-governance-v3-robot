@@ -1,7 +1,7 @@
-import type {Address} from 'viem';
 import {dataWarehouseAbi, votingMachineAbi, votingStrategyAbi} from '../abis';
 import {VOTING_CHAINS, type VotingChainId, type VotingChainConfig} from '../chains';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {VotingMachineProposalState, votingProposalStateName} from '../state';
 
@@ -82,13 +82,18 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
 
   const config = requireVotingChain(ctx.chainId);
   ctx.logger.info('createVote: sending tx', {proposalId: proposalId.toString()});
-  const txHash = await ctx.walletClient.writeContract({
+  const call = {
     address: config.votingMachine,
     abi: votingMachineAbi,
-    functionName: 'startProposalVote',
-    args: [proposalId],
+    functionName: 'startProposalVote' as const,
+    args: [proposalId] as const,
     account: ctx.walletClient.account!,
+  };
+  const gas = await estimateGasWithMargin(ctx.publicClient, call);
+  const txHash = await ctx.walletClient.writeContract({
+    ...call,
     chain: ctx.walletClient.chain!,
+    gas,
   });
   ctx.logger.info('createVote: submitted', {proposalId: proposalId.toString(), txHash});
   await notifyTxSuccess({

@@ -2,6 +2,7 @@ import type {Address} from 'viem';
 import {MULTICALL3_ADDRESS, proofOfReserveExecutorAbi} from '../abis';
 import {PROOF_OF_RESERVE_CHAINS} from '../chains';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 
 /**
@@ -82,13 +83,18 @@ const execute = async (ctx: WriteContext, executor: Address): Promise<ExecuteRes
   if (!check.ok) throw new Error(`proofOfReserves precheck failed: ${check.reason}`);
 
   ctx.logger.warn('proofOfReserves: EMERGENCY — executing', {executor, label: found.label});
-  const txHash = await ctx.walletClient.writeContract({
+  const call = {
     address: executor,
     abi: proofOfReserveExecutorAbi,
-    functionName: 'executeEmergencyAction',
-    args: [],
+    functionName: 'executeEmergencyAction' as const,
+    args: [] as const,
     account: ctx.walletClient.account!,
+  };
+  const gas = await estimateGasWithMargin(ctx.publicClient, call);
+  const txHash = await ctx.walletClient.writeContract({
+    ...call,
     chain: ctx.walletClient.chain!,
+    gas,
   });
   ctx.logger.warn('proofOfReserves: submitted', {executor, label: found.label, txHash});
   await notifyTxSuccess({

@@ -2,6 +2,7 @@ import type {Address} from 'viem';
 import {MULTICALL3_ADDRESS, governanceAbi} from '../abis';
 import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {ProposalState, proposalStateName} from '../state';
 
@@ -59,13 +60,21 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
   if (!check.ok) throw new Error(`executeProposal precheck failed: ${check.reason}`);
 
   ctx.logger.info('executeProposal: sending tx', {proposalId: proposalId.toString()});
-  const txHash = await ctx.walletClient.writeContract({
+  // 50% gas margin: executeProposal fans out to N bridge adapters via try/catch.
+  // Per-adapter OOG is silently absorbed into `adapterSuccessful: false` (proposal #487's
+  // mantle envelope was exactly this). Overshoot is free; undershoot is invisible.
+  const call = {
     address: GOVERNANCE,
     abi: governanceAbi,
-    functionName: 'executeProposal',
-    args: [proposalId],
+    functionName: 'executeProposal' as const,
+    args: [proposalId] as const,
     account: ctx.walletClient.account!,
+  };
+  const gas = await estimateGasWithMargin(ctx.publicClient, call);
+  const txHash = await ctx.walletClient.writeContract({
+    ...call,
     chain: ctx.walletClient.chain!,
+    gas,
   });
   ctx.logger.info('executeProposal: submitted', {proposalId: proposalId.toString(), txHash});
   await notifyTxSuccess({

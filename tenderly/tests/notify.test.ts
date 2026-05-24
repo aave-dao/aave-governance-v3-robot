@@ -73,9 +73,12 @@ describe('notifyTxSuccess', () => {
       } finally {
         restore();
       }
-      expect(calls.length).toBe(1);
-      expect(calls[0]?.url).toBe('https://example.com/slack');
-      const body = JSON.parse(calls[0]?.bodyText ?? '{}');
+      // Filter to slack URL only — `meta.proposalId` triggers `enrichProposalContext`
+      // which also fetches the L1 RPC for IPFS title/author. That fetch goes through the
+      // mocked global fetch too. We only care about the Slack POST here.
+      const slackCalls = calls.filter((c) => c.url === 'https://example.com/slack');
+      expect(slackCalls.length).toBe(1);
+      const body = JSON.parse(slackCalls[0]?.bodyText ?? '{}');
       expect(body.text).toContain(':white_check_mark:');
       expect(body.text).toContain('*activateVoting*');
       expect(body.text).toContain('`ethereum`');

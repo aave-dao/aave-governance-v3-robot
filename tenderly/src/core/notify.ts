@@ -236,11 +236,16 @@ const fingerprintError = (
 type EnrichmentLines = {
   preMeta: {slack: string[]; tg: string[]; plain: string[]};
   postTx: {slack: string[]; tg: string[]; plain: string[]};
+  /** Plain-text fragment appended to the title line when any envelope forward failed.
+   *  Empty string when there's nothing to flag. Same string used in slack/tg/plain since
+   *  the banner contains no special markup. */
+  titleSuffix: string;
 };
 
 const EMPTY_ENRICHMENT: EnrichmentLines = {
   preMeta: {slack: [], tg: [], plain: []},
   postTx: {slack: [], tg: [], plain: []},
+  titleSuffix: '',
 };
 
 const enrichProposalContext = async (
@@ -254,6 +259,7 @@ const enrichProposalContext = async (
   const out: EnrichmentLines = {
     preMeta: {slack: [], tg: [], plain: []},
     postTx: {slack: [], tg: [], plain: []},
+    titleSuffix: '',
   };
 
   // 1. Title + author from L1 IPFS. Lazy imports to avoid circular module init issues.
@@ -319,19 +325,40 @@ const enrichProposalContext = async (
     });
   }
 
-  // 3. ADI envelope links — only present when the tx actually emitted `EnvelopeRegistered`
-  //    logs. Source-chain CrossChainController address comes from the chainId we just
-  //    confirmed the tx on.
+  // 3. ADI envelope links — only present when the tx actually emitted forwarding logs.
+  //    Source-chain CrossChainController address comes from the chainId we just confirmed
+  //    the tx on. We use `extractEnvelopeForwardStatuses` (which reads
+  //    `TransactionForwardingAttempted` logs) rather than the simpler `extractEnvelopeIds`
+  //    so we can show per-envelope destination + adapter success/fail.
   try {
-    const {crossChainControllerFor, extractEnvelopeIds} = await import('./adi');
+    const {crossChainControllerFor, extractEnvelopeForwardStatuses} = await import('./adi');
     const {adiEnvelopeUrl} = await import('./links');
-    const envelopes = extractEnvelopeIds(receiptLogs, crossChainControllerFor(chainId));
-    for (const id of envelopes) {
-      const url = adiEnvelopeUrl(id);
-      const short = `${id.slice(0, 8)}…${id.slice(-4)}`;
-      out.postTx.slack.push(`envelope: <${url}|${short}>`);
-      out.postTx.tg.push(`envelope: <a href="${url}">${escapeHtml(short)}</a>`);
-      out.postTx.plain.push(`envelope: ${url}`);
+    const {EXECUTION_CHAINS, VOTING_CHAINS} = await import('./chains');
+    const statuses = extractEnvelopeForwardStatuses(
+      receiptLogs,
+      crossChainControllerFor(chainId),
+    );
+    const failedDests: string[] = [];
+    for (const s of statuses) {
+      const url = adiEnvelopeUrl(s.envelopeId);
+      const short = `${s.envelopeId.slice(0, 8)}…${s.envelopeId.slice(-4)}`;
+      const destName =
+        EXECUTION_CHAINS[s.destinationChainId]?.name ??
+        VOTING_CHAINS[s.destinationChainId as keyof typeof VOTING_CHAINS]?.name ??
+        `chain-${s.destinationChainId}`;
+      const badge =
+        s.status === 'ok'
+          ? '✓'
+          : `❌ ${s.succeeded}/${s.attempts} adapters succeeded`;
+      if (s.status !== 'ok') failedDests.push(destName);
+      out.postTx.slack.push(`envelope → ${destName}: <${url}|${short}>  ${badge}`);
+      out.postTx.tg.push(
+        `envelope → ${escapeHtml(destName)}: <a href="${url}">${escapeHtml(short)}</a>  ${escapeHtml(badge)}`,
+      );
+      out.postTx.plain.push(`envelope → ${destName}: ${url}  ${badge}`);
+    }
+    if (failedDests.length > 0) {
+      out.titleSuffix = ` ⚠️ envelope FAILED FORWARDING: ${failedDests.join(', ')}`;
     }
   } catch (err) {
     logger?.warn('notifyTxSuccess: envelope enrichment failed', {
@@ -422,7 +449,7 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
   // Slack: mrkdwn — `<URL|text>` for a link, backticks for inline code.
   const slackTxLine = url ? `tx: <${url}|${short}>` : `tx: \`${p.txHash}\``;
   const slack =
-    `:white_check_mark: *${p.action}* on \`${chain}\`` +
+    `:white_check_mark: *${p.action}* on \`${chain}\`${enrichment.titleSuffix}` +
     joinLines(enrichment.preMeta.slack) +
     (meta.slack ? `\n${meta.slack}` : '') +
     `\n${slackTxLine}` +
@@ -433,7 +460,7 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
     ? `tx: <a href="${url}">${escapeHtml(short)}</a>`
     : `tx: <code>${escapeHtml(p.txHash)}</code>`;
   const tg =
-    `✅ <b>${escapeHtml(p.action)}</b> on <code>${escapeHtml(chain)}</code>` +
+    `✅ <b>${escapeHtml(p.action)}</b> on <code>${escapeHtml(chain)}</code>${escapeHtml(enrichment.titleSuffix)}` +
     joinLines(enrichment.preMeta.tg) +
     (meta.tg ? `\n${meta.tg}` : '') +
     `\n${tgTxLine}` +
@@ -441,7 +468,7 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
 
   // Plain text fallback for the relay — still includes the explorer URL, just unlinked.
   const plain =
-    `✅ ${p.action} on ${chain}` +
+    `✅ ${p.action} on ${chain}${enrichment.titleSuffix}` +
     joinLines(enrichment.preMeta.plain) +
     (meta.plain ? `\n${meta.plain}` : '') +
     `\ntx: ${url ?? p.txHash}` +

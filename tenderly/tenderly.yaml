@@ -214,66 +214,66 @@ actions:
       # action limit, comment out every `exec-scan-<chain>` entry below and uncomment
       # the `execution-all` block at the bottom of the file — it scans all chains
       # sequentially from a single action.
-      # exec-scan-ethereum:
-      #   function: tenderly/index:execEthereum
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-polygon:
-      #   function: tenderly/index:execPolygon
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-avalanche:
-      #   function: tenderly/index:execAvalanche
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-arbitrum:
-      #   function: tenderly/index:execArbitrum
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-optimism:
-      #   function: tenderly/index:execOptimism
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-base:
-      #   function: tenderly/index:execBase
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-bnb:
-      #   function: tenderly/index:execBnb
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-gnosis:
-      #   function: tenderly/index:execGnosis
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-metis:
-      #   function: tenderly/index:execMetis
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-scroll:
-      #   function: tenderly/index:execScroll
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-celo:
-      #   function: tenderly/index:execCelo
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-linea:
-      #   function: tenderly/index:execLinea
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-mantle:
-      #   function: tenderly/index:execMantle
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-ink:
-      #   function: tenderly/index:execInk
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-plasma:
-      #   function: tenderly/index:execPlasma
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-megaeth:
-      #   function: tenderly/index:execMegaeth
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-soneium:
-      #   function: tenderly/index:execSoneium
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-sonic:
-      #   function: tenderly/index:execSonic
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-xlayer:
-      #   function: tenderly/index:execXlayer
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
-      # exec-scan-zksync:
-      #   function: tenderly/index:execZksync
-      #   trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-ethereum:
+        function: tenderly/index:execEthereum
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-polygon:
+        function: tenderly/index:execPolygon
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-avalanche:
+        function: tenderly/index:execAvalanche
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-arbitrum:
+        function: tenderly/index:execArbitrum
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-optimism:
+        function: tenderly/index:execOptimism
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-base:
+        function: tenderly/index:execBase
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-bnb:
+        function: tenderly/index:execBnb
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-gnosis:
+        function: tenderly/index:execGnosis
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-metis:
+        function: tenderly/index:execMetis
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-scroll:
+        function: tenderly/index:execScroll
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-celo:
+        function: tenderly/index:execCelo
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-linea:
+        function: tenderly/index:execLinea
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-mantle:
+        function: tenderly/index:execMantle
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-ink:
+        function: tenderly/index:execInk
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-plasma:
+        function: tenderly/index:execPlasma
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-megaeth:
+        function: tenderly/index:execMegaeth
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-soneium:
+        function: tenderly/index:execSoneium
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-sonic:
+        function: tenderly/index:execSonic
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-xlayer:
+        function: tenderly/index:execXlayer
+        trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-zksync:
+        function: tenderly/index:execZksync
+        trigger: { type: periodic, periodic: { interval: 5m } }
 
       # ---- Proof of Reserves (replicates Chainlink keeper 0x7aE2930B50CFEbc99FE6DB16CE5B9C7D8d09332C) ----
       # Reads `areAllReservesBacked() + isEmergencyActionPossible()` on every executor in
@@ -291,10 +291,10 @@ actions:
       # of those `exec-scan-*` entries and uncomment this block instead. It scans
       # every chain in EXECUTION_CHAINS sequentially from a single Tenderly action.
       #
-      execution-all:
-        description: "Periodic scan across every execution chain for executePayload (fallback when action limit is hit)"
-        function: tenderly/index:executionAll
-        trigger: { type: periodic, periodic: { interval: 5m } }
+      # execution-all:
+      #   description: "Periodic scan across every execution chain for executePayload (fallback when action limit is hit)"
+      #   function: tenderly/index:executionAll
+      #   trigger: { type: periodic, periodic: { interval: 5m } }
 
       # ---- Fallback: single consolidated proof-of-reserves scanner -------------
       # If you'd rather run one consolidated PoR action across every chain (currently

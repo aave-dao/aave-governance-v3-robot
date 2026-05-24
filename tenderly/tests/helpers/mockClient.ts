@@ -106,7 +106,15 @@ export const makeMockClient = (
     waitForTransactionReceipt: async () => ({
       status: 'success' as const,
       blockNumber: 1n,
+      logs: [],
     }),
+
+    /**
+     * `estimateContractGas` — used by `gas.ts → estimateGasWithMargin` before every
+     * writeContract. Tests don't care about the precise value; return a small constant
+     * (50k) so the multiplier yields a stable, easily-asserted value.
+     */
+    estimateContractGas: async () => 50_000n,
   } as unknown as PublicClient;
 };
 
