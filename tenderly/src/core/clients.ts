@@ -15,8 +15,8 @@ import {privateKeyToAccount} from 'viem/accounts';
 import {
   getRPCUrl as toolboxGetRpcUrl,
   getNetworkEnv,
-} from '@bgd-labs/toolbox/browser';
-import type {SupportedChainIds} from '@bgd-labs/toolbox';
+} from '@aave-dao/toolbox/browser';
+import type {SupportedChainIds} from '@aave-dao/toolbox';
 
 /**
  * RPC URL resolution + transport construction for both PublicClient and WalletClient.
@@ -148,7 +148,7 @@ export const getRpcUrl = (chainId: number): string => {
  * Env-driven overrides — operator-specified URLs always win over toolbox/public defaults:
  *   - `RPC_<NETWORK>` may be a single URL or a **comma-separated list** of URLs (first =
  *     primary, the rest are tried in order on failure).
- *   - The same `<NETWORK>` slug used by `@bgd-labs/toolbox` (e.g. `RPC_MAINNET`,
+ *   - The same `<NETWORK>` slug used by `@aave-dao/toolbox` (e.g. `RPC_MAINNET`,
  *     `RPC_POLYGON`) and the chain.name-derived slug are both checked.
  */
 export const candidateUrls = (chainId: number): string[] => {

@@ -8,7 +8,7 @@ const HexKey = z
   .transform((s) => s as Hex);
 
 /**
- * RPC config follows the @bgd-labs/toolbox convention used across BGD scripts:
+ * RPC config follows the @aave-dao/toolbox convention used across BGD scripts:
  *   - `ALCHEMY_API_KEY` builds RPC URLs for all toolbox-supported chains.
  *   - `RPC_<NETWORK>` (e.g. RPC_MAINNET, RPC_POLYGON) overrides per chain.
  *   - Falls back to public RPC for the chain if neither is set.

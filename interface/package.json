@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@aave-dao/aave-address-book": "^4.55.2",
-    "@bgd-labs/toolbox": "^0.2.25",
+    "@aave-dao/toolbox": "^0.5.1",
     "@tailwindcss/postcss": "^4",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.5",

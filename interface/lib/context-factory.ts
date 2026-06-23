@@ -10,7 +10,7 @@ import { getLogger } from './logger';
 import { loadServerEnv } from './env';
 
 // Bridge: ensure env is validated by our schema first, then delegate to the CLI helpers
-// (which read directly from process.env via @bgd-labs/toolbox).
+// (which read directly from process.env via @aave-dao/toolbox).
 const ensureEnv = () => {
   loadServerEnv();
   return loadCliEnv();

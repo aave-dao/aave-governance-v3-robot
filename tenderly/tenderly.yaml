@@ -8,7 +8,7 @@
 #   PRIVATE_KEY        Hex private key for the signer EOA.
 #   ALCHEMY_API_KEY    (recommended) Auto-builds RPC URLs for every chain via Alchemy.
 #                      The L1 RPC must support eth_getProof — Alchemy does.
-#   RPC_<NETWORK>      (optional) Per-chain override; names match @bgd-labs/toolbox
+#   RPC_<NETWORK>      (optional) Per-chain override; names match @aave-dao/toolbox
 #                      getNetworkEnv() (e.g. RPC_MAINNET, RPC_POLYGON, RPC_AVALANCHE).
 #
 # Deploy:

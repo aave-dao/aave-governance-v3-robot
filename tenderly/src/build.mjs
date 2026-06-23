@@ -1,6 +1,6 @@
 // Bundle the Tenderly action entry into a single CJS file using esbuild.
 //
-// We bundle (not compile) because @bgd-labs/toolbox is ESM-only. esbuild flattens
+// We bundle (not compile) because @aave-dao/toolbox is ESM-only. esbuild flattens
 // the ESM/CJS interop and also resolves relative TS imports without needing `.js`
 // extensions in source. Output goes to `out/tenderly/index.js`, which is the path
 // Tenderly's runtime expects given the function paths in tenderly.yaml.

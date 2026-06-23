@@ -17,7 +17,7 @@ const PRIVATE_KEY = 'PRIVATE_KEY';
 const ALCHEMY_API_KEY = 'ALCHEMY_API_KEY';
 
 /**
- * The full list of RPC_<NETWORK> names we may try to read. Mirrors @bgd-labs/toolbox's
+ * The full list of RPC_<NETWORK> names we may try to read. Mirrors @aave-dao/toolbox's
  * `getNetworkEnv()` outputs (sorted alphabetically). Anything we read here, we mirror into
  * process.env so that `getRpcUrl()` finds it.
  */

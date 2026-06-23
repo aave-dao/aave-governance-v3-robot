@@ -42,7 +42,7 @@ tests/            bun test suite for action predicates and proof encoding
 bun install
 cp .env.example .env
 # fill in PRIVATE_KEY and EITHER ALCHEMY_API_KEY (recommended) OR per-chain RPC_<NETWORK>.
-# Chain reads use viem PublicClient via @bgd-labs/toolbox getClient, which respects
+# Chain reads use viem PublicClient via @aave-dao/toolbox getClient, which respects
 # ALCHEMY_API_KEY first, then explicit RPC_<NETWORK> overrides (e.g. RPC_MAINNET),
 # then the toolbox public-RPC fallback. See src/core/clients.ts.
 
@@ -132,7 +132,7 @@ tenderly actions secret set PRIVATE_KEY '0x...'
 # Recommended: one Alchemy key covers every supported chain.
 tenderly actions secret set ALCHEMY_API_KEY '...'
 
-# Or set explicit per-chain overrides — naming matches @bgd-labs/toolbox getNetworkEnv():
+# Or set explicit per-chain overrides — naming matches @aave-dao/toolbox getNetworkEnv():
 # tenderly actions secret set RPC_MAINNET   'https://...'
 # tenderly actions secret set RPC_POLYGON   'https://...'
 # tenderly actions secret set RPC_AVALANCHE 'https://...'

@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@aave-dao/aave-address-book": "^4.55.2",
-    "@bgd-labs/toolbox": "^0.2.25",
+    "@aave-dao/toolbox": "^0.5.1",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "prettier": "^3.8.3",
