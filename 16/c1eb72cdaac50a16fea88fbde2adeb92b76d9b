@@ -1,0 +1,51 @@
+tenderly/package.json
+  s_8d8cf4daab5ef1::t_5fb199799df6db 14
+tenderly/src/package.json
+  s_8d8cf4daab5ef1::t_5fb199799df6db 11
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 5
+tenderly/src/tenderly/secrets.ts
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 20
+tenderly/src/core/clients.ts
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 151
+  s_8d8cf4daab5ef1::t_bfafe2a5990de9 18-19
+tenderly/.env.example
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 5,12
+tenderly/tenderly.yaml
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 11
+tenderly/src/build.mjs
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 3
+interface/lib/robot/cli/env.ts
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 11
+interface/lib/robot/core/clients.ts
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 151
+  s_8d8cf4daab5ef1::t_784e521e001c04 18-19
+interface/lib/context-factory.ts
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 13
+interface/package.json
+  s_8d8cf4daab5ef1::t_5fb199799df6db 24
+tenderly/README.md
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 45,135
+tenderly/src/cli/env.ts
+  s_8d8cf4daab5ef1::t_e84f9dcde338a6 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.10",
+  "base_commit_sha": "16c1eb72cdaac50a16fea88fbde2adeb92b76d9b",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_8d8cf4daab5ef1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c1b6f4-2a07-422a-805f-74ac1d611287",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
