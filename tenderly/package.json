@@ -10,7 +10,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@aave-dao/aave-address-book": "^4.49.7",
+    "@aave-dao/aave-address-book": "^4.55.2",
     "@bgd-labs/toolbox": "^0.2.25",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",

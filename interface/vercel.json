@@ -20,6 +20,7 @@
     { "path": "/api/cron/exec-scan/linea", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/mantle", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/ink", "schedule": "* * * * *" },
+    { "path": "/api/cron/exec-scan/monad", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/plasma", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/soneium", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/sonic", "schedule": "* * * * *" },

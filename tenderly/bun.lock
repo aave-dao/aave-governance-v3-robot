@@ -5,7 +5,7 @@
     "": {
       "name": "aave-gov-v3-robot-tenderly",
       "dependencies": {
-        "@aave-dao/aave-address-book": "^4.49.7",
+        "@aave-dao/aave-address-book": "^4.55.2",
         "@bgd-labs/toolbox": "^0.2.25",
         "commander": "^12.1.0",
         "dotenv": "^16.4.5",
@@ -22,7 +22,7 @@
     },
   },
   "packages": {
-    "@aave-dao/aave-address-book": ["@aave-dao/aave-address-book@4.49.7", "", { "peerDependencies": { "viem": "^2.23.5" } }, "sha512-s12NaVQPsgXZfSdV5vhnM+jdmUBWILf3DH3jk9nhf3pQC3rCN3lI5BOccqiIONstLK9uBDh3b7z7NXx6FRK89Q=="],
+    "@aave-dao/aave-address-book": ["@aave-dao/aave-address-book@4.55.2", "", { "peerDependencies": { "viem": "^2.23.5" } }, "sha512-cFi05PusMCHKy9lSl4ogyVZthsJgk2kzsVi+I276NMKEc9W5RljArDkNTNTA6qAhdmZzvQAVv3W32H5AtcUHLQ=="],
 
     "@adraffy/ens-normalize": ["@adraffy/ens-normalize@1.11.1", "", {}, "sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ=="],
 

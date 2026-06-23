@@ -12,6 +12,7 @@ import {
   GovernanceV3Mantle,
   GovernanceV3MegaEth,
   GovernanceV3Metis,
+  GovernanceV3Monad,
   GovernanceV3Optimism,
   GovernanceV3Plasma,
   GovernanceV3Polygon,
@@ -82,6 +83,7 @@ export const execMantle: ActionFn = makeExecutionAction(GovernanceV3Mantle.CHAIN
 export const execInk: ActionFn = makeExecutionAction(GovernanceV3Ink.CHAIN_ID);
 export const execPlasma: ActionFn = makeExecutionAction(GovernanceV3Plasma.CHAIN_ID);
 export const execMegaeth: ActionFn = makeExecutionAction(GovernanceV3MegaEth.CHAIN_ID);
+export const execMonad: ActionFn = makeExecutionAction(GovernanceV3Monad.CHAIN_ID);
 export const execSoneium: ActionFn = makeExecutionAction(GovernanceV3Soneium.CHAIN_ID);
 export const execSonic: ActionFn = makeExecutionAction(GovernanceV3Sonic.CHAIN_ID);
 export const execXlayer: ActionFn = makeExecutionAction(GovernanceV3XLayer.CHAIN_ID);

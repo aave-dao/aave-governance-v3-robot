@@ -17,6 +17,7 @@ import {
   GovernanceV3Ink,
   GovernanceV3Plasma,
   GovernanceV3MegaEth,
+  GovernanceV3Monad,
   GovernanceV3Soneium,
   GovernanceV3Sonic,
   GovernanceV3XLayer,
@@ -164,6 +165,11 @@ export const EXECUTION_CHAINS: Record<number, ExecutionChainConfig> = {
     chainId: GovernanceV3MegaEth.CHAIN_ID,
     name: 'megaeth',
     payloadsController: GovernanceV3MegaEth.PAYLOADS_CONTROLLER as Address,
+  },
+  [GovernanceV3Monad.CHAIN_ID]: {
+    chainId: GovernanceV3Monad.CHAIN_ID,
+    name: 'monad',
+    payloadsController: GovernanceV3Monad.PAYLOADS_CONTROLLER as Address,
   },
   [GovernanceV3Soneium.CHAIN_ID]: {
     chainId: GovernanceV3Soneium.CHAIN_ID,

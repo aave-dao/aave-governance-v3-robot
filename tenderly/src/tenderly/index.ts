@@ -20,6 +20,7 @@ export {
   execInk,
   execPlasma,
   execMegaeth,
+  execMonad,
   execSoneium,
   execSonic,
   execXlayer,

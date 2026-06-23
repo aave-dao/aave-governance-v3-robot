@@ -262,6 +262,9 @@ actions:
       exec-scan-megaeth:
         function: tenderly/index:execMegaeth
         trigger: { type: periodic, periodic: { interval: 5m } }
+      exec-scan-monad:
+        function: tenderly/index:execMonad
+        trigger: { type: periodic, periodic: { interval: 5m } }
       exec-scan-soneium:
         function: tenderly/index:execSoneium
         trigger: { type: periodic, periodic: { interval: 5m } }

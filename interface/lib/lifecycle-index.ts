@@ -94,6 +94,7 @@ const SECONDS_PER_BLOCK_FALLBACK: Record<number, number> = {
   56: 3,
   100: 5,
   137: 2,
+  143: 1, // monad
   146: 1,
   196: 3,
   324: 1,
