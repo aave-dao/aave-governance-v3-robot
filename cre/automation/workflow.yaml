@@ -32,3 +32,66 @@ production-settings:
     workflow-path: "./main.ts"
     config-path: "./config.production.json"
     secrets-path: ""
+
+# ==========================================================================
+polygon-production-settings:
+  user-workflow:
+    workflow-name: "automation-polygon"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.polygon.json"
+    secrets-path: ""
+
+# ==========================================================================
+avalanche-production-settings:
+  user-workflow:
+    workflow-name: "automation-avalanche"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.avalanche.json"
+    secrets-path: ""
+
+# ==========================================================================
+arbitrum-production-settings:
+  user-workflow:
+    workflow-name: "automation-arbitrum"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.arbitrum.json"
+    secrets-path: ""
+
+# ==========================================================================
+optimism-production-settings:
+  user-workflow:
+    workflow-name: "automation-optimism"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.optimism.json"
+    secrets-path: ""
+
+# ==========================================================================
+base-production-settings:
+  user-workflow:
+    workflow-name: "automation-base"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.base.json"
+    secrets-path: ""
+
+# ==========================================================================
+bnb-production-settings:
+  user-workflow:
+    workflow-name: "automation-bnb"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.bnb.json"
+    secrets-path: ""
+
+# ==========================================================================
+ethereum-production-settings:
+  user-workflow:
+    workflow-name: "automation-ethereum"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.ethereum.json"
+    secrets-path: ""

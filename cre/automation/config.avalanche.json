@@ -1,0 +1,13 @@
+{
+  "schedule": "*/5 * * * *",
+  "evms": [
+    {
+      "chainName": "avalanche-mainnet",
+      "mailboxAddress": "0xd44fdbf583e67adb84e530ae5cc784ad5315f022",
+      "automations": [
+        { "address": "0x7B74938583Eb03e06042fcB651046BaF0bf15644", "checkData": "0x", "automationContractType": "chainlink" },
+        { "address": "0x2cf0fA5b36F0f89a5EA18F835d1375974a7720B8", "checkData": "0x", "automationContractType": "chainlink" }
+      ]
+    }
+  ]
+}

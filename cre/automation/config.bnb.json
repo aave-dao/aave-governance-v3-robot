@@ -1,0 +1,12 @@
+{
+  "schedule": "*/5 * * * *",
+  "evms": [
+    {
+      "chainName": "binance_smart_chain-mainnet",
+      "mailboxAddress": "0x3bb6Af80bA07EB16FA20EF12492199c0B8FC85E7",
+      "automations": [
+        { "address": "0x870F5EBf5C13B73251283b2d883988066e2bb732", "checkData": "0x", "automationContractType": "chainlink" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schedule": "*/5 * * * *",
+  "evms": [
+    {
+      "chainName": "ethereum-mainnet-arbitrum-1",
+      "mailboxAddress": "0x76132cf411aAd48fB3BDadD399cA79F6e0Af0446",
+      "automations": [
+        { "address": "0x64093fe5f8Cf62aFb4377cf7EF4373537fe9155B", "checkData": "0x", "automationContractType": "chainlink" }
+      ]
+    }
+  ]
+}

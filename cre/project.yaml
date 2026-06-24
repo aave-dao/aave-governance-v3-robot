@@ -23,10 +23,73 @@ staging-settings:
 # ==========================================================================
 production-settings:
   account:
-      workflow-owner-address: "0xa7F927EA68f2F916Bf6362CC4B11726ccAD6339B"
+      workflow-owner-address: "0x73494691C9B28b91A0b4C9dF213c1893fddA3a3B"
       workflow-name: "deployer"
   rpcs:
     - chain-name: ethereum-mainnet-base-1
       url: https://mainnet.base.org
     - chain-name: ethereum-mainnet
       url: https://mainnet.gateway.tenderly.co
+
+# ==========================================================================
+polygon-production-settings:
+  account:
+      workflow-owner-address: "0x73494691C9B28b91A0b4C9dF213c1893fddA3a3B"
+      workflow-name: "deployer"
+  rpcs:
+    - chain-name: polygon-mainnet
+      url: ${RPC_URL_POLYGON}
+
+# ==========================================================================
+avalanche-production-settings:
+  account:
+      workflow-owner-address: "0x73494691C9B28b91A0b4C9dF213c1893fddA3a3B"
+      workflow-name: "deployer"
+  rpcs:
+    - chain-name: avalanche-mainnet
+      url: ${RPC_URL_AVALANCHE}
+
+# ==========================================================================
+arbitrum-production-settings:
+  account:
+      workflow-owner-address: "0x73494691C9B28b91A0b4C9dF213c1893fddA3a3B"
+      workflow-name: "deployer"
+  rpcs:
+    - chain-name: ethereum-mainnet-arbitrum-1
+      url: ${RPC_URL_ARBITRUM}
+
+# ==========================================================================
+optimism-production-settings:
+  account:
+      workflow-owner-address: "0x73494691C9B28b91A0b4C9dF213c1893fddA3a3B"
+      workflow-name: "deployer"
+  rpcs:
+    - chain-name: ethereum-mainnet-optimism-1
+      url: ${RPC_URL_OPTIMISM}
+
+# ==========================================================================
+base-production-settings:
+  account:
+      workflow-owner-address: "0x73494691C9B28b91A0b4C9dF213c1893fddA3a3B"
+      workflow-name: "deployer"
+  rpcs:
+    - chain-name: ethereum-mainnet-base-1
+      url: ${RPC_URL_BASE}
+
+# ==========================================================================
+bnb-production-settings:
+  account:
+      workflow-owner-address: "0x73494691C9B28b91A0b4C9dF213c1893fddA3a3B"
+      workflow-name: "deployer"
+  rpcs:
+    - chain-name: binance_smart_chain-mainnet
+      url: ${RPC_URL_BNB}
+
+# ==========================================================================
+ethereum-production-settings:
+  account:
+      workflow-owner-address: "0x73494691C9B28b91A0b4C9dF213c1893fddA3a3B"
+      workflow-name: "deployer"
+  rpcs:
+    - chain-name: ethereum-mainnet
+      url: ${RPC_URL_ETHEREUM}

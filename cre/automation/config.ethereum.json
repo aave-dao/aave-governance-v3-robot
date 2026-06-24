@@ -1,0 +1,14 @@
+{
+  "schedule": "*/5 * * * *",
+  "evms": [
+    {
+      "chainName": "ethereum-mainnet",
+      "mailboxAddress": "0x14fa87C3B5F1b95444D1b4Ed9A8fC8516D5d23bF",
+      "automations": [
+        { "address": "0xBa37F9eDC52f57caFA3a13ddfD655797Cc4FE257", "checkData": "0x", "automationContractType": "chainlink" },
+        { "address": "0x1996c281235D99bB3c6B8d2afbEb8ac6c7A39C11", "checkData": "0x", "automationContractType": "chainlink" },
+        { "address": "0xbC3210bfff692a5bbDBB068D42Ab4eAF28b01Ee0", "checkData": "0x", "automationContractType": "chainlink" }
+      ]
+    }
+  ]
+}

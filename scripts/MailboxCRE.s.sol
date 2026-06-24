@@ -144,3 +144,43 @@ contract DeployZkSync is Script {
     vm.stopBroadcast();
   }
 }
+
+// make deploy-ledger contract=scripts/MailboxCRE.s.sol:DeployArbitrum chain=arbitrum
+contract DeployArbitrum is Script {
+  function run() external {
+    vm.startBroadcast();
+    MailboxCRE mailbox = new MailboxCRE();
+    console.log('MailboxCRE arbitrum address', address(mailbox));
+    vm.stopBroadcast();
+  }
+}
+
+// make deploy-ledger contract=scripts/MailboxCRE.s.sol:DeployOptimism chain=optimism
+contract DeployOptimism is Script {
+  function run() external {
+    vm.startBroadcast();
+    MailboxCRE mailbox = new MailboxCRE();
+    console.log('MailboxCRE optimism address', address(mailbox));
+    vm.stopBroadcast();
+  }
+}
+
+// make deploy-ledger contract=scripts/MailboxCRE.s.sol:DeployBnb chain=bnb
+contract DeployBnb is Script {
+  function run() external {
+    vm.startBroadcast();
+    MailboxCRE mailbox = new MailboxCRE();
+    console.log('MailboxCRE bnb address', address(mailbox));
+    vm.stopBroadcast();
+  }
+}
+
+// make deploy-ledger contract=scripts/MailboxCRE.s.sol:DeployBase chain=base
+contract DeployBase is Script {
+  function run() external {
+    vm.startBroadcast();
+    MailboxCRE mailbox = new MailboxCRE();
+    console.log('MailboxCRE base address', address(mailbox));
+    vm.stopBroadcast();
+  }
+}
