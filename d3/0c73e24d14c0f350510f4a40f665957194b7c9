@@ -1,0 +1,38 @@
+tenderly/src/core/gas.ts
+  s_8d8cf4daab5ef1::t_128654bd9cb6dd 31
+  s_8d8cf4daab5ef1::t_6a39b4ded0166a 135-136,138-139
+  s_8d8cf4daab5ef1::t_9b3d0456ce6fe3 32,34-36,38-43,46-68
+  s_8d8cf4daab5ef1::t_1b394a832f3bfb 29-30,33,37,44-45,69-70,102
+  s_8d8cf4daab5ef1::t_5aa471bce002cc 1,17-22,80-84,86-100,104,118,120-130,132-133
+  s_8d8cf4daab5ef1::t_8b5801288c45c6 103,105-111,113,134,137
+  s_8d8cf4daab5ef1::t_1e4d155cc24692 101
+interface/lib/robot/core/gas.ts
+  s_8d8cf4daab5ef1::t_79a1e78f2d7e2e 1,17-22,80-84,86-100,104,118,120-130,132-133
+  s_8d8cf4daab5ef1::t_83be8c97b1daa4 29-30,33,37,44-45,69-70,102,135-136,138-139
+  s_8d8cf4daab5ef1::t_b2f5908aa1c405 31,103,105-111,113,134,137
+  s_8d8cf4daab5ef1::t_d9622ac94617be 32,34-36,38-43,46-68
+  s_8d8cf4daab5ef1::t_9dfcc440a0dece 101
+tenderly/tests/helpers/mockClient.ts
+  s_8d8cf4daab5ef1::t_5bc0b37f41704b 118-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.1",
+  "base_commit_sha": "d30c73e24d14c0f350510f4a40f665957194b7c9",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_8d8cf4daab5ef1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c1b6f4-2a07-422a-805f-74ac1d611287",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
