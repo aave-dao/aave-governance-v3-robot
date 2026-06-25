@@ -115,6 +115,17 @@ export const makeMockClient = (
      * (50k) so the multiplier yields a stable, easily-asserted value.
      */
     estimateContractGas: async () => 50_000n,
+
+    /**
+     * `getBlock({blockTag: 'latest'})` — used by `gas.ts → fetchBlockGasLimit` to read
+     * the network's current block gas limit so we can cap our `writeContract` gas. 30M
+     * is a sensible default (~mainnet 2024). The cap kicks in for txs where the
+     * estimate * 1.5 > 0.95 * 30M ≈ 28.5M; the small 50k estimate above stays well
+     * under the cap so tests still see the margined value.
+     */
+    getBlock: async () => ({
+      gasLimit: 30_000_000n,
+    }),
   } as unknown as PublicClient;
 };
 
