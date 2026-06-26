@@ -1,5 +1,5 @@
 // Aave Delivery Infrastructure helpers — used to surface deep-links to the ADI envelope
-// tracker (adi.onaave.com) from cross-chain-emitting actions (executeProposal on L1,
+// tracker (adi.tools.aave.com) from cross-chain-emitting actions (executeProposal on L1,
 // closeAndSendVote on the voting chain).
 //
 // `EnvelopeRegistered(bytes32 indexed envelopeId, Envelope envelope)` is emitted by the
@@ -152,7 +152,10 @@ export const extractEnvelopeForwardStatuses = (
   // Insertion order preserved — first envelope seen comes first. Matters because the
   // caller renders envelope lines in this order, and the notification reads more
   // naturally when destinations appear in the same order as the ADI dashboard.
-  const byEnvelope = new Map<Hex, {destinationChainId: number; attempts: number; succeeded: number}>();
+  const byEnvelope = new Map<
+    Hex,
+    {destinationChainId: number; attempts: number; succeeded: number}
+  >();
 
   for (const log of logs) {
     try {

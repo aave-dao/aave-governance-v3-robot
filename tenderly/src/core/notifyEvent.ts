@@ -5,8 +5,8 @@
 // Enrichment layers (each independently try-catched so a failure in one drops only that
 // line, never the message itself):
 //   1. Title + author     — fetched via L1 `getProposal` → ipfsHash → fetchProposalMetadataSafe
-//   2. Dashboard links    — `vote.onaave.com` + this repo's operator dashboard
-//   3. Envelope links     — adi.onaave.com for cross-chain hops (executeProposal /
+//   2. Dashboard links    — `vote.tools.aave.com` + this repo's operator dashboard
+//   3. Envelope links     — adi.tools.aave.com for cross-chain hops (executeProposal /
 //                           closeAndSendVote). Caller passes the already-extracted IDs.
 
 import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
@@ -82,16 +82,14 @@ const fetchTitleAndAuthor = async (
     args: [proposalId],
   });
   const ipfsHash = proposal.ipfsHash as Hex;
-  if (!ipfsHash || ipfsHash === ('0x' + '00'.repeat(32))) return {};
+  if (!ipfsHash || ipfsHash === '0x' + '00'.repeat(32)) return {};
   const md = await fetchProposalMetadataSafe(ipfsHash);
   return {title: md?.title, author: md?.author};
 };
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
-export const notifyProposalEvent = async (
-  p: ProposalEventInput,
-): Promise<RenderedNotification> => {
+export const notifyProposalEvent = async (p: ProposalEventInput): Promise<RenderedNotification> => {
   const {emoji, title: eventTitle} = EVENT_LABEL[p.event];
 
   // 1. Title + author — try/catch. Failure just drops the lines.
@@ -146,9 +144,7 @@ export const notifyProposalEvent = async (
           VOTING_CHAINS[s.destinationChainId as keyof typeof VOTING_CHAINS]?.name ??
           `chain-${s.destinationChainId}`;
         const badge =
-          s.status === 'ok'
-            ? '✓'
-            : `❌ ${s.succeeded}/${s.attempts} adapters succeeded`;
+          s.status === 'ok' ? '✓' : `❌ ${s.succeeded}/${s.attempts} adapters succeeded`;
         if (s.status !== 'ok') failedDests.push(destName);
         envelopeLines.push({
           slack: `envelope → ${destName}: <${url}|${short}>  ${badge}`,

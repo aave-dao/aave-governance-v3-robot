@@ -4,9 +4,9 @@
 
 import type {Hex} from 'viem';
 
-/** Public Aave vote dashboard, e.g. https://vote.onaave.com/proposal/?proposalId=486 */
+/** Public Aave vote dashboard, e.g. https://vote.tools.aave.com/proposal/?proposalId=486 */
 export const aaveVoteUrl = (proposalId: bigint | string | number): string =>
-  `https://vote.onaave.com/proposal/?proposalId=${proposalId.toString()}`;
+  `https://vote.tools.aave.com/proposal/?proposalId=${proposalId.toString()}`;
 
 /** This repo's operator dashboard (Vercel-deployed Next.js). */
 export const operatorDashboardUrl = (proposalId: bigint | string | number): string =>
@@ -14,9 +14,9 @@ export const operatorDashboardUrl = (proposalId: bigint | string | number): stri
 
 /**
  * Aave Delivery Infrastructure envelope tracker, e.g.
- *   https://adi.onaave.com/envelope/0xf6e546c8364cdb0ca2b8c20692c48d157875e956dcbbe28cd0b9dce8fd8e42d7
+ *   https://adi.tools.aave.com/envelope/0xf6e546c8364cdb0ca2b8c20692c48d157875e956dcbbe28cd0b9dce8fd8e42d7
  * Used for cross-chain hops triggered by executeProposal (L1 → execution chains) and
  * closeAndSendVote (voting chain → L1).
  */
 export const adiEnvelopeUrl = (envelopeId: Hex): string =>
-  `https://adi.onaave.com/envelope/${envelopeId}`;
+  `https://adi.tools.aave.com/envelope/${envelopeId}`;

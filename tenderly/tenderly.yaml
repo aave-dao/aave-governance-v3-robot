@@ -58,8 +58,8 @@ actions:
 
       # ---- Proposal lifecycle notifications ----
       # Decode the lifecycle event, look up the IPFS title/author from L1, and post a
-      # Slack/Telegram message with deep-links to vote.onaave.com, this repo's operator
-      # dashboard, and (for cross-chain-emitting events) adi.onaave.com envelope tracker.
+      # Slack/Telegram message with deep-links to vote.tools.aave.com, this repo's operator
+      # dashboard, and (for cross-chain-emitting events) adi.tools.aave.com envelope tracker.
       # Skips silently when our own signer fired the tx — the action handler that signed
       # already posted a notifyTxSuccess message for that tx, so re-notifying here would
       # duplicate.

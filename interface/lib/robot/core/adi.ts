@@ -1,5 +1,5 @@
 // Aave Delivery Infrastructure helpers — used to surface deep-links to the ADI envelope
-// tracker (adi.onaave.com) from cross-chain-emitting actions (executeProposal on L1,
+// tracker (adi.tools.aave.com) from cross-chain-emitting actions (executeProposal on L1,
 // closeAndSendVote on the voting chain).
 //
 // `EnvelopeRegistered(bytes32 indexed envelopeId, Envelope envelope)` is emitted by the
