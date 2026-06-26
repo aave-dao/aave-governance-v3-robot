@@ -1,0 +1,27 @@
+tenderly/tenderly.yaml
+  h_739c25e72c37fb 61-62
+tenderly/src/core/links.ts
+  h_739c25e72c37fb 7,9,17,22
+tenderly/src/core/adi.ts
+  h_739c25e72c37fb 2
+interface/lib/robot/core/adi.ts
+  h_739c25e72c37fb 2
+tenderly/src/core/notifyEvent.ts
+  h_739c25e72c37fb 8-9
+interface/lib/robot/core/links.ts
+  h_739c25e72c37fb 7,9,17,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "d3442b3f7250e6da78300d02ea5fbd21c4522a33",
+  "prompts": {},
+  "humans": {
+    "h_739c25e72c37fb": {
+      "author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    },
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  }
+}
