@@ -161,23 +161,6 @@ export const executions = pgTable(
   }),
 );
 
-export const cronRuns = pgTable(
-  'cron_runs',
-  {
-    id: text('id').primaryKey(),
-    name: text('name').notNull(),
-    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
-    finishedAt: timestamp('finished_at', { withTimezone: true }),
-    ok: boolean('ok'),
-    durationMs: integer('duration_ms'),
-    summary: jsonb('summary'),
-    error: text('error'),
-  },
-  (t) => ({
-    nameStartedIdx: index('cron_runs_name_started_idx').on(t.name, t.startedAt),
-  }),
-);
-
 export const cursors = pgTable('cursors', {
   name: text('name').primaryKey(),
   chainId: integer('chain_id').notNull(),
@@ -259,7 +242,6 @@ export const lifecycleTxs = pgTable(
 export type Proposal = typeof proposals.$inferSelect;
 export type Payload = typeof payloads.$inferSelect;
 export type Execution = typeof executions.$inferSelect;
-export type CronRun = typeof cronRuns.$inferSelect;
 export type Cursor = typeof cursors.$inferSelect;
 export type Vote = typeof votes.$inferSelect;
 export type EnsName = typeof ensNames.$inferSelect;

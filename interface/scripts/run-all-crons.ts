@@ -27,7 +27,6 @@ import { runGovernanceScan } from '@robot/orchestration/governanceScan';
 import { runVotingScan } from '@robot/orchestration/votingScan';
 import { runExecutionScan } from '@robot/orchestration/executionScan';
 
-import { recordCronRun } from '../lib/cron-runs';
 import { ethRpcUrlFromEnv, makeWriteContextFromEnv } from '../lib/context-factory';
 import { requirePrivateKey } from '../lib/env';
 import { getLogger } from '../lib/logger';
@@ -169,7 +168,6 @@ const main = async () => {
     try {
       const summary = await step.run();
       const durationMs = Date.now() - started;
-      await recordCronRun({ name: step.name, ok: true, durationMs, summary });
       console.log(`  ✓ ${step.name} (${durationMs}ms)`);
       const safe = jsonSafe(summary);
       if (safe && typeof safe === 'object') {
@@ -180,7 +178,6 @@ const main = async () => {
       failures += 1;
       const durationMs = Date.now() - started;
       const message = err instanceof Error ? err.message : String(err);
-      await recordCronRun({ name: step.name, ok: false, durationMs, error: message });
       console.error(`  ✗ ${step.name} (${durationMs}ms): ${message}`);
     }
   }
