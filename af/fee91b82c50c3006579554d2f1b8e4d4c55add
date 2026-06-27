@@ -1,0 +1,29 @@
+interface/db/migrations/0011_drop_cron_runs.sql
+  s_8d8cf4daab5ef1::t_69e4f349faf37a 1-6
+interface/lib/cron-handler.ts
+  s_8d8cf4daab5ef1::t_3330b2e27691e6 10-11
+  s_8d8cf4daab5ef1::t_037511d827ea89 24
+  s_8d8cf4daab5ef1::t_48882d17d1c333 29
+  s_8d8cf4daab5ef1::t_0c6c5a8b18c3dd 12-13,19,30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "affee91b82c50c3006579554d2f1b8e4d4c55add",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_8d8cf4daab5ef1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c1b6f4-2a07-422a-805f-74ac1d611287",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
