@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Activity } from 'lucide-react';
+import { CacheStatus } from './CacheStatus';
 
 export function AppBar() {
   return (
@@ -35,10 +36,7 @@ export function AppBar() {
             Price Feeds
           </Link>
         </nav>
-        <div className="flex items-center gap-2 sm:gap-3 text-xs text-fg-dim">
-          <span className="font-mono hidden sm:inline">cached every minute</span>
-          <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
-        </div>
+        <CacheStatus />
       </div>
     </header>
   );

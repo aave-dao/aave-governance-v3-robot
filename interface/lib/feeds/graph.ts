@@ -4,7 +4,7 @@
 
 import { getAddress, type Address, type PublicClient } from 'viem';
 import { getPublicClient } from '@robot/core/clients';
-import { FEED_ABI, MULTICALL3, PROBE_FNS, type Raw } from './abi';
+import { AGG_ABI, FEED_ABI, MULTICALL3, PROBE_FNS, type Raw } from './abi';
 import { getChainlinkIndex } from './chainlink';
 import { classify, type ClassifiedNode } from './classify';
 import { chainName, marketsForChain } from './markets';
@@ -84,6 +84,64 @@ function computeTiers(nodes: Map<Address, ClassifiedNode>): Map<Address, number>
   return memo;
 }
 
+/** Realized deviation at the last update per Chainlink leaf: signed % change of the latest
+ *  answer vs the previous round's answer. Two extra multicalls (latestRound, then the prior
+ *  round) on the proxies — best-effort, skipped on any failure or phase boundary. */
+async function computeLastMove(
+  client: PublicClient,
+  clNodes: ClassifiedNode[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (!clNodes.length) return out;
+
+  const rounds = (await client.multicall({
+    contracts: clNodes.map((n) => ({
+      address: n.address as Address,
+      abi: AGG_ABI,
+      functionName: 'latestRound',
+    })) as never,
+    allowFailure: true,
+    multicallAddress: MULTICALL3,
+  })) as Array<{ status: string; result?: unknown }>;
+
+  const ridOf = (i: number): bigint | undefined => {
+    const r = rounds[i];
+    return r && r.status === 'success' ? (r.result as bigint) : undefined;
+  };
+
+  const prev = (await client.multicall({
+    contracts: clNodes.map((n, i) => {
+      const rid = ridOf(i);
+      return {
+        address: n.address as Address,
+        abi: AGG_ABI,
+        functionName: 'getRoundData',
+        args: [rid !== undefined && rid > 0n ? rid - 1n : 0n],
+      };
+    }) as never,
+    allowFailure: true,
+    multicallAddress: MULTICALL3,
+  })) as Array<{ status: string; result?: unknown }>;
+
+  clNodes.forEach((n, i) => {
+    const rid = ridOf(i);
+    if (rid === undefined || rid <= 0n || n.answerRaw === undefined) return;
+    const pr = prev[i];
+    if (!pr || pr.status !== 'success') return;
+    // viem returns named multi-outputs as an object; older shapes as an array — handle both.
+    const res = pr.result as readonly unknown[] | { answer?: unknown } | undefined;
+    const prevAnswer = Array.isArray(res)
+      ? (res[1] as bigint | undefined)
+      : res && typeof res === 'object' && 'answer' in res
+        ? ((res as { answer?: unknown }).answer as bigint | undefined)
+        : undefined;
+    if (prevAnswer === undefined || prevAnswer === 0n) return;
+    const move = (Number(BigInt(n.answerRaw) - prevAnswer) / Math.abs(Number(prevAnswer))) * 100;
+    if (Number.isFinite(move)) out.set(n.address.toLowerCase(), Math.round(move * 1000) / 1000);
+  });
+  return out;
+}
+
 /** Group listings by symbol, then dedupe by leaf address — markets sharing a leaf are
  *  clubbed and tagged together. (chainId, leaf) is the dedup key. */
 function dedupeAssets(listings: Listing[]): AssetEntry[] {
@@ -129,6 +187,11 @@ export async function buildChainGraph(chainId: number): Promise<ChainFeedGraph> 
   // derive "due for update" from the on-chain latestTimestamp. Best-effort: empty on failure.
   const clIndex = await getChainlinkIndex(chainId);
   const nowSec = Math.floor(Date.now() / 1000);
+  // Realized deviation (latest vs previous round) for every Chainlink leaf on this chain.
+  const moveByAddr = await computeLastMove(
+    client,
+    [...nodeMap.values()].filter((n) => n.type === 'ChainlinkFeed'),
+  );
 
   const nodes: FeedNode[] = [...nodeMap.values()].map((n) => {
     const node: FeedNode = {
@@ -159,6 +222,9 @@ export async function buildChainGraph(chainId: number): Promise<ChainFeedGraph> 
       updatedAt: n.updatedAt,
       ageSec,
       due,
+      sourceAddress: n.aggregator,
+      priceText: n.priceText,
+      lastMovePct: moveByAddr.get(lc(n.address)),
     };
     return node;
   });

@@ -45,6 +45,14 @@ export const FEED_ABI = parseAbi([
   'function PEG_TO_BASE() view returns (address)',
 ]);
 
+/** Round accessors used to compute the realized deviation (latest answer vs previous round).
+ *  Queried on the Chainlink proxy directly in a dedicated enrichment pass — not part of the
+ *  generic probe because getRoundData needs the (latest) roundId as an argument. */
+export const AGG_ABI = parseAbi([
+  'function latestRound() view returns (uint256)',
+  'function getRoundData(uint80 roundId) view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)',
+]);
+
 export const PROBE_FNS = [
   'decimals', 'DECIMALS', 'description', 'latestAnswer', 'latestTimestamp', 'source', 'scale',
   'ASSET_TO_USD_AGGREGATOR', 'getPriceCap', 'MAX_STABLE_CAP_VALUE',

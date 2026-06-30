@@ -62,7 +62,7 @@ function FeedNodeCard({
             </div>
           ))}
         </dl>
-        {node.chainlink && <ChainlinkStrip cl={node.chainlink} />}
+        {node.chainlink && <ChainlinkStrip cl={node.chainlink} chainId={chainId} />}
       </div>
 
       {childNodes.length > 0 && (
@@ -82,14 +82,26 @@ function FeedNodeCard({
   );
 }
 
-function ChainlinkStrip({ cl }: { cl: ChainlinkMeta }) {
+function ChainlinkStrip({ cl, chainId }: { cl: ChainlinkMeta; chainId: number }) {
+  const move =
+    cl.lastMovePct !== undefined
+      ? `${cl.lastMovePct >= 0 ? '+' : ''}${cl.lastMovePct}%`
+      : undefined;
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-dashed border-border pt-2 text-[11px]">
       <span className="uppercase tracking-[0.06em] text-fg-dim">Chainlink</span>
+      {cl.priceText ? <Meta k="price" v={cl.priceText} /> : null}
+      {cl.deviationPct !== undefined ? <Meta k="threshold" v={`${cl.deviationPct}%`} /> : null}
+      {move ? <Meta k="last move" v={move} /> : null}
       {cl.heartbeatSec ? <Meta k="heartbeat" v={fmtDuration(cl.heartbeatSec)} /> : null}
-      {cl.deviationPct !== undefined ? <Meta k="deviation" v={`${cl.deviationPct}%`} /> : null}
       {cl.ageSec !== undefined ? <Meta k="updated" v={`${fmtDuration(cl.ageSec)} ago`} /> : null}
       {cl.feedCategory ? <Meta k="tier" v={cl.feedCategory} /> : null}
+      {cl.sourceAddress ? (
+        <span>
+          <span className="text-fg-dim">source </span>
+          <AddressLink address={cl.sourceAddress} chainId={chainId} />
+        </span>
+      ) : null}
       {cl.due ? (
         <Badge tone="warn" size="xs">
           due for update

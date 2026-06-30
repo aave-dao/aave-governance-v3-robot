@@ -317,11 +317,19 @@ export function FeedGraph({ nodes, edges, assets, chainId }: Props) {
                           </span>
                         </div>
                       ))}
-                      {n.chainlink && (n.chainlink.heartbeatSec || n.chainlink.deviationPct !== undefined) && (
+                      {n.chainlink && (
                         <div className="mt-1 border-t border-dashed border-border pt-1 font-mono text-[10.5px] text-fg-dim">
-                          {n.chainlink.heartbeatSec ? `hb ${fmtDuration(n.chainlink.heartbeatSec)}` : ''}
-                          {n.chainlink.deviationPct !== undefined ? ` · dev ${n.chainlink.deviationPct}%` : ''}
-                          {n.chainlink.ageSec !== undefined ? ` · ${fmtDuration(n.chainlink.ageSec)} ago` : ''}
+                          {[
+                            n.chainlink.priceText ? n.chainlink.priceText : '',
+                            n.chainlink.deviationPct !== undefined ? `thr ${n.chainlink.deviationPct}%` : '',
+                            n.chainlink.lastMovePct !== undefined
+                              ? `Δ ${n.chainlink.lastMovePct >= 0 ? '+' : ''}${n.chainlink.lastMovePct}%`
+                              : '',
+                            n.chainlink.heartbeatSec ? `hb ${fmtDuration(n.chainlink.heartbeatSec)}` : '',
+                            n.chainlink.ageSec !== undefined ? `${fmtDuration(n.chainlink.ageSec)} ago` : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </div>
                       )}
                     </div>

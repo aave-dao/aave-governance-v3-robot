@@ -29,6 +29,14 @@ export type ChainlinkMeta = {
   ageSec?: number;
   /** True when the feed is overdue past its heartbeat (with a small grace) — "due for update". */
   due?: boolean;
+  /** The underlying OCR aggregator the proxy reads from. */
+  sourceAddress?: string;
+  /** Current on-chain price, human-formatted ($ for USD feeds, ratio otherwise). */
+  priceText?: string;
+  /** Realized deviation at the last update: signed % change of the latest answer vs the
+   *  previous round's answer. The deviation threshold is checked against the last on-chain
+   *  answer, so this is the move that the most recent push represented. */
+  lastMovePct?: number;
 };
 
 /** One node in the feed dependency graph (a Chainlink leaf, a CAPO adapter, …). */

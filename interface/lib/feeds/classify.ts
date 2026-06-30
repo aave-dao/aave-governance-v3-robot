@@ -18,6 +18,13 @@ export type ClassifiedNode = {
   refs: string[]; // lowercased (self + referenced addresses)
   /** Unix seconds from latestTimestamp() if the contract exposed it (Chainlink aggregators). */
   updatedAt?: number;
+  /** latestAnswer as a decimal string (for deviation math). */
+  answerRaw?: string;
+  decimals?: number;
+  /** Human-formatted current price ($ for USD feeds, ratio otherwise). */
+  priceText?: string;
+  /** Underlying OCR aggregator behind a Chainlink proxy (the proxy's `aggregator()`). */
+  aggregator?: string;
 };
 
 const lc = (a: string) => a.toLowerCase() as Address;
@@ -54,6 +61,8 @@ export function classify(addr: Address, raw: Raw): ClassifiedNode {
     rows,
     refs,
     updatedAt,
+    decimals: dec,
+    answerRaw: la !== undefined ? la.toString() : undefined,
   });
 
   if (raw.source !== undefined && raw.scale !== undefined) {
@@ -177,16 +186,20 @@ export function classify(addr: Address, raw: Raw): ClassifiedNode {
   const kind = isRate
     ? 'Chainlink exchange-rate feed'
     : 'Chainlink price feed' + (dec === 18 ? ' (18-dec / SVR)' : '');
+  const priceText = la !== undefined ? (isRate ? fmtRatio(la, dec) : fmtUsd(la, dec)) : undefined;
   const rows: FeedRow[] = [
     { k: 'kind', v: kind },
     { k: 'description', v: desc },
     { k: 'decimals', v: String(dec) },
     {
       k: 'latestAnswer',
-      v: la !== undefined ? `${isRate ? fmtRatio(la, dec) : fmtUsd(la, dec)}  (${la})` : 'n/a',
+      v: la !== undefined ? `${priceText}  (${la})` : 'n/a',
     },
   ];
   if (raw.aggregator !== undefined)
     rows.push({ k: 'aggregator', v: sh(raw.aggregator), mono: true, addr: raw.aggregator as string });
-  return mk('ChainlinkFeed', [], rows);
+  const node = mk('ChainlinkFeed', [], rows);
+  node.priceText = priceText;
+  node.aggregator = optLc(raw.aggregator) ?? undefined;
+  return node;
 }
