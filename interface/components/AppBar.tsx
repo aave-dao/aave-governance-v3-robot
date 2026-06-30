@@ -21,6 +21,20 @@ export function AppBar() {
             Robot
           </span>
         </Link>
+        <nav className="flex items-center gap-1 text-[13px]">
+          <Link
+            href="/"
+            className="rounded-md px-2.5 py-1 text-fg-muted transition-colors hover:bg-surface hover:text-fg"
+          >
+            Proposals
+          </Link>
+          <Link
+            href="/feeds"
+            className="rounded-md px-2.5 py-1 text-fg-muted transition-colors hover:bg-surface hover:text-fg"
+          >
+            Price Feeds
+          </Link>
+        </nav>
         <div className="flex items-center gap-2 sm:gap-3 text-xs text-fg-dim">
           <span className="font-mono hidden sm:inline">cached every minute</span>
           <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
