@@ -1,0 +1,66 @@
+interface/components/feeds/FeedGraph.tsx
+  s_e445d89cfca35a::t_6f7ea814d346e6 320-326
+  s_e445d89cfca35a::t_bfe812527017d2 293-301
+  s_e445d89cfca35a::t_7abb8bd08d226e 6
+interface/app/api/feeds/refresh/route.ts
+  s_e445d89cfca35a::t_c2782c6b963f29 1-3,6-7,9,13,15,17,21,25,34-37,41-43
+interface/app/api/cron/feed-refresh/route.ts
+  s_e445d89cfca35a::t_a5653a49f33fe4 17,20,36-38,46
+interface/components/feeds/ChainFeedView.tsx
+  s_e445d89cfca35a::t_d8bff3e39be40e 60-72,76
+  s_e445d89cfca35a::t_39969800c4b5d2 4,6-7,14-28
+  s_e445d89cfca35a::t_bb6f569cba3e55 35
+  s_e445d89cfca35a::t_8cea782a41e55f 92
+  s_e445d89cfca35a::t_40f43f9ece196b 153-170
+  s_e445d89cfca35a::t_a6b0dfd9462e74 200-204
+  s_e445d89cfca35a::t_e979f23a09866d 29
+interface/lib/feeds/abi.ts
+  s_e445d89cfca35a::t_6ee00b94f3cc5b 24
+  s_e445d89cfca35a::t_0bf7951e717c2a 49
+interface/lib/feeds/chainlink.ts
+  s_e445d89cfca35a::t_4466841f2971e6 20-22,29,33
+  s_e445d89cfca35a::t_2f283b3e1a60fb 1-19,23-28,30-32,34-92
+interface/lib/feeds/notify-due.ts
+  s_e445d89cfca35a::t_09c0ff217de3c7 1-98
+interface/lib/feeds/format.ts
+  s_e445d89cfca35a::t_c254881673eed3 30-41
+interface/vercel.json
+  s_e445d89cfca35a::t_2e5a56e8a48a63 9
+  s_e445d89cfca35a::t_5f8f56239fe47b 35
+interface/components/feeds/FeedTree.tsx
+  s_e445d89cfca35a::t_c02bdc36be3a9e 85-114
+  s_e445d89cfca35a::t_d59669b62c5a1c 2-4
+  s_e445d89cfca35a::t_a01df67ccd1ab2 37-45,65
+interface/lib/feeds/types.ts
+  s_e445d89cfca35a::t_50a812f6d3cf48 15-33
+  s_e445d89cfca35a::t_346998e76a6d75 52-53
+interface/lib/feeds/classify.ts
+  s_e445d89cfca35a::t_d332deee55fd45 32-35
+  s_e445d89cfca35a::t_15e9c35db5db3c 56
+  s_e445d89cfca35a::t_7655c8a39b68d6 19-20
+interface/lib/feeds/graph.ts
+  s_e445d89cfca35a::t_bb4ef1f6599330 16-19
+  s_e445d89cfca35a::t_d04547ddcec073 8
+  s_e445d89cfca35a::t_75d4dfeff5412d 128-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "aba67434997c8e1c02d2f9d7fd50fe1ccff4cb0c",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_e445d89cfca35a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee0adc04-3fe7-4d43-acef-e8a248098a1c",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
