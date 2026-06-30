@@ -37,8 +37,7 @@ export const DEFAULT_GAS_MARGIN_PCT = 50;
  *
  * Notable chains DELIBERATELY OMITTED (no documented per-tx cap below block gasLimit
  * as of mid-2026):
- *   - Avalanche, BNB Chain, Celo, Sonic, X Layer, Plasma, Mantle, Monad (the 8.1M
- *     figure circulating for Monad is an RPC routing boundary, not a consensus cap).
+ *   - Avalanche, BNB Chain, Celo, Sonic, X Layer, Plasma, Mantle.
  *   - Optimism, Ink, Soneium — Karst hardfork (EIP-7825 adoption) scheduled 2026-07-08;
  *     add 16_777_216n when live.
  */
@@ -52,6 +51,10 @@ const MAX_PER_TX_GAS: Record<number, bigint> = {
   // Polygon PoS — Madhugiri hardfork (Gigagas Phase 3, Dec 2025), live.
   // Cross-referenced in EIP-8123: "Arbitrum and Polygon both use 32,000,000".
   137: 32_000_000n,
+  // Monad — protocol-enforced per-tx cap (block gasLimit is 200M, this is the
+  // tighter ceiling).
+  // https://docs.monad.xyz/developer-essentials/gas-pricing
+  143: 30_000_000n,
   // ZKsync Era — bootloader-enforced MAX_TX_GAS for computation; no traditional
   // block.gasLimit on ZKsync so this is the practical bound.
   // https://docs.zksync.io/zksync-protocol/era-vm/contracts/bootloader
