@@ -1,0 +1,26 @@
+tenderly/src/core/gas.ts
+  s_8d8cf4daab5ef1::t_478abeebd7a423 40,54-57
+interface/lib/robot/core/gas.ts
+  s_8d8cf4daab5ef1::t_afb6328563af5c 40,54-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "73aa56c3ec70df65ff6659eff83f0fcf244df878",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_8d8cf4daab5ef1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c1b6f4-2a07-422a-805f-74ac1d611287",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
