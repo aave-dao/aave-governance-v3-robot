@@ -5,12 +5,17 @@
 import { getAddress, type Address, type PublicClient } from 'viem';
 import { getPublicClient } from '@robot/core/clients';
 import { FEED_ABI, MULTICALL3, PROBE_FNS, type Raw } from './abi';
+import { getChainlinkIndex } from './chainlink';
 import { classify, type ClassifiedNode } from './classify';
 import { chainName, marketsForChain } from './markets';
 import { resolveListings, type Listing } from './seeds';
 import type { AssetEntry, ChainFeedGraph, Feed, FeedNode, MarketInfo } from './types';
 
 const lc = (a: string) => a.toLowerCase() as Address;
+
+// A Chainlink feed is flagged "due" once it's overdue past its heartbeat. The 10% grace
+// avoids flapping for feeds sitting momentarily at the heartbeat boundary between updates.
+const DUE_GRACE = 1.1;
 
 /** Multicall every probe fn against every address; return raw results keyed by address. */
 async function probe(client: PublicClient, addresses: Address[]): Promise<Map<Address, Raw>> {
@@ -120,16 +125,43 @@ export async function buildChainGraph(chainId: number): Promise<ChainFeedGraph> 
   const nodeMap = await discover(client, seedLeaves);
   const tiers = computeTiers(nodeMap);
 
-  const nodes: FeedNode[] = [...nodeMap.values()].map((n) => ({
-    address: n.address,
-    short: n.short,
-    type: n.type,
-    color: n.color,
-    rows: n.rows,
-    children: n.children.filter((c) => nodeMap.has(lc(c))).map((c) => getAddress(c)),
-    tier: tiers.get(lc(n.address)) ?? 0,
-    refs: n.refs,
-  }));
+  // Chainlink RDD config (deviation/heartbeat) for this chain, used to annotate leaves and
+  // derive "due for update" from the on-chain latestTimestamp. Best-effort: empty on failure.
+  const clIndex = await getChainlinkIndex(chainId);
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  const nodes: FeedNode[] = [...nodeMap.values()].map((n) => {
+    const node: FeedNode = {
+      address: n.address,
+      short: n.short,
+      type: n.type,
+      color: n.color,
+      rows: n.rows,
+      children: n.children.filter((c) => nodeMap.has(lc(c))).map((c) => getAddress(c)),
+      tier: tiers.get(lc(n.address)) ?? 0,
+      refs: n.refs,
+    };
+    if (n.type !== 'ChainlinkFeed') return node;
+
+    // Match the leaf by its own address or any address it references (proxy ⇄ aggregator).
+    const meta =
+      clIndex.get(lc(n.address)) ?? n.refs.map((r) => clIndex.get(r)).find(Boolean);
+    if (!meta) return node;
+
+    const ageSec = n.updatedAt !== undefined ? nowSec - n.updatedAt : undefined;
+    const hb = meta.heartbeatSec;
+    const due = hb !== undefined && hb > 0 && ageSec !== undefined && ageSec > hb * DUE_GRACE;
+    node.chainlink = {
+      name: meta.name,
+      heartbeatSec: hb,
+      deviationPct: meta.deviationPct,
+      feedCategory: meta.feedCategory,
+      updatedAt: n.updatedAt,
+      ageSec,
+      due,
+    };
+    return node;
+  });
   const edges = nodes.flatMap((n) => n.children.map((c) => ({ from: c, to: n.address })));
 
   return {

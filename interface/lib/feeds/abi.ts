@@ -21,6 +21,7 @@ export const FEED_ABI = parseAbi([
   'function DECIMALS() view returns (uint8)',
   'function description() view returns (string)',
   'function latestAnswer() view returns (int256)',
+  'function latestTimestamp() view returns (uint256)',
   'function source() view returns (address)',
   'function scale() view returns (bool, uint256)',
   'function ASSET_TO_USD_AGGREGATOR() view returns (address)',
@@ -45,7 +46,7 @@ export const FEED_ABI = parseAbi([
 ]);
 
 export const PROBE_FNS = [
-  'decimals', 'DECIMALS', 'description', 'latestAnswer', 'source', 'scale',
+  'decimals', 'DECIMALS', 'description', 'latestAnswer', 'latestTimestamp', 'source', 'scale',
   'ASSET_TO_USD_AGGREGATOR', 'getPriceCap', 'MAX_STABLE_CAP_VALUE',
   'BASE_TO_USD_AGGREGATOR', 'RATIO_PROVIDER', 'getSnapshotRatio', 'getSnapshotTimestamp',
   'getMaxYearlyGrowthRatePercent', 'MINIMUM_SNAPSHOT_DELAY', 'MAXIMUM_SNAPSHOT_TERM',

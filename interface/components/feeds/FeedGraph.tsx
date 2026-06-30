@@ -3,6 +3,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AddressLink } from '@/components/AddressLink';
 import { cn } from '@/components/ui/cn';
+import { fmtDuration } from '@/lib/feeds/format';
 import type { AssetEntry, FeedNode } from '@/lib/feeds/types';
 
 // React port of the reference HTML's left→right dependency graph. Sources sit at tier 0 on
@@ -289,8 +290,15 @@ export function FeedGraph({ nodes, edges, assets, chainId }: Props) {
                   >
                     <div className="border-b border-border px-3 py-2">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[12px] font-semibold" style={{ color: n.color }}>
-                          {n.type}
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-[12px] font-semibold" style={{ color: n.color }}>
+                            {n.type}
+                          </span>
+                          {n.chainlink?.due && (
+                            <span className="rounded-full border border-warn-border bg-warn-bg px-1.5 py-0.5 text-[9px] font-bold uppercase text-warn">
+                              due
+                            </span>
+                          )}
                         </span>
                         {symbols && (
                           <span className="rounded-full bg-success-bg px-2 py-0.5 text-[10px] font-bold text-success">
@@ -309,6 +317,13 @@ export function FeedGraph({ nodes, edges, assets, chainId }: Props) {
                           </span>
                         </div>
                       ))}
+                      {n.chainlink && (n.chainlink.heartbeatSec || n.chainlink.deviationPct !== undefined) && (
+                        <div className="mt-1 border-t border-dashed border-border pt-1 font-mono text-[10.5px] text-fg-dim">
+                          {n.chainlink.heartbeatSec ? `hb ${fmtDuration(n.chainlink.heartbeatSec)}` : ''}
+                          {n.chainlink.deviationPct !== undefined ? ` · dev ${n.chainlink.deviationPct}%` : ''}
+                          {n.chainlink.ageSec !== undefined ? ` · ${fmtDuration(n.chainlink.ageSec)} ago` : ''}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

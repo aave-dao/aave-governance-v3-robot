@@ -16,6 +16,8 @@ export type ClassifiedNode = {
   children: Address[]; // lowercased
   rows: FeedRow[];
   refs: string[]; // lowercased (self + referenced addresses)
+  /** Unix seconds from latestTimestamp() if the contract exposed it (Chainlink aggregators). */
+  updatedAt?: number;
 };
 
 const lc = (a: string) => a.toLowerCase() as Address;
@@ -27,6 +29,10 @@ export function classify(addr: Address, raw: Raw): ClassifiedNode {
   const dec = Number((raw.decimals ?? raw.DECIMALS ?? 8n) as bigint);
   const desc = (raw.description as string) ?? '(no description)';
   const la = raw.latestAnswer as bigint | undefined;
+  const updatedAt =
+    typeof raw.latestTimestamp === 'bigint' && raw.latestTimestamp > 0n
+      ? Number(raw.latestTimestamp)
+      : undefined;
   const laRow = (d = dec): FeedRow => ({
     k: 'latestAnswer',
     v: la !== undefined ? `${fmtUsd(la, d)}  (${la})` : 'n/a',
@@ -47,6 +53,7 @@ export function classify(addr: Address, raw: Raw): ClassifiedNode {
     children: children.filter((c) => c && lc(c) !== ZERO),
     rows,
     refs,
+    updatedAt,
   });
 
   if (raw.source !== undefined && raw.scale !== undefined) {

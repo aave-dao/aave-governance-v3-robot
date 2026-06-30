@@ -1,5 +1,7 @@
 import { AddressLink } from '@/components/AddressLink';
-import type { FeedNode } from '@/lib/feeds/types';
+import { Badge } from '@/components/ui/Badge';
+import { fmtDuration } from '@/lib/feeds/format';
+import type { ChainlinkMeta, FeedNode } from '@/lib/feeds/types';
 
 // Nested path view: render a leaf/adapter node and, indented beneath it, the nodes it reads
 // from — so `source → cap/scale adapter → … → Aave-consumed feed` reads top-down. Driven by
@@ -32,8 +34,15 @@ function FeedNodeCard({
         style={{ borderLeft: `3px solid ${node.color}` }}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[12.5px] font-semibold" style={{ color: node.color }}>
-            {node.type}
+          <span className="flex items-center gap-2">
+            <span className="text-[12.5px] font-semibold" style={{ color: node.color }}>
+              {node.type}
+            </span>
+            {node.chainlink?.due && (
+              <Badge tone="warn" size="xs">
+                due
+              </Badge>
+            )}
           </span>
           <AddressLink address={node.address} chainId={chainId} showIcon />
         </div>
@@ -53,6 +62,7 @@ function FeedNodeCard({
             </div>
           ))}
         </dl>
+        {node.chainlink && <ChainlinkStrip cl={node.chainlink} />}
       </div>
 
       {childNodes.length > 0 && (
@@ -69,6 +79,36 @@ function FeedNodeCard({
         </div>
       )}
     </div>
+  );
+}
+
+function ChainlinkStrip({ cl }: { cl: ChainlinkMeta }) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-dashed border-border pt-2 text-[11px]">
+      <span className="uppercase tracking-[0.06em] text-fg-dim">Chainlink</span>
+      {cl.heartbeatSec ? <Meta k="heartbeat" v={fmtDuration(cl.heartbeatSec)} /> : null}
+      {cl.deviationPct !== undefined ? <Meta k="deviation" v={`${cl.deviationPct}%`} /> : null}
+      {cl.ageSec !== undefined ? <Meta k="updated" v={`${fmtDuration(cl.ageSec)} ago`} /> : null}
+      {cl.feedCategory ? <Meta k="tier" v={cl.feedCategory} /> : null}
+      {cl.due ? (
+        <Badge tone="warn" size="xs">
+          due for update
+        </Badge>
+      ) : cl.heartbeatSec ? (
+        <Badge tone="success" size="xs">
+          on time
+        </Badge>
+      ) : null}
+    </div>
+  );
+}
+
+function Meta({ k, v }: { k: string; v: string }) {
+  return (
+    <span>
+      <span className="text-fg-dim">{k} </span>
+      <span className="font-mono text-fg-muted">{v}</span>
+    </span>
   );
 }
 

@@ -6,7 +6,7 @@
     { "path": "/api/cron/listener-poll", "schedule": "* * * * *" },
     { "path": "/api/cron/cache-refresh", "schedule": "* * * * *" },
     { "path": "/api/cron/health-daily", "schedule": "17 9 * * *" },
-    { "path": "/api/cron/feed-refresh", "schedule": "30 6 * * *" },
+    { "path": "/api/cron/feed-refresh", "schedule": "0 */12 * * *" },
     { "path": "/api/cron/exec-scan/ethereum", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/polygon", "schedule": "* * * * *" },
     { "path": "/api/cron/exec-scan/avalanche", "schedule": "* * * * *" },
@@ -32,6 +32,7 @@
   "functions": {
     "app/api/cron/cache-refresh/route.ts": { "maxDuration": 300 },
     "app/api/cron/feed-refresh/route.ts": { "maxDuration": 300 },
+    "app/api/feeds/refresh/route.ts": { "maxDuration": 300 },
     "app/api/cron/voting-all/route.ts": { "maxDuration": 120 },
     "app/api/execute/route.ts": { "maxDuration": 60 },
     "app/feeds/chain/[chainId]/page.tsx": { "maxDuration": 60 },

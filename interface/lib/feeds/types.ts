@@ -12,6 +12,25 @@ export type FeedRow = {
   addr?: string;
 };
 
+/** Official Chainlink config + live freshness for a leaf ChainlinkFeed node, merged from the
+ *  Reference Data Directory and the on-chain latestTimestamp. */
+export type ChainlinkMeta = {
+  /** RDD feed name, e.g. "ETH / USD". */
+  name?: string;
+  /** Heartbeat (max seconds between updates). undefined = no heartbeat / unknown. */
+  heartbeatSec?: number;
+  /** Deviation threshold in percent (e.g. 0.5). */
+  deviationPct?: number;
+  /** RDD risk tier: low | medium | high | custom | new | deprecating. */
+  feedCategory?: string;
+  /** Unix seconds of the last on-chain update (latestTimestamp). */
+  updatedAt?: number;
+  /** Seconds since the last update at scan time. */
+  ageSec?: number;
+  /** True when the feed is overdue past its heartbeat (with a small grace) — "due for update". */
+  due?: boolean;
+};
+
 /** One node in the feed dependency graph (a Chainlink leaf, a CAPO adapter, …). */
 export type FeedNode = {
   /** Checksummed address — used for display, explorer links and as the canonical id. */
@@ -30,6 +49,8 @@ export type FeedNode = {
   tier: number;
   /** Lowercased addresses referenced anywhere in this node (self + params) for search. */
   refs: string[];
+  /** Set only on ChainlinkFeed leaves matched in the Reference Data Directory. */
+  chainlink?: ChainlinkMeta;
 };
 
 export type MarketType = 'v3' | 'v4-spoke' | 'explicit';

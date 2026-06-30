@@ -14,8 +14,10 @@
 import { revalidateTag } from 'next/cache';
 import { getAllChainGraphs, getAssetModel } from '@/lib/feeds/build';
 import { CHAIN_IDS } from '@/lib/feeds/markets';
+import { notifyDueFeeds } from '@/lib/feeds/notify-due';
 import { chainTag, TAG_FEEDS_ALL } from '@/lib/feeds/types';
 import { wrapCron } from '@/lib/cron-handler';
+import { getLogger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +33,9 @@ export const GET = wrapCron('feed-refresh', async () => {
   // 3. Warm the cross-chain asset model from the now-fresh per-chain caches (no extra RPC).
   const model = await getAssetModel();
 
+  // 4. Alert if any Chainlink leaf is overdue past its heartbeat.
+  const { dueCount } = await notifyDueFeeds(graphs, getLogger());
+
   const failed = CHAIN_IDS.filter((id) => !graphs.some((g) => g.chainId === id));
   return {
     chainsRefreshed: graphs.length,
@@ -38,5 +43,6 @@ export const GET = wrapCron('feed-refresh', async () => {
     chainsFailed: failed,
     assets: model.length,
     nodes: graphs.reduce((n, g) => n + g.nodes.length, 0),
+    feedsDue: dueCount,
   };
 });
