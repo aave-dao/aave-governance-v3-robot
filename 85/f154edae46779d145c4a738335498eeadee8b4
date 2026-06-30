@@ -1,0 +1,98 @@
+interface/scripts/db-status.ts
+  s_8d8cf4daab5ef1::t_3d067c3f610f53 152,154
+  s_8d8cf4daab5ef1::t_fa90437235376d 148-149,153
+  s_8d8cf4daab5ef1::t_763a75275ca23e 50-60,72-76,79-81,83-85,90-94,100,102-112
+  s_8d8cf4daab5ef1::t_8e06bcc19b9450 1-49,61-71,77-78,82,86-89,95-99,101,113-147,150-151,155-157
+interface/components/feeds/RefreshButton.tsx
+  s_e445d89cfca35a::t_4a2243c9ac9ca3 1-50
+interface/app/feeds/asset/[symbol]/page.tsx
+  s_e445d89cfca35a::t_a2dfbf7146a6d1 1-7,9-44
+  s_e445d89cfca35a::t_ccabe94468debe 8
+interface/lib/feeds/seeds.ts
+  s_e445d89cfca35a::t_6e04e36f748870 1-39,41-48,50-57,59-61,63-116
+  s_e445d89cfca35a::t_a2b7e9afb84cfd 40,49
+  s_e445d89cfca35a::t_80ba74ebb63c20 58,62
+interface/components/feeds/MarketTags.tsx
+  s_e445d89cfca35a::t_71dd3bae48a12d 1-15
+interface/app/feeds/assets/page.tsx
+  s_e445d89cfca35a::t_fd9e8e75488186 7-8
+  s_e445d89cfca35a::t_1db5accbb3b158 1-6,9-58
+interface/components/AppBar.tsx
+  s_e445d89cfca35a::t_c77b7697ced11d 24-37
+interface/components/feeds/ChainFeedView.tsx
+  s_e445d89cfca35a::t_b6af476a5ada8c 1-16,18-26,29,32-33,42-43,61-88,121-132,134-199
+  s_e445d89cfca35a::t_165d588b769559 51-54
+  s_e445d89cfca35a::t_62d24640ebb800 89-120
+  s_e445d89cfca35a::t_b4a0850e6b3c5d 133
+  s_e445d89cfca35a::t_a93ace792b10e2 17
+  s_e445d89cfca35a::t_b5d25bf74e9f74 27-28
+  s_e445d89cfca35a::t_cb288c2eb436c6 30-31
+  s_e445d89cfca35a::t_7639c7fd75c429 34-36,39-41
+  s_e445d89cfca35a::t_eddfc41a3858c1 44-46,48-50
+  s_e445d89cfca35a::t_0f559eb9bbae51 55-60
+  s_e445d89cfca35a::t_ba9b1fab47fc09 37-38,47
+interface/components/feeds/FeedGraph.tsx
+  s_e445d89cfca35a::t_d7a276dcc4157c 1-322
+interface/components/feeds/AssetFeedView.tsx
+  s_e445d89cfca35a::t_afa2120c3f9093 1-37
+interface/lib/feeds/types.ts
+  s_e445d89cfca35a::t_c7804d15179052 1-96
+interface/lib/feeds/build.ts
+  s_e445d89cfca35a::t_f89eea88aa9291 1-18,23-66
+  s_e445d89cfca35a::t_1157c63bd9f9e4 19-22
+interface/lib/feeds/graph.ts
+  s_e445d89cfca35a::t_02acae4f292fbc 20,24
+  s_e445d89cfca35a::t_c15e0df897b019 1-19,21-23,25-163
+interface/app/feeds/page.tsx
+  s_e445d89cfca35a::t_9395f046f97b16 1-74
+interface/lib/feeds/classify.ts
+  s_e445d89cfca35a::t_db5215b2fbc868 1-185
+interface/lib/feeds/abi.ts
+  s_e445d89cfca35a::t_27840191b9e722 1-62
+interface/lib/feeds/format.ts
+  s_e445d89cfca35a::t_dd79add9c67d8c 1-41
+interface/vercel.json
+  s_e445d89cfca35a::t_185ec693dd9cc8 9
+  s_e445d89cfca35a::t_6f0413cd54ad2d 36-39
+  s_e445d89cfca35a::t_f7f1407c7ed5af 34
+interface/app/api/cron/feed-refresh/route.ts
+  s_e445d89cfca35a::t_69d00e55fab6ab 1-42
+interface/app/feeds/chain/[chainId]/page.tsx
+  s_e445d89cfca35a::t_245bfa81d3d42b 10-12
+  s_e445d89cfca35a::t_776c5aa32fb8dc 1-9,13-74
+interface/components/feeds/FeedTree.tsx
+  s_e445d89cfca35a::t_123e7ca732567f 1-94
+interface/app/api/feeds/refresh/route.ts
+  s_e445d89cfca35a::t_016ed5b0c89f36 1-33
+interface/lib/feeds/markets.ts
+  s_e445d89cfca35a::t_d3add768f065b5 1-177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "85f154edae46779d145c4a738335498eeadee8b4",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_8d8cf4daab5ef1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45c1b6f4-2a07-422a-805f-74ac1d611287",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    },
+    "s_e445d89cfca35a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee0adc04-3fe7-4d43-acef-e8a248098a1c",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
