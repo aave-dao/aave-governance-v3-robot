@@ -1,0 +1,45 @@
+interface/lib/feeds/types.ts
+  s_e445d89cfca35a::t_de0e5b5df5c5f1 32-39
+interface/components/feeds/FeedGraph.tsx
+  s_e445d89cfca35a::t_823b9e39f18e4a 320,322-332
+interface/lib/feeds/graph.ts
+  s_e445d89cfca35a::t_5c81a5881877f3 87-144
+  s_e445d89cfca35a::t_57feec1a41c8cf 190-194
+  s_e445d89cfca35a::t_02c85b270b4226 7
+  s_e445d89cfca35a::t_ca3aedced85336 225-227
+interface/lib/feeds/classify.ts
+  s_e445d89cfca35a::t_674559383ec832 189,196,201-204
+  s_e445d89cfca35a::t_f169cb4c0ab88f 64-65
+  s_e445d89cfca35a::t_82a8c74bade641 21-27
+interface/components/AppBar.tsx
+  s_e445d89cfca35a::t_61a534eb37c8ef 39
+  s_e445d89cfca35a::t_82bbf45368b67a 3
+interface/components/CacheStatus.tsx
+  s_e445d89cfca35a::t_da33ff2049b869 1-18
+interface/lib/feeds/abi.ts
+  s_e445d89cfca35a::t_83cee31654a464 48-55
+interface/components/feeds/FeedTree.tsx
+  s_e445d89cfca35a::t_0022e669c0c908 85-89,93-95,99-104
+  s_e445d89cfca35a::t_0cfda1ead91156 65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "58218c09db53aab401fef6f5ef9a184a9b3de050",
+  "prompts": {},
+  "humans": {
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_e445d89cfca35a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ee0adc04-3fe7-4d43-acef-e8a248098a1c",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
