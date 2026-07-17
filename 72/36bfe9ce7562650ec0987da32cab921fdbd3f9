@@ -1,0 +1,67 @@
+tenderly/tests/filebase.test.ts
+  s_66ca503f511b42::t_e8778946a9f8bd 121-132,136
+  s_66ca503f511b42::t_b9032ab86d4420 133-135
+tenderly/src/core/clients.ts
+  s_66ca503f511b42::t_7c9c23171be539 46,312
+  s_66ca503f511b42::t_d0d4326f86bb61 31-33,37-38,43-44,50-54
+  s_66ca503f511b42::t_41e0a68097b5b5 17-18,23-30,34-36,39-42,45,47-49,55-60
+  s_66ca503f511b42::t_236efae831ce71 223-227,229,231,235-237,240-252,260-285
+  s_66ca503f511b42::t_8676c6132008bc 288
+  s_66ca503f511b42::t_60b623c066d9f2 61
+  s_66ca503f511b42::t_8c8db3e237f930 286
+tenderly/src/core/filebase.ts
+  s_66ca503f511b42::t_f53b094b903969 122-134
+tenderly/src/core/providers.ts
+  s_66ca503f511b42::t_735e5a0ff12fa9 188-199
+  s_66ca503f511b42::t_c2748826f0b520 263-272
+  s_66ca503f511b42::t_b192115e858c70 20-27,43-44
+tenderly/tests/pinata.test.ts
+  s_66ca503f511b42::t_50c42f135b20a3 208-229
+tenderly/tests/clients.test.ts
+  s_66ca503f511b42::t_b1b0336ad42be3 5
+  s_66ca503f511b42::t_dc4fd5c976898f 49-89
+tenderly/README.md
+  s_66ca503f511b42::t_ae6928eaa4bd46 91-96,100-102
+tenderly/tests/providers.test.ts
+  s_66ca503f511b42::t_1e5de4deb49f05 191,212-214
+  s_66ca503f511b42::t_27b8474096a25c 154-178
+  s_66ca503f511b42::t_92022e76ef00a6 23,25-29,33-34,49-52
+  s_66ca503f511b42::t_8753c28491aa97 302-319
+  s_66ca503f511b42::t_c23f5509362373 53
+  s_66ca503f511b42::t_fe4df4ce1453b9 215
+tenderly/src/cli/index.ts
+  s_66ca503f511b42::t_6ac7ff005f3ec9 583-597,602-643,648-672
+  s_66ca503f511b42::t_b9032ab86d4420 598-601,644-647
+tenderly/tests/proposalBackup.test.ts
+  s_66ca503f511b42::t_276d6a3256a464 26
+tenderly/tests/ipfsMigration.test.ts
+  s_66ca503f511b42::t_abab39a4e2a344 60-64
+tenderly/src/core/pinata.ts
+  s_66ca503f511b42::t_f116b7a44dde2f 185-191,196-198
+  s_66ca503f511b42::t_b9032ab86d4420 192-195
+  s_66ca503f511b42::t_5231ec5b2b0a0e 235
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "7236bfe9ce7562650ec0987da32cab921fdbd3f9",
+  "prompts": {},
+  "humans": {
+    "h_739c25e72c37fb": {
+      "author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    },
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_66ca503f511b42": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7b621956-7ce0-41a6-9a67-f06ea4490f7f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
