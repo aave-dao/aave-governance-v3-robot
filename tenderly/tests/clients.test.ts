@@ -2,6 +2,7 @@ import {describe, expect, test} from 'bun:test';
 import {
   __resetClientCaches,
   accountFromPrivateKey,
+  candidateUrls,
   describeRpcSource,
   getPublicClient,
 } from '../src/core/clients';
@@ -42,6 +43,47 @@ describe('describeRpcSource', () => {
 
   test('handles unknown chains without throwing', () => {
     expect(describeRpcSource(0xdeadbeef, 'https://random/rpc')).toBe('public/fallback');
+  });
+});
+
+describe('candidateUrls (mainnet fallback ordering)', () => {
+  const PUBLICNODE = 'https://ethereum-rpc.publicnode.com';
+  const MERKLE = 'https://eth.merkle.io'; // viem's mainnet default — 401s in practice
+
+  test('Alchemy is primary when the key is set, curated publics follow', async () => {
+    await withEnv({ALCHEMY_API_KEY: 'k1', RPC_MAINNET: undefined}, () => {
+      const urls = candidateUrls(1);
+      expect(urls[0]).toContain('alchemy');
+      expect(urls).toContain(PUBLICNODE);
+    });
+  });
+
+  test('reliable public RPCs come BEFORE viem default (merkle) — the bug fix', async () => {
+    await withEnv({ALCHEMY_API_KEY: undefined, RPC_MAINNET: undefined}, () => {
+      const urls = candidateUrls(1);
+      expect(urls).toContain(PUBLICNODE);
+      // merkle is only ever a last resort, never ahead of a curated provider.
+      if (urls.includes(MERKLE)) {
+        expect(urls.indexOf(PUBLICNODE)).toBeLessThan(urls.indexOf(MERKLE));
+      }
+      expect(urls[0]).not.toBe(MERKLE);
+    });
+  });
+
+  test('an RPC_<NETWORK> override wins, with Alchemy kept as a backup', async () => {
+    await withEnv({ALCHEMY_API_KEY: 'k1', RPC_MAINNET: 'https://my.node/rpc'}, () => {
+      const urls = candidateUrls(1);
+      expect(urls[0]).toBe('https://my.node/rpc');
+      expect(urls.some((u) => u.includes('alchemy'))).toBe(true);
+      expect(urls).toContain(PUBLICNODE);
+    });
+  });
+
+  test('list is de-duplicated', async () => {
+    await withEnv({ALCHEMY_API_KEY: 'k1', RPC_MAINNET: undefined}, () => {
+      const urls = candidateUrls(1);
+      expect(new Set(urls).size).toBe(urls.length);
+    });
   });
 });
 

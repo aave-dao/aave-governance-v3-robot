@@ -119,5 +119,17 @@ export const createFilebaseClient = (config: FilebaseConfig) => {
     return res.headers.get('x-amz-meta-cid');
   };
 
-  return {config, objectKey, objectUrl, ensureBucket, headCid, putContent};
+  /** DELETE the object for `cid` — Filebase unpins it from IPFS. 404 = already gone. */
+  const deleteObject = async (cid: string): Promise<void> => {
+    const res = await signed(objectUrl(cid), {method: 'DELETE'});
+    // S3 DeleteObject returns 204; treat a missing object as success too.
+    if (!res.ok && res.status !== 404) {
+      throw new FilebaseError(
+        `delete ${cid}: ${res.status} ${(await res.text()).slice(0, 200)}`,
+        res.status,
+      );
+    }
+  };
+
+  return {config, objectKey, objectUrl, ensureBucket, headCid, putContent, deleteObject};
 };

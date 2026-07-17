@@ -182,6 +182,20 @@ export const createPinataClient = (config: PinataConfig) => {
 
   const isPinned = async (cid: string): Promise<boolean> => (await listFilesByCid(cid)).length > 0;
 
+  /** DELETE /v3/files/public/{id} — remove (unpin) a file by its record id. 404 = already gone. */
+  const deleteFile = async (id: string): Promise<void> => {
+    const res = await doFetch(`${apiBase}/files/public/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: authHeader,
+    });
+    if (!res.ok && res.status !== 404) {
+      throw new PinataError(
+        `delete ${id}: ${res.status} ${(await res.text()).slice(0, 200)}`,
+        res.status,
+      );
+    }
+  };
+
   /** GET /v3/files/public/pin_by_cid?cid=… — in-flight pin-by-CID jobs. Best-effort. */
   const listPinJobsByCid = async (cid: string): Promise<PinJobRecord[]> => {
     try {
@@ -218,6 +232,7 @@ export const createPinataClient = (config: PinataConfig) => {
     listFilesByCid,
     listPinJobsByCid,
     isPinned,
+    deleteFile,
     gatewayUrl,
     fetchFromGateway,
   };

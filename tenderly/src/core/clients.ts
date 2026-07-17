@@ -14,9 +14,50 @@ import * as viemChains from 'viem/chains';
 import {privateKeyToAccount} from 'viem/accounts';
 import {
   getRPCUrl as toolboxGetRpcUrl,
+  getAlchemyRPC as toolboxAlchemyRpc,
+  getPublicRpc as toolboxPublicRpc,
   getNetworkEnv,
 } from '@aave-dao/toolbox/browser';
 import type {SupportedChainIds} from '@aave-dao/toolbox';
+
+/**
+ * Curated, key-less public RPCs used as reliable fallbacks BEFORE viem's chain defaults.
+ * viem's mainnet default is `https://eth.merkle.io`, which returns `401 invalid key` — so
+ * without this table a transient Alchemy hiccup cascades straight onto a dead endpoint. These
+ * are stable providers (publicnode / llamarpc / official) that serve `eth_call` + multicall.
+ * Multiple per chain so one provider being down still leaves a working backup. Chains absent
+ * here fall back to the toolbox's public RPC then viem's default.
+ */
+// Every URL here was probed with `eth_chainId` and confirmed to respond with the correct chain
+// (no key required). Dead/key-gated endpoints (llamarpc 521s, ankr now needs a key,
+// polygon-rpc.com 401s) were removed. Re-audit periodically.
+const RELIABLE_PUBLIC_RPCS: Record<number, string[]> = {
+  1: [
+    'https://ethereum-rpc.publicnode.com',
+    'https://eth.drpc.org',
+    'https://1rpc.io/eth',
+    'https://cloudflare-eth.com',
+  ],
+  137: [
+    'https://polygon-bor-rpc.publicnode.com',
+    'https://polygon.drpc.org',
+    'https://1rpc.io/matic',
+  ],
+  43114: ['https://avalanche-c-chain-rpc.publicnode.com', 'https://api.avax.network/ext/bc/C/rpc'],
+  42161: ['https://arbitrum-one-rpc.publicnode.com', 'https://arb1.arbitrum.io/rpc'],
+  10: ['https://optimism-rpc.publicnode.com', 'https://mainnet.optimism.io'],
+  8453: ['https://base-rpc.publicnode.com', 'https://mainnet.base.org'],
+  56: [
+    'https://bsc-rpc.publicnode.com',
+    'https://1rpc.io/bnb',
+    'https://bsc-dataseed.bnbchain.org',
+  ],
+  100: ['https://gnosis-rpc.publicnode.com', 'https://rpc.gnosischain.com'],
+  534352: ['https://scroll-rpc.publicnode.com', 'https://rpc.scroll.io'],
+  59144: ['https://linea-rpc.publicnode.com', 'https://rpc.linea.build'],
+  42220: ['https://celo-rpc.publicnode.com', 'https://forno.celo.org'],
+  1088: ['https://andromeda.metis.io/?owner=1088'],
+};
 
 /**
  * RPC URL resolution + transport construction for both PublicClient and WalletClient.
@@ -179,24 +220,36 @@ export const candidateUrls = (chainId: number): string[] => {
   // 1. Operator-specified URLs from RPC_<NAME> (comma-separated supported).
   for (const name of envNames) addList(process.env[name]);
 
-  // 2. Toolbox-resolved URL (Alchemy via ALCHEMY_API_KEY, or toolbox's own fallback table).
-  //    Skipped when the env override above is present, because toolbox also reads RPC_<NAME>
-  //    and would just duplicate it.
-  if (out.length === 0) {
+  // 2. Alchemy via ALCHEMY_API_KEY — our primary private provider. Added directly (not via the
+  //    toolbox's getRPCUrl, which would re-read RPC_<NAME> and duplicate step 1). Included even
+  //    when an RPC_ override exists, so Alchemy is still a backup.
+  const alchemyKey = process.env.ALCHEMY_API_KEY;
+  if (alchemyKey) {
     try {
-      const alchemyKey = process.env.ALCHEMY_API_KEY;
-      add(toolboxGetRpcUrl(chainId as SupportedChainIds, {alchemyKey}) as string | undefined);
+      add(toolboxAlchemyRpc(chainId as SupportedChainIds, alchemyKey));
     } catch {
-      /* chain not in toolbox list */
+      /* chain not supported by Alchemy */
     }
   }
 
-  // 3. Tenderly Gateway — supports wide `eth_getLogs` ranges where viem's public defaults
-  //    cap at a couple-thousand blocks. Always added (if a slug exists for this chain) so a
-  //    transient Alchemy hiccup doesn't drop straight onto a rate-limited public node.
+  // 3. Tenderly Gateway — supports wide `eth_getLogs` ranges where public nodes cap at a
+  //    couple-thousand blocks. Added when a slug + key resolve (operator TENDERLY_GATEWAY_KEY
+  //    or the built-in default).
   add(tenderlyGatewayUrl(chainId));
 
-  // 4. Viem public RPCs as last-resort backups.
+  // 4. Curated reliable public RPCs — tried before viem's chain default, which for mainnet is
+  //    `eth.merkle.io` (returns 401). This is the fix for a transient private-provider failure
+  //    cascading onto a dead public endpoint.
+  for (const u of RELIABLE_PUBLIC_RPCS[chainId] ?? []) add(u);
+
+  // 5. Toolbox's maintained public RPC (covers chains not in the curated table above).
+  try {
+    add(toolboxPublicRpc(chainId as SupportedChainIds));
+  } catch {
+    /* no toolbox public RPC for this chain */
+  }
+
+  // 6. Viem chain-default public RPCs — absolute last resort (may be unreliable / key-gated).
   if (chain) {
     for (const u of chain.rpcUrls.default.http) add(u);
   }
@@ -204,7 +257,35 @@ export const candidateUrls = (chainId: number): string[] => {
   return out;
 };
 
+/** True when a private/dedicated RPC source (Alchemy key or an RPC_<NETWORK> override) exists. */
+const hasPrivateRpcSource = (chainId: number): boolean => {
+  if (process.env.ALCHEMY_API_KEY) return true;
+  const chain = viemChainByChainId(chainId);
+  const names = new Set<string>();
+  try {
+    names.add(getNetworkEnv(chainId as SupportedChainIds));
+  } catch {
+    /* not in toolbox list */
+  }
+  if (chain) names.add(`RPC_${chain.name.replace(/[^A-Za-z0-9]/g, '').toUpperCase()}`);
+  return [...names].some((n) => !!process.env[n]);
+};
+
+// Warn once per chain when we're running on public RPCs only — the usual reason for a
+// confusing "fell back to a public node" failure is a missing/failed ALCHEMY_API_KEY.
+const warnedPublicOnly = new Set<number>();
+const warnIfPublicOnly = (chainId: number): void => {
+  if (hasPrivateRpcSource(chainId) || warnedPublicOnly.has(chainId)) return;
+  warnedPublicOnly.add(chainId);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[clients] chainId=${chainId}: no ALCHEMY_API_KEY or RPC_<NETWORK> override configured — ` +
+      'using public RPC fallbacks only. Set ALCHEMY_API_KEY (or RPC_<NETWORK>) for reliability.',
+  );
+};
+
 const buildTransport = (chainId: number): Transport => {
+  warnIfPublicOnly(chainId);
   const urls = candidateUrls(chainId);
   if (urls.length === 0) {
     throw new Error(`No RPC available for chainId=${chainId}`);
@@ -228,7 +309,7 @@ const synthChain = (chainId: number, primaryUrl: string): Chain =>
     name: `chain-${chainId}`,
     nativeCurrency: {name: 'Ether', symbol: 'ETH', decimals: 18},
     rpcUrls: {default: {http: [primaryUrl]}},
-  } as Chain);
+  }) as Chain;
 
 export const getPublicClient = (chainId: number): PublicClient => {
   const hit = publicCache.get(chainId);

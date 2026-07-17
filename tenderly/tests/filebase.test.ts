@@ -118,4 +118,20 @@ describe('createFilebaseClient', () => {
       createFilebaseClient(config(fn)).putContent(CID, new Uint8Array([1])),
     ).rejects.toThrow(FilebaseError);
   });
+
+  test('deleteObject: DELETEs the object URL (204 ok)', async () => {
+    const {fn, calls} = makeSigned(() => ({status: 204}));
+    await createFilebaseClient(config(fn)).deleteObject(CID);
+    expect(calls[0]!.method).toBe('DELETE');
+    expect(calls[0]!.url).toBe(`https://s3.filebase.io/b/proposals/${CID}`);
+  });
+
+  test('deleteObject: 404 tolerated, non-2xx throws', async () => {
+    const {fn: ok} = makeSigned(() => ({status: 404}));
+    await expect(createFilebaseClient(config(ok)).deleteObject(CID)).resolves.toBeUndefined();
+    const {fn: bad} = makeSigned(() => ({status: 403, body: 'denied'}));
+    await expect(createFilebaseClient(config(bad)).deleteObject(CID)).rejects.toThrow(
+      FilebaseError,
+    );
+  });
 });

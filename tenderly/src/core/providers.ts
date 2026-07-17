@@ -17,6 +17,14 @@ export type BackupOutcome = {
   reason?: string;
 };
 
+export type UnpinOutcome = {
+  /** `unpinned` = removed from the account; `not-present` = wasn't there; `failed` = errored. */
+  status: 'unpinned' | 'not-present' | 'failed';
+  /** How many objects/pins were removed (a CID can back multiple file records on Pinata). */
+  count?: number;
+  reason?: string;
+};
+
 export interface BackupProvider {
   readonly name: string;
   /** Does `backup` require the raw content bytes? Upload-based providers (Filebase) do. */
@@ -32,6 +40,8 @@ export interface BackupProvider {
   ): Promise<BackupOutcome>;
   /** Independent post-backup verification that the CID is stored/retrievable on this provider. */
   verify(cid: string): Promise<boolean>;
+  /** Remove (unpin) a CID from THIS account. No-op (`not-present`) if it isn't there. */
+  unpin(cid: string): Promise<UnpinOutcome>;
 }
 
 const metaName = (meta: BackupMeta) =>
@@ -175,6 +185,18 @@ export const makePinataProvider = (
       return false;
     }
   },
+
+  unpin: async (cid) => {
+    try {
+      // A CID can back more than one file record on the account — remove them all.
+      const files = await pinata.listFilesByCid(cid);
+      if (files.length === 0) return {status: 'not-present'};
+      for (const f of files) await pinata.deleteFile(f.id);
+      return {status: 'unpinned', count: files.length};
+    } catch (e) {
+      return {status: 'failed', reason: e instanceof Error ? e.message : String(e)};
+    }
+  },
 });
 
 // -------------------- Filebase --------------------
@@ -236,6 +258,16 @@ export const makeFilebaseProvider = (
       return (await filebase.headCid(cid)) === cid;
     } catch {
       return false;
+    }
+  },
+
+  unpin: async (cid) => {
+    try {
+      if ((await filebase.headCid(cid)) !== cid) return {status: 'not-present'};
+      await filebase.deleteObject(cid);
+      return {status: 'unpinned', count: 1};
+    } catch (e) {
+      return {status: 'failed', reason: e instanceof Error ? e.message : String(e)};
     }
   },
 });

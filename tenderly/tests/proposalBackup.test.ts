@@ -23,6 +23,7 @@ const mockProvider = (
   isBacked: async () => !!o.backed,
   backup: async () => ({status: o.backupStatus ?? 'backed', method: 'x', reason: o.reason}),
   verify: async () => true,
+  unpin: async () => ({status: o.backed ? 'unpinned' : 'not-present'}),
 });
 
 describe('gateway URL helpers', () => {

@@ -57,6 +57,11 @@ const makeMockProvider = (o: MockProviderOpts = {}) => {
       calls.verify.push(cid);
       return o.verify ? o.verify(cid) : backed.has(cid);
     },
+    unpin: async (cid) => {
+      if (!backed.has(cid)) return {status: 'not-present'};
+      backed.delete(cid);
+      return {status: 'unpinned', count: 1};
+    },
   };
   return {provider, calls, backed};
 };

@@ -205,6 +205,28 @@ describe('listPinJobsByCid', () => {
   });
 });
 
+describe('deleteFile', () => {
+  test('DELETEs /v3/files/public/{id}', async () => {
+    const {fn, calls} = makeFetch(() => ({status: 200, body: '{}'}));
+    const c = createPinataClient(cfg({fetchImpl: fn}));
+    await c.deleteFile('file-uuid-1');
+    expect(calls[0]!.url).toBe('https://api.pinata.cloud/v3/files/public/file-uuid-1');
+    expect((calls[0]!.init?.method ?? '').toUpperCase()).toBe('DELETE');
+  });
+
+  test('404 is tolerated (already gone)', async () => {
+    const {fn} = makeFetch(() => ({status: 404, body: 'not found'}));
+    const c = createPinataClient(cfg({fetchImpl: fn}));
+    await expect(c.deleteFile('gone')).resolves.toBeUndefined();
+  });
+
+  test('other non-2xx → throws', async () => {
+    const {fn} = makeFetch(() => ({status: 403, body: 'denied'}));
+    const c = createPinataClient(cfg({fetchImpl: fn}));
+    await expect(c.deleteFile('x')).rejects.toThrow(PinataError);
+  });
+});
+
 describe('gateway', () => {
   test('gatewayUrl builds https URL and appends token', () => {
     const c = createPinataClient(cfg({gateway: 'https://gw.mypinata.cloud/', gatewayToken: 'tok'}));

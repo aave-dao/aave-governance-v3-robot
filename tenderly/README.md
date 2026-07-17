@@ -88,12 +88,18 @@ bun run robot migrate-ipfs --provider filebase # only one provider
 bun run robot migrate-ipfs --skip-gateway-verify # [pinata] verify via account file list, not gateway
 bun run robot migrate-ipfs --from 400 --to 505 # limit to a proposal-id range
 bun run robot migrate-ipfs --strict --json     # exit non-zero on any failure; dump full report
+
+# remove a CID from your provider account(s). Checks each provider and unpins only where
+# present (Pinata: delete file record; Filebase: delete object → unpins from IPFS).
+bun run robot unpin <cid> --dry-run            # report where the CID is present; remove nothing
+bun run robot unpin <cid>                       # unpin from every configured provider
+bun run robot unpin <cid> --provider filebase   # only one provider
 ```
 
 The migration is **provider-modular** (`src/core/providers.ts`): a `BackupProvider` exposes
-`isBacked` / `backup` / `verify`, and the engine (`src/core/ipfsMigration.ts`) runs one sweep
-per provider. Pinata uses pin-by-CID (async; re-run to confirm `pending` ones); Filebase uses
-an S3 PUT that reproduces the same CIDv0. Add a new backend by implementing the interface.
+`isBacked` / `backup` / `verify` / `unpin`, and the engine (`src/core/ipfsMigration.ts`) runs one
+sweep per provider. Pinata uses pin-by-CID (async; re-run to confirm `pending` ones); Filebase
+uses an S3 PUT that reproduces the same CIDv0. Add a new backend by implementing the interface.
 
 `inspect` output (ANSI-colored in a terminal, plain when piped or `NO_COLOR=1`):
 

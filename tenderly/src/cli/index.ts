@@ -580,6 +580,96 @@ program
     },
   );
 
+// -------- unpin --------
+program
+  .command('unpin <cid>')
+  .description(
+    'Unpin/remove an IPFS CID from your configured provider account(s). Checks each provider ' +
+      'and removes it only where present. Providers: pinata, filebase (whichever are configured).',
+  )
+  .option('--provider <names>', 'comma-separated providers to check (default: pinata,filebase)')
+  .option('--dry-run', 'only report where the CID is present; do NOT remove anything')
+  .option('--json', 'print the result as JSON')
+  .action(async (cid: string, opts: {provider?: string; dryRun?: boolean; json?: boolean}) => {
+    const env = loadEnv();
+    const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
+
+    const selected = opts.provider
+      ? opts.provider
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean)
+      : ['pinata', 'filebase'];
+    const explicit = opts.provider !== undefined;
+
+    const buildProvider = (name: string): BackupProvider | null => {
+      try {
+        if (name === 'pinata') {
+          // Tuning is irrelevant for unpin (only isBacked + unpin are used); pass inert values.
+          return makePinataProvider(createPinataClient(resolvePinataConfig()), {
+            verifyViaGateway: false,
+            allowReupload: false,
+            pinTimeoutMs: 0,
+            pollIntervalMs: 0,
+            logger,
+          });
+        }
+        if (name === 'filebase') {
+          return makeFilebaseProvider(createFilebaseClient(resolveFilebaseConfig()), {logger});
+        }
+        throw new Error(`unknown provider: ${name} (known: pinata, filebase)`);
+      } catch (e) {
+        if (explicit) throw e;
+        logger.warn('unpin: provider not configured — skipping', {
+          provider: name,
+          error: e instanceof Error ? e.message : String(e),
+        });
+        return null;
+      }
+    };
+
+    const providers = selected.map(buildProvider).filter((p): p is BackupProvider => p !== null);
+    if (providers.length === 0) throw new Error('unpin: no providers configured');
+
+    const trimmed = cid.trim();
+    const results: {provider: string; status: string; count?: number; reason?: string}[] = [];
+    for (const provider of providers) {
+      const present = await provider.isBacked(trimmed).catch(() => false);
+      if (!present) {
+        logger.info('unpin: not present on account', {provider: provider.name, cid: trimmed});
+        results.push({provider: provider.name, status: 'not-present'});
+        continue;
+      }
+      if (opts.dryRun) {
+        logger.info('unpin: present (dry-run — not removing)', {
+          provider: provider.name,
+          cid: trimmed,
+        });
+        results.push({provider: provider.name, status: 'present (dry-run)'});
+        continue;
+      }
+      const outcome = await provider.unpin(trimmed);
+      logger.info('unpin: done', {provider: provider.name, ...outcome});
+      results.push({provider: provider.name, ...outcome});
+    }
+
+    if (opts.json) {
+      process.stdout.write(JSON.stringify({cid: trimmed, results}, replacer, 2) + '\n');
+    } else {
+      const lines = [`unpin ${trimmed}`];
+      for (const r of results) {
+        const detail =
+          r.status === 'unpinned'
+            ? `unpinned${r.count ? ` (${r.count})` : ''}`
+            : r.status === 'failed'
+              ? `FAILED — ${r.reason ?? 'unknown'}`
+              : r.status;
+        lines.push(`  ${r.provider}: ${detail}`);
+      }
+      process.stdout.write(lines.join('\n') + '\n');
+    }
+  });
+
 // -------- per-action commands --------
 program
   .command('activate <proposalId>')

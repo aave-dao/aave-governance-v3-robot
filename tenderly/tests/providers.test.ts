@@ -20,13 +20,18 @@ type MockPinataOpts = {
   gatewayContent?: Record<string, string>;
 };
 
-const makeMockPinata = (o: MockPinataOpts = {}) => {
+const makeMockPinata = (o: MockPinataOpts & {deleteThrows?: boolean} = {}) => {
   const pinned = new Set<string>(o.initiallyPinned ?? []);
-  const calls = {pinByCid: [] as string[], upload: [] as {cid: string; size: number}[]};
+  const calls = {
+    pinByCid: [] as string[],
+    upload: [] as {cid: string; size: number}[],
+    deleted: [] as string[],
+  };
   const client = {
     config: {jwt: 'x', gateway: o.gateway},
     isPinned: async (cid: string) => pinned.has(cid),
-    listFilesByCid: async (cid: string) => (pinned.has(cid) ? [{id: '1', cid}] : []),
+    // Mock uses id === cid so deleteFile(id) can map back to the pinned entry.
+    listFilesByCid: async (cid: string) => (pinned.has(cid) ? [{id: cid, cid}] : []),
     listPinJobsByCid: async (cid: string) =>
       (o.jobs?.[cid] ?? []).map((j) => ({id: 'j', cid, status: j.status})),
     pinByCid: async (cid: string) => {
@@ -40,6 +45,11 @@ const makeMockPinata = (o: MockPinataOpts = {}) => {
       calls.upload.push({cid, size: bytes.length});
       if (o.reuploadPins !== false) pinned.add(cid);
       return {id: 'up', cid};
+    },
+    deleteFile: async (id: string) => {
+      if (o.deleteThrows) throw new PinataError('delete boom', 500);
+      calls.deleted.push(id);
+      pinned.delete(id);
     },
     fetchFromGateway: async (cid: string) => {
       if (o.gatewayContent && cid in o.gatewayContent) return o.gatewayContent[cid]!;
@@ -141,6 +151,31 @@ describe('PinataProvider', () => {
     const p = makePinataProvider(client, pinataOpts({verifyViaGateway: true}));
     expect(await p.verify(c)).toBe(false);
   });
+
+  test('unpin: present → deletes each file record and reports count', async () => {
+    const c = await cid();
+    const {client, calls, pinned} = makeMockPinata({initiallyPinned: [c]});
+    const p = makePinataProvider(client, pinataOpts());
+    const out = await p.unpin(c);
+    expect(out).toEqual({status: 'unpinned', count: 1});
+    expect(calls.deleted).toEqual([c]);
+    expect(pinned.has(c)).toBe(false);
+  });
+
+  test('unpin: not on the account → not-present, no delete', async () => {
+    const c = await cid();
+    const {client, calls} = makeMockPinata();
+    const p = makePinataProvider(client, pinataOpts());
+    expect(await p.unpin(c)).toEqual({status: 'not-present'});
+    expect(calls.deleted).toHaveLength(0);
+  });
+
+  test('unpin: delete error → failed (never throws)', async () => {
+    const c = await cid();
+    const {client} = makeMockPinata({initiallyPinned: [c], deleteThrows: true});
+    const p = makePinataProvider(client, pinataOpts());
+    expect((await p.unpin(c)).status).toBe('failed');
+  });
 });
 
 // ---------------- mock low-level Filebase client ----------------
@@ -153,7 +188,7 @@ type MockFilebaseOpts = {
 
 const makeMockFilebase = (o: MockFilebaseOpts = {}) => {
   const stored = new Map<string, string>(Object.entries(o.stored ?? {}));
-  const calls = {prepared: 0, put: [] as {cid: string; size: number}[]};
+  const calls = {prepared: 0, put: [] as {cid: string; size: number}[], deleted: [] as string[]};
   const client = {
     config: {
       endpoint: 'https://s3.filebase.io',
@@ -173,6 +208,10 @@ const makeMockFilebase = (o: MockFilebaseOpts = {}) => {
       calls.put.push({cid, size: bytes.length});
       if (assigned) stored.set(cid, assigned);
       return assigned;
+    },
+    deleteObject: async (cid: string) => {
+      calls.deleted.push(cid);
+      stored.delete(cid);
     },
   };
   return {client: client as unknown as FilebaseClient, stored, calls};
@@ -259,5 +298,23 @@ describe('FilebaseProvider', () => {
       meta: META,
     });
     expect(out.status).toBe('failed');
+  });
+
+  test('unpin: stored → deletes the object', async () => {
+    const c = await cid();
+    const {client, calls, stored} = makeMockFilebase({stored: {[c]: c}});
+    const p = makeFilebaseProvider(client, {logger: silentLogger});
+    const out = await p.unpin(c);
+    expect(out).toEqual({status: 'unpinned', count: 1});
+    expect(calls.deleted).toEqual([c]);
+    expect(stored.has(c)).toBe(false);
+  });
+
+  test('unpin: not stored → not-present, no delete', async () => {
+    const c = await cid();
+    const {client, calls} = makeMockFilebase();
+    const p = makeFilebaseProvider(client, {logger: silentLogger});
+    expect(await p.unpin(c)).toEqual({status: 'not-present'});
+    expect(calls.deleted).toHaveLength(0);
   });
 });
