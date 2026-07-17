@@ -37,6 +37,81 @@ export const ipfsHashToCidV0 = (ipfsHash: Hex): string => {
   return base58Encode(bytes);
 };
 
+// -------- content-address verification (bytes → CIDv0) --------
+//
+// The inverse-ish of ipfsHashToCidV0 at the CONTENT level: given the raw bytes of a
+// proposal doc, recompute the CIDv0 the IPFS protocol assigns to it. Used by the Pinata
+// migration to prove that what a gateway served us actually hashes to the on-chain
+// ipfsHash (a gateway returning a 200 with an HTML error page would otherwise sail
+// through), and to guarantee a re-upload lands under the exact expected CID.
+//
+// This implements the go-ipfs default for a SINGLE-BLOCK UnixFS file:
+//   CIDv0 = base58btc( 0x1220 || sha256( dag-pb( unixfs-file(bytes) ) ) )
+// Files ≤ 256 KiB (every Aave proposal markdown) are a single block. Larger inputs would
+// be split into a balanced DAG with a different root hash — callers must treat a mismatch
+// on a >256 KiB input as "can't verify locally", not "corrupt" (see MAX_SINGLE_BLOCK).
+
+/** go-ipfs default chunk size. Inputs above this are multi-block and can't be verified here. */
+export const MAX_SINGLE_BLOCK_BYTES = 256 * 1024;
+
+/** Minimal protobuf unsigned-varint encoder (LEB128). Sizes here are always well within 2^53. */
+const putUvarint = (out: number[], value: number): void => {
+  let v = value;
+  while (v >= 0x80) {
+    out.push((v & 0x7f) | 0x80);
+    v = Math.floor(v / 128);
+  }
+  out.push(v);
+};
+
+/**
+ * Wrap raw file bytes in the UnixFS `Data` message then the dag-pb `PBNode`, matching what
+ * `ipfs add` produces for a single-block file. Field layout:
+ *   UnixFS Data: field 1 (Type, varint) = 2 (File); field 2 (Data, bytes) if non-empty;
+ *                field 3 (filesize, varint) = byte length.
+ *   PBNode:      field 1 (Data, bytes) = the UnixFS message; no Links for a single block.
+ */
+const dagPbSingleBlock = (bytes: Uint8Array): Uint8Array => {
+  const unixfs: number[] = [0x08, 0x02]; // Type = File
+  if (bytes.length > 0) {
+    unixfs.push(0x12); // field 2 (Data), wire type 2 (length-delimited)
+    putUvarint(unixfs, bytes.length);
+    for (const b of bytes) unixfs.push(b);
+  }
+  unixfs.push(0x18); // field 3 (filesize), wire type 0 (varint)
+  putUvarint(unixfs, bytes.length);
+
+  const node: number[] = [0x0a]; // field 1 (Data), wire type 2
+  putUvarint(node, unixfs.length);
+  for (const b of unixfs) node.push(b);
+  return Uint8Array.from(node);
+};
+
+/**
+ * Recompute the single-block CIDv0 for a piece of content. Async because it uses the Web
+ * Crypto SHA-256 (available in Bun/Node ≥18 and the browser bundle alike — no node:crypto
+ * import that would break the esbuild browser build).
+ *
+ * Throws for inputs larger than a single IPFS block, since the balanced-DAG hash for those
+ * differs and this function would confidently return the wrong CID.
+ */
+export const computeCidV0FromBytes = async (bytes: Uint8Array): Promise<string> => {
+  if (bytes.length > MAX_SINGLE_BLOCK_BYTES) {
+    throw new Error(
+      `content is ${bytes.length} bytes (> ${MAX_SINGLE_BLOCK_BYTES} single-block limit); ` +
+        'cannot verify CIDv0 locally',
+    );
+  }
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', dagPbSingleBlock(bytes)));
+  let hex = '';
+  for (const b of digest) hex += b.toString(16).padStart(2, '0');
+  return ipfsHashToCidV0(`0x${hex}` as Hex);
+};
+
+/** Convenience: recompute the CIDv0 for a UTF-8 text doc (proposal markdown). */
+export const computeCidV0FromText = async (text: string): Promise<string> =>
+  computeCidV0FromBytes(new TextEncoder().encode(text));
+
 /** Aave proposal metadata — extracted from the YAML frontmatter of the IPFS markdown doc. */
 export type ProposalMetadata = {
   title?: string;

@@ -55,6 +55,21 @@ const NOTIFICATION_ENV_NAMES = [
   'TELEGRAM_WEBHOOK_URL',
 ];
 
+/**
+ * Optional IPFS-backup provider secrets, consumed by the ProposalCreated listener to re-pin
+ * new proposal docs to Pinata / Filebase. All optional — a provider whose secrets are absent
+ * is simply skipped.
+ */
+const BACKUP_PROVIDER_ENV_NAMES = [
+  'PINATA_JWT',
+  'PINATA_GATEWAY',
+  'PINATA_GATEWAY_KEY',
+  'FILEBASE_ACCESS_TOKEN',
+  'FILEBASE_SECRET_KEY',
+  'FILEBASE_API_ENDPOINT',
+  'FILEBASE_BUCKET',
+];
+
 const trySecret = async (ctx: Context, key: string): Promise<string | undefined> => {
   try {
     return await ctx.secrets.get(key);
@@ -82,6 +97,12 @@ export const hydrateSecrets = async (ctx: Context): Promise<TenderlySecrets> => 
 
   // Notification channels — all optional. Missing = no notifications, no error.
   for (const name of NOTIFICATION_ENV_NAMES) {
+    const v = await trySecret(ctx, name);
+    if (v) process.env[name] = v;
+  }
+
+  // IPFS-backup provider secrets — all optional. Missing = that provider is skipped.
+  for (const name of BACKUP_PROVIDER_ENV_NAMES) {
     const v = await trySecret(ctx, name);
     if (v) process.env[name] = v;
   }

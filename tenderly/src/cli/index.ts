@@ -25,6 +25,10 @@ import {inspectProposal, type InspectorConfig} from '../orchestration/proposalIn
 import {formatInspectorReport} from './format';
 import {decodeProposal, formatDecodeResult} from './decode';
 import {fetchIpfsText, ipfsHashToCidV0, parseProposalMarkdown} from '../core/ipfs';
+import {createPinataClient, resolvePinataConfig} from '../core/pinata';
+import {createFilebaseClient, resolveFilebaseConfig} from '../core/filebase';
+import {makeFilebaseProvider, makePinataProvider, type BackupProvider} from '../core/providers';
+import {migrateToProvider, type MigrationReport} from '../core/ipfsMigration';
 import {notifyProposalEvent} from '../core/notifyEvent';
 import {LIFECYCLE_EVENTS, type LifecycleEventName} from '../core/lifecycle-events';
 import {getPublicClient} from '../core/clients';
@@ -205,8 +209,14 @@ program
       'run regardless of status (heartbeat-style).',
   )
   .option('--min-rounds <n>', 'warn when remaining rounds drops below this number', '10')
-  .option('--notify', 'post a Slack/Telegram alert if any chain is below threshold (silent on healthy)')
-  .option('--notify-full', 'post a full Slack/Telegram report on every run (includes healthy chains)')
+  .option(
+    '--notify',
+    'post a Slack/Telegram alert if any chain is below threshold (silent on healthy)',
+  )
+  .option(
+    '--notify-full',
+    'post a full Slack/Telegram report on every run (includes healthy chains)',
+  )
   .action(async (opts: {minRounds: string; notify?: boolean; notifyFull?: boolean}) => {
     const env = loadEnv();
     const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
@@ -264,11 +274,16 @@ program
       'fees + ready-to-broadcast calldata. Anyone can call redeemCancellationFee — only the ' +
       'destination is fixed by the contract.',
   )
-  .option('--author <addrOrEns>', 'author address or ENS name (default: aavelabs.eth)', 'aavelabs.eth')
+  .option(
+    '--author <addrOrEns>',
+    'author address or ENS name (default: aavelabs.eth)',
+    'aavelabs.eth',
+  )
   .option('--count <n>', 'how many recent proposals to scan (default: 50)', '50')
   .action(async (opts: {author: string; count: string}) => {
     const count = Math.max(1, Number.parseInt(opts.count, 10));
-    if (!Number.isFinite(count)) throw new Error(`--count must be a positive integer, got "${opts.count}"`);
+    if (!Number.isFinite(count))
+      throw new Error(`--count must be a positive integer, got "${opts.count}"`);
     const report = await findRedeemable({author: opts.author, count});
     process.stdout.write(formatRedeemableReport(report) + '\n');
   });
@@ -283,10 +298,13 @@ program
 program
   .command('notify-test')
   .description(
-    "Dry-render (or fire) a proposal lifecycle notification for local testing. Useful " +
+    'Dry-render (or fire) a proposal lifecycle notification for local testing. Useful ' +
       'before changing tenderly.yaml.',
   )
-  .requiredOption('--event <name>', `lifecycle event (one of: ${Object.keys(LIFECYCLE_EVENTS).join(', ')})`)
+  .requiredOption(
+    '--event <name>',
+    `lifecycle event (one of: ${Object.keys(LIFECYCLE_EVENTS).join(', ')})`,
+  )
   .requiredOption('--proposalId <id>', 'proposal id (decimal)')
   .option('--chain <name>', 'chain name where the event fired (default: ethereum)', 'ethereum')
   .option(
@@ -297,9 +315,9 @@ program
   .option('--dry-run', 'print rendered Slack/Telegram/plain bodies; do NOT post')
   .option(
     '--envelope-status <list>',
-    "Synthetic envelope statuses for ProposalExecuted/ProposalResultsSent: comma-separated " +
-      "list of ok|failed (one per envelope). Each status is assigned a synthetic destination " +
-      "chain (137=polygon, 42161=arbitrum, 5000=mantle, …). Default: a single ok envelope.",
+    'Synthetic envelope statuses for ProposalExecuted/ProposalResultsSent: comma-separated ' +
+      'list of ok|failed (one per envelope). Each status is assigned a synthetic destination ' +
+      'chain (137=polygon, 42161=arbitrum, 5000=mantle, …). Default: a single ok envelope.',
     '',
   )
   .action(
@@ -326,7 +344,9 @@ program
       // is ethereum since L1 events are most common.
       const resolveChainId = (name: string): number => {
         if (name === 'ethereum') return GOVERNANCE_CHAIN_ID;
-        const vmId = Object.keys(VOTING_CHAINS).map(Number).find((id) => VOTING_CHAINS[id as VotingChainId]?.name === name);
+        const vmId = Object.keys(VOTING_CHAINS)
+          .map(Number)
+          .find((id) => VOTING_CHAINS[id as VotingChainId]?.name === name);
         if (vmId) return vmId;
         throw new Error(`--chain "${name}" not in VOTING_CHAINS (or 'ethereum')`);
       };
@@ -362,7 +382,8 @@ program
         return items.map((status, i) => {
           const isOk = status === 'ok';
           // Deterministic envelopeId per slot so the rendered link reads sensibly in tests.
-          const envelopeId = (`0x${(i + 0x22).toString(16).padStart(2, '0').repeat(32)}`) as `0x${string}`;
+          const envelopeId =
+            `0x${(i + 0x22).toString(16).padStart(2, '0').repeat(32)}` as `0x${string}`;
           return {
             envelopeId,
             destinationChainId: SYNTH_DESTS[i % SYNTH_DESTS.length]!,
@@ -404,7 +425,12 @@ program
       '(0x-prefixed, as stored on-chain) or a CIDv0 string (Qm…).',
   )
   .option('--raw', 'print the original markdown including YAML frontmatter (default strips it)')
-  .option('--gateway <url>', 'override gateway (repeatable)', (val: string, prev: string[]) => [...prev, val], [] as string[])
+  .option(
+    '--gateway <url>',
+    'override gateway (repeatable)',
+    (val: string, prev: string[]) => [...prev, val],
+    [] as string[],
+  )
   .action(async (input: string, opts: {raw?: boolean; gateway: string[]}) => {
     const trimmed = input.trim();
     const isHexHash = /^0x?[0-9a-fA-F]{64}$/.test(trimmed);
@@ -416,6 +442,143 @@ program
     const body = opts.raw ? text : parseProposalMarkdown(text).body;
     process.stdout.write(body.endsWith('\n') ? body : body + '\n');
   });
+
+// -------- migrate-ipfs --------
+program
+  .command('migrate-ipfs')
+  .description(
+    'Back up every mainnet proposal IPFS document to one or more pinning providers so the ' +
+      'on-chain ipfsHash keeps resolving. Reads all historic proposals from the L1 governance ' +
+      'contract and, for each provider (Pinata, then Filebase), backs up each CID preserving ' +
+      'it, then verifies. Pinata needs PINATA_JWT (+ optional PINATA_GATEWAY); Filebase needs ' +
+      'FILEBASE_ACCESS_TOKEN + FILEBASE_SECRET_KEY (+ optional FILEBASE_API_ENDPOINT/BUCKET).',
+  )
+  .option(
+    '--provider <names>',
+    'comma-separated providers to run in order (default: pinata,filebase — whichever are configured)',
+  )
+  .option('--from <n>', 'first proposal id to scan (default: 0)')
+  .option('--to <n>', 'last proposal id to scan (default: latest)')
+  .option('--concurrency <n>', 'parallel backups (default: 5)', '5')
+  .option('--pin-timeout <ms>', '[pinata] wait per CID for pin-by-cid (default: 120000)', '120000')
+  .option('--poll-interval <ms>', '[pinata] delay between pin-status polls (default: 3000)', '3000')
+  .option(
+    '--gateway <url>',
+    'override source gateway for the content fetch (repeatable)',
+    (val: string, prev: string[]) => [...prev, val],
+    [] as string[],
+  )
+  .option('--dry-run', 'enumerate + fetch + verify content, but do NOT back up anything')
+  .option(
+    '--skip-gateway-verify',
+    '[pinata] verify via your account file list instead of re-fetching through the gateway',
+  )
+  .option(
+    '--allow-reupload',
+    '[pinata] re-upload bytes on terminal pin failure (only works with a legacy-capable key)',
+  )
+  .option('--json', 'print the full per-proposal report as JSON')
+  .option('--strict', 'exit non-zero if any proposal could not be backed on any provider')
+  .action(
+    async (opts: {
+      provider?: string;
+      from?: string;
+      to?: string;
+      concurrency: string;
+      pinTimeout: string;
+      pollInterval: string;
+      gateway: string[];
+      dryRun?: boolean;
+      skipGatewayVerify?: boolean;
+      allowReupload?: boolean;
+      json?: boolean;
+      strict?: boolean;
+    }) => {
+      const env = loadEnv();
+      const logger = createLogger(resolveLogLevel(env), undefined, colorFormatter);
+
+      const selected = opts.provider
+        ? opts.provider
+            .split(',')
+            .map((s) => s.trim().toLowerCase())
+            .filter(Boolean)
+        : ['pinata', 'filebase'];
+      const explicit = opts.provider !== undefined;
+
+      // Build the requested providers. When a provider isn't explicitly selected, missing creds
+      // are a skip (with a warning); when explicitly selected, they're a hard error.
+      const buildProvider = (name: string): BackupProvider | null => {
+        if (name === 'pinata') {
+          const verifyViaGateway = !opts.skipGatewayVerify;
+          const pinataOpts = {
+            verifyViaGateway,
+            allowReupload: !!opts.allowReupload,
+            pinTimeoutMs: Number(opts.pinTimeout),
+            pollIntervalMs: Number(opts.pollInterval),
+            logger,
+          };
+          try {
+            const client = createPinataClient(resolvePinataConfig());
+            if (verifyViaGateway && !client.config.gateway) {
+              logger.warn('migrate-ipfs: PINATA_GATEWAY not set — verifying via account file list');
+            }
+            return makePinataProvider(client, pinataOpts);
+          } catch (e) {
+            if (opts.dryRun) {
+              logger.warn('migrate-ipfs: no Pinata creds — dry-run continues without them');
+              return makePinataProvider(createPinataClient({jwt: ''}), pinataOpts);
+            }
+            if (explicit) throw e;
+            logger.warn('migrate-ipfs: Pinata not configured — skipping', {
+              error: e instanceof Error ? e.message : String(e),
+            });
+            return null;
+          }
+        }
+        if (name === 'filebase') {
+          try {
+            return makeFilebaseProvider(createFilebaseClient(resolveFilebaseConfig()), {logger});
+          } catch (e) {
+            if (explicit) throw e;
+            logger.warn('migrate-ipfs: Filebase not configured — skipping', {
+              error: e instanceof Error ? e.message : String(e),
+            });
+            return null;
+          }
+        }
+        throw new Error(`unknown provider: ${name} (known: pinata, filebase)`);
+      };
+
+      const providers = selected.map(buildProvider).filter((p): p is BackupProvider => p !== null);
+      if (providers.length === 0) throw new Error('migrate-ipfs: no providers configured to run');
+
+      const client = getPublicClient(GOVERNANCE_CHAIN_ID);
+      const migrateOpts = {
+        from: opts.from !== undefined ? Number(opts.from) : undefined,
+        to: opts.to !== undefined ? Number(opts.to) : undefined,
+        concurrency: Number(opts.concurrency),
+        sourceGateways: opts.gateway.length > 0 ? opts.gateway : undefined,
+        dryRun: opts.dryRun,
+      };
+
+      // Run each provider as a full sweep, in order (Pinata first, then Filebase).
+      let totalFailed = 0;
+      const reports: MigrationReport[] = [];
+      for (const provider of providers) {
+        logger.info(`migrate-ipfs: === provider ${provider.name} ===`);
+        const report = await migrateToProvider(client, provider, logger, migrateOpts);
+        reports.push(report);
+        totalFailed += report.counts.failed;
+        if (!opts.json) process.stdout.write(formatMigrationReport(report) + '\n');
+      }
+
+      if (opts.json) process.stdout.write(JSON.stringify(reports, replacer, 2) + '\n');
+
+      if (opts.strict && totalFailed > 0) {
+        throw new Error(`${totalFailed} proposal CID(s) could not be backed`);
+      }
+    },
+  );
 
 // -------- per-action commands --------
 program
@@ -721,6 +884,54 @@ program
 
 const replacer = (_: string, v: unknown) => (typeof v === 'bigint' ? v.toString() : v);
 
+/** Human-readable summary of a provider backup run. Failures are listed explicitly. */
+function formatMigrationReport(r: MigrationReport): string {
+  const lines: string[] = [];
+  lines.push(`IPFS → ${r.provider} backup`);
+  lines.push(
+    `  proposals: ${r.totalProposals} (scanned #${r.scannedFrom}..#${r.scannedTo}), ` +
+      `unique CIDs: ${r.uniqueCids}, no-ipfs: ${r.counts.noIpfs}`,
+  );
+  lines.push(
+    `  pinned: ${r.counts.pinned} (re-upload: ${r.counts.reUploaded})  ` +
+      `already-pinned: ${r.counts.alreadyPinned}  ` +
+      `verified: ${r.counts.verified}  ` +
+      `pending: ${r.counts.pending}  ` +
+      `dry-run: ${r.counts.dryRun}  failed: ${r.counts.failed}`,
+  );
+
+  const pending = r.items.filter((i) => i.status === 'pending');
+  if (pending.length > 0) {
+    lines.push('');
+    lines.push(`  PENDING (${pending.length}) — pin-by-CID queued server-side; re-run to confirm:`);
+    for (const i of pending) {
+      lines.push(`    #${i.proposalIds.map(String).join(',')}  ${i.cid}  (${i.reason ?? ''})`);
+    }
+  }
+
+  const failed = r.items.filter((i) => i.status === 'failed');
+  if (failed.length > 0) {
+    lines.push('');
+    lines.push(`  FAILED (${failed.length}):`);
+    for (const i of failed) {
+      lines.push(
+        `    #${i.proposalIds.map(String).join(',')}  ${i.cid}  — ${i.reason ?? 'unknown'}`,
+      );
+    }
+  }
+
+  // Surface pins that succeeded but couldn't be independently verified.
+  const unverified = r.items.filter((i) => i.pinned && !i.verified && i.status !== 'dry-run');
+  if (unverified.length > 0) {
+    lines.push('');
+    lines.push(`  pinned but NOT verified (${unverified.length}):`);
+    for (const i of unverified) {
+      lines.push(`    #${i.proposalIds.map(String).join(',')}  ${i.cid}`);
+    }
+  }
+  return lines.join('\n');
+}
+
 /**
  * Top-level CLI error handler. Posts to Slack/Telegram (best-effort, won't itself throw)
  * before exiting non-zero, so unattended cron jobs and manual runs both wake an operator
@@ -728,7 +939,11 @@ const replacer = (_: string, v: unknown) => (typeof v === 'bigint' ? v.toString(
  */
 const cliCommand = (() => {
   // Best-effort sniff of which command was being run (process.argv[2..]) for the alert source.
-  const args = process.argv.slice(2).filter((a) => !a.startsWith('-')).join(' ') || 'cli';
+  const args =
+    process.argv
+      .slice(2)
+      .filter((a) => !a.startsWith('-'))
+      .join(' ') || 'cli';
   return args.length > 80 ? args.slice(0, 77) + '…' : args;
 })();
 

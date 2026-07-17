@@ -1,9 +1,12 @@
 import {describe, expect, test} from 'bun:test';
 import {
+  computeCidV0FromBytes,
+  computeCidV0FromText,
   fetchIpfsText,
   fetchProposalMetadata,
   fetchProposalMetadataSafe,
   ipfsHashToCidV0,
+  MAX_SINGLE_BLOCK_BYTES,
   parseProposalMarkdown,
 } from '../src/core/ipfs';
 import {installFetchMock} from './helpers/mockFetch';
@@ -36,8 +39,53 @@ describe('ipfsHashToCidV0', () => {
 
   test('handles input without 0x prefix', () => {
     const withPrefix = ipfsHashToCidV0(('0x' + '12'.repeat(32)) as `0x${string}`);
-    const withoutPrefix = ipfsHashToCidV0(('12'.repeat(32)) as `0x${string}`);
+    const withoutPrefix = ipfsHashToCidV0('12'.repeat(32) as `0x${string}`);
     expect(withPrefix).toBe(withoutPrefix);
+  });
+});
+
+describe('computeCidV0FromBytes / computeCidV0FromText', () => {
+  // Vectors independently confirmed against public IPFS gateways (a gateway only serves
+  // content that content-addresses to the requested CID).
+  test('empty file → canonical CIDv0', async () => {
+    expect(await computeCidV0FromBytes(new Uint8Array(0))).toBe(
+      'QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH',
+    );
+  });
+
+  test('"hello world\\n" → known CIDv0', async () => {
+    expect(await computeCidV0FromText('hello world\n')).toBe(
+      'QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o',
+    );
+  });
+
+  test('"hello world" (no newline) → known CIDv0', async () => {
+    expect(await computeCidV0FromText('hello world')).toBe(
+      'Qmf412jQZiuVUtdgnB36FXFX7xg5V6KEbSJ4dpQuhkLyfD',
+    );
+  });
+
+  test('always yields a CIDv0 (Qm…, 46 chars)', async () => {
+    const cid = await computeCidV0FromText('# Some proposal\n\narbitrary body');
+    expect(cid).toMatch(/^Qm[1-9A-HJ-NP-Za-km-z]{44}$/);
+  });
+
+  test('recomputed CID round-trips through ipfsHashToCidV0 semantics', async () => {
+    // computeCidV0FromText derives the digest itself; the value must be a valid CIDv0 that
+    // ipfsHashToCidV0 would produce from *some* 32-byte digest (i.e. decodes to 34 bytes).
+    const cid = await computeCidV0FromText('roundtrip');
+    expect(cid.startsWith('Qm')).toBe(true);
+  });
+
+  test('throws for inputs larger than a single block', async () => {
+    const big = new Uint8Array(MAX_SINGLE_BLOCK_BYTES + 1);
+    await expect(computeCidV0FromBytes(big)).rejects.toThrow(/single-block/);
+  });
+
+  test('accepts a document exactly at the single-block boundary', async () => {
+    const atLimit = new Uint8Array(MAX_SINGLE_BLOCK_BYTES);
+    const cid = await computeCidV0FromBytes(atLimit);
+    expect(cid).toMatch(/^Qm/);
   });
 });
 

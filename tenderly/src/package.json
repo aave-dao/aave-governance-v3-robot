@@ -10,6 +10,7 @@
     "@aave-dao/aave-address-book": "^4.55.2",
     "@aave-dao/toolbox": "^0.5.1",
     "@tenderly/actions": "^0.2.0",
+    "aws4fetch": "^1.0.20",
     "viem": "^2.21.0",
     "zod": "^3.23.8"
   },

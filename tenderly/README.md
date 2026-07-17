@@ -76,7 +76,24 @@ bun run robot health --notify
 
 # post a full Slack/Telegram report on every run (heartbeat-style; never silent)
 bun run robot health --notify-full
+
+# one-off: back up every historic mainnet proposal's IPFS doc to one or more pinning
+# providers (Pinata, then Filebase) so the on-chain ipfsHash keeps resolving after the
+# current host unpins them. Each provider preserves the EXACT on-chain CIDv0. Configure
+# Pinata (PINATA_JWT [+ PINATA_GATEWAY]) and/or Filebase (FILEBASE_ACCESS_TOKEN +
+# FILEBASE_SECRET_KEY) in .env; only the configured ones run.
+bun run robot migrate-ipfs --dry-run          # enumerate + fetch + verify content, back up nothing
+bun run robot migrate-ipfs                     # back up to every configured provider, in order
+bun run robot migrate-ipfs --provider filebase # only one provider
+bun run robot migrate-ipfs --skip-gateway-verify # [pinata] verify via account file list, not gateway
+bun run robot migrate-ipfs --from 400 --to 505 # limit to a proposal-id range
+bun run robot migrate-ipfs --strict --json     # exit non-zero on any failure; dump full report
 ```
+
+The migration is **provider-modular** (`src/core/providers.ts`): a `BackupProvider` exposes
+`isBacked` / `backup` / `verify`, and the engine (`src/core/ipfsMigration.ts`) runs one sweep
+per provider. Pinata uses pin-by-CID (async; re-run to confirm `pending` ones); Filebase uses
+an S3 PUT that reproduces the same CIDv0. Add a new backend by implementing the interface.
 
 `inspect` output (ANSI-colored in a terminal, plain when piped or `NO_COLOR=1`):
 
@@ -175,6 +192,25 @@ What gets posted:
   balance, gas price, and rounds remaining. Run on demand from the CLI with
   `bun run robot health --notify` (silent if all chains are OK), or as the
   `health-notify` Tenderly action below.
+- **IPFS backup on `ProposalCreated`**: when a new proposal appears, the L1 lifecycle
+  listener also backs its IPFS doc up to every configured provider (Pinata, Filebase),
+  preserving the exact on-chain CIDv0, and posts a one-line summary —
+  `📦 IPFS backup · proposal #487 — pinned on Filebase, already on Pinata` — with each
+  provider name linking to its gateway. Fully best-effort: any failure is logged and
+  swallowed, never affecting the listener. Needs the backup secrets below; if none are set
+  it's a no-op. (Backfill the full history any time with `bun run robot migrate-ipfs`.)
+
+Backup provider secrets (all optional — a provider with no secrets is skipped):
+
+```bash
+# Pinata (V3 JWT) + optional dedicated gateway used for the summary link
+PINATA_JWT=eyJ...
+PINATA_GATEWAY=your-gw.mypinata.cloud
+# Filebase (S3 keys); the summary links to the public https://ipfs.filebase.io gateway
+FILEBASE_ACCESS_TOKEN=...
+FILEBASE_SECRET_KEY=...
+FILEBASE_API_ENDPOINT=https://s3.filebase.io
+```
 
 Channel POSTs use a 5s timeout via `AbortSignal.timeout`. Slack and Telegram are POSTed
 in parallel via `Promise.allSettled` — neither blocks the other.

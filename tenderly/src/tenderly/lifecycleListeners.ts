@@ -28,6 +28,7 @@ import {
 import type {Logger} from '../core/logger';
 import {notifyError} from '../core/notify';
 import {notifyProposalEvent} from '../core/notifyEvent';
+import {backupProposalOnCreated} from '../core/proposalBackup';
 import {setupChain} from './runtime';
 
 type ContractAddressGetter = () => Address;
@@ -96,6 +97,7 @@ const makeContractEventListener = (spec: ListenerSpec): ActionFn => {
 
         let proposalId: bigint;
         let extraFields: Record<string, string> | undefined;
+        let ipfsHash: Hex | undefined;
         try {
           const decoded = decodeEventLog({
             abi: [eventInfo.abi],
@@ -105,6 +107,9 @@ const makeContractEventListener = (spec: ListenerSpec): ActionFn => {
           // All lifecycle events we listen to expose `proposalId` as the first indexed arg.
           proposalId = (decoded.args as {proposalId: bigint}).proposalId;
           extraFields = buildExtraFields(eventInfo.name, decoded.args);
+          if (eventInfo.name === 'ProposalCreated') {
+            ipfsHash = (decoded.args as {ipfsHash?: Hex}).ipfsHash;
+          }
         } catch (err) {
           logger?.warn('lifecycle-listener: decode failed', {
             event: eventInfo.name,
@@ -126,6 +131,20 @@ const makeContractEventListener = (spec: ListenerSpec): ActionFn => {
           extraFields,
           logger,
         });
+
+        // On a brand-new proposal, back its IPFS doc up to every configured provider
+        // (Pinata, Filebase) and post a summary. Fully best-effort — never affects the tx
+        // handling (backupProposalOnCreated has its own backstop, but guard here too).
+        if (eventInfo.name === 'ProposalCreated' && ipfsHash) {
+          try {
+            await backupProposalOnCreated({proposalId, ipfsHash, logger});
+          } catch (err) {
+            logger.warn('lifecycle-listener: proposal backup failed (ignored)', {
+              proposalId: proposalId.toString(),
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
         matched += 1;
       }
       logger.info('lifecycle-listener: tx processed', {tx: tx.hash, matched});

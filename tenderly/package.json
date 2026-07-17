@@ -12,6 +12,7 @@
   "dependencies": {
     "@aave-dao/aave-address-book": "^4.55.2",
     "@aave-dao/toolbox": "^0.5.1",
+    "aws4fetch": "^1.0.20",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "prettier": "^3.8.3",
