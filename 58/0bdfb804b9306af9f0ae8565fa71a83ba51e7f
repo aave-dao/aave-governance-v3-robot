@@ -1,0 +1,106 @@
+tenderly/src/core/notify.ts
+  s_ade8d5c2aebb4d::t_e6da4986b0c639 4
+  s_ade8d5c2aebb4d::t_2a5c211b5181be 382-383,451-460,468-469,480-481,489-490
+tenderly/src/core/actions/cancelProposal.ts
+  s_ade8d5c2aebb4d::t_c0223d48afb625 6,116-124,129
+interface/lib/robot/orchestration/executionScan.ts
+  s_ade8d5c2aebb4d::t_c2878b54b3a50a 116
+  s_ade8d5c2aebb4d::t_5ca99370efd805 5,105-107,109-114,127-137
+tenderly/tests/helpers/mockClient.ts
+  s_ade8d5c2aebb4d::t_95c25eee79dc3f 129-134
+tenderly/src/core/abis/governance.ts
+  s_ade8d5c2aebb4d::t_a6235fa1164dc4 141-152
+tenderly/src/core/actions/createVote.ts
+  s_ade8d5c2aebb4d::t_c0223d48afb625 4,112-120,125
+tenderly/src/core/explorers.ts
+  s_ade8d5c2aebb4d::t_2a5c211b5181be 42-46
+  s_ade8d5c2aebb4d::t_dcdfbabeac1f57 41
+tenderly/src/core/actions/executePayload.ts
+  s_ade8d5c2aebb4d::t_c0223d48afb625 5,91-99,104
+tenderly/tests/frontrun.test.ts
+  s_ade8d5c2aebb4d::t_6a32305869d3c4 1-76
+tenderly/src/core/context.ts
+  s_ade8d5c2aebb4d::t_a874b7f7190ea5 29-30
+  s_ade8d5c2aebb4d::t_378383223ca27e 2
+tenderly/src/core/frontrun.ts
+  s_ade8d5c2aebb4d::t_ff3867d68f771e 1-15,17-90
+  s_ade8d5c2aebb4d::t_c2878b54b3a50a 16
+interface/lib/robot/orchestration/votingScan.ts
+  s_ade8d5c2aebb4d::t_c2878b54b3a50a 194
+  s_ade8d5c2aebb4d::t_b59296e4d59301 10,176-182,189,229-245
+tenderly/src/core/actions/executeProposal.ts
+  s_ade8d5c2aebb4d::t_c0223d48afb625 5,93-101,106
+tenderly/src/orchestration/executionScan.ts
+  s_ade8d5c2aebb4d::t_ad2f4e1d6001ed 5,105-107,109-114,127-137
+  s_ade8d5c2aebb4d::t_c2878b54b3a50a 116
+interface/lib/robot/core/frontrun.ts
+  s_ade8d5c2aebb4d::t_c2878b54b3a50a 16
+  s_ade8d5c2aebb4d::t_ca61e7b88b32ac 1-15,17-90
+tenderly/src/core/abis/votingMachine.ts
+  s_ade8d5c2aebb4d::t_a6235fa1164dc4 86-106
+tenderly/src/core/actions/activateVoting.ts
+  s_ade8d5c2aebb4d::t_c0223d48afb625 5,86-94,99
+interface/lib/robot/orchestration/governanceScan.ts
+  s_ade8d5c2aebb4d::t_c2878b54b3a50a 152
+  s_ade8d5c2aebb4d::t_65dba9a4a270bc 6,134-142,144-150,172-182
+tenderly/src/orchestration/votingScan.ts
+  s_ade8d5c2aebb4d::t_c2878b54b3a50a 194
+  s_ade8d5c2aebb4d::t_8b881671c92fb5 10,176-182,189,229-245
+tenderly/tests/orchestration.execution.test.ts
+  s_ade8d5c2aebb4d::t_95c25eee79dc3f 18-19,181-279
+  s_ade8d5c2aebb4d::t_4254d9dd0f3e0c 280
+tenderly/src/core/abis/payloadsController.ts
+  s_ade8d5c2aebb4d::t_a6235fa1164dc4 52-57
+tenderly/src/core/actions/closeAndSendVote.ts
+  s_ade8d5c2aebb4d::t_c0223d48afb625 4,72-80,85
+tenderly/src/orchestration/governanceScan.ts
+  s_ade8d5c2aebb4d::t_a0d6783165878f 6,134-142,144-150
+  s_ade8d5c2aebb4d::t_c2878b54b3a50a 152
+  s_ade8d5c2aebb4d::t_ad2f4e1d6001ed 172-182
+interface/lib/robot/core/abis/governance.ts
+  s_ade8d5c2aebb4d::t_1f20bc1bb6e49b 118-129
+interface/lib/robot/core/abis/payloadsController.ts
+  s_ade8d5c2aebb4d::t_8a10c0ae90f470 52-57
+interface/lib/robot/core/abis/votingMachine.ts
+  s_ade8d5c2aebb4d::t_869e15b3a3cf7c 86-106
+interface/lib/robot/core/actions/activateVoting.ts
+  s_ade8d5c2aebb4d::t_57e9c3ad4c820d 5,86-94,99
+interface/lib/robot/core/actions/cancelProposal.ts
+  s_ade8d5c2aebb4d::t_00452e1314cb2a 6,116-124,129
+interface/lib/robot/core/actions/closeAndSendVote.ts
+  s_ade8d5c2aebb4d::t_37212328492f1e 4,72-80,85
+interface/lib/robot/core/actions/createVote.ts
+  s_ade8d5c2aebb4d::t_70ccab48cabf2b 4,112-120,125
+interface/lib/robot/core/actions/executePayload.ts
+  s_ade8d5c2aebb4d::t_d7dddb1db5ad75 5,91-99,104
+interface/lib/robot/core/actions/executeProposal.ts
+  s_ade8d5c2aebb4d::t_f92fc7af045d6b 5,93-101,106
+interface/lib/robot/core/context.ts
+  s_ade8d5c2aebb4d::t_8fc89d63395a73 2,29-30
+interface/lib/robot/core/notify.ts
+  s_ade8d5c2aebb4d::t_0a9c11d5abe1c1 4,379-380,448-457,465-466,477-478,486-487
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "580bdfb804b9306af9f0ae8565fa71a83ba51e7f",
+  "prompts": {},
+  "humans": {
+    "h_739c25e72c37fb": {
+      "author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    },
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_ade8d5c2aebb4d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4d25ec51-e6fb-42c9-b82d-5370c3f77951",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
