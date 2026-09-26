@@ -14,8 +14,10 @@ import type { AssetEntry, ChainFeedGraph, Feed, FeedNode, MarketInfo } from './t
 const lc = (a: string) => a.toLowerCase() as Address;
 
 // A Chainlink feed is flagged "due" once it's overdue past its heartbeat. The 10% grace
-// avoids flapping for feeds sitting momentarily at the heartbeat boundary between updates.
+// covers long heartbeats; the fixed floor covers short ones (e.g. Polygon's 27s feeds), where
+// block time and round latency alone exceed 10%.
 const DUE_GRACE = 1.1;
+const DUE_FLOOR_SEC = 60;
 
 /** Multicall every probe fn against every address; return raw results keyed by address. */
 async function probe(client: PublicClient, addresses: Address[]): Promise<Map<Address, Raw>> {
@@ -186,7 +188,8 @@ export async function buildChainGraph(chainId: number): Promise<ChainFeedGraph> 
   // Chainlink RDD config (deviation/heartbeat) for this chain, used to annotate leaves and
   // derive "due for update" from the on-chain latestTimestamp. Best-effort: empty on failure.
   const clIndex = await getChainlinkIndex(chainId);
-  const nowSec = Math.floor(Date.now() / 1000);
+  // Chain time, not wall clock: RPC lag or server clock drift must not read as staleness.
+  const nowSec = Number((await client.getBlock({ blockTag: 'latest' })).timestamp);
   // Realized deviation (latest vs previous round) for every Chainlink leaf on this chain.
   const moveByAddr = await computeLastMove(
     client,
@@ -213,7 +216,7 @@ export async function buildChainGraph(chainId: number): Promise<ChainFeedGraph> 
 
     const ageSec = n.updatedAt !== undefined ? nowSec - n.updatedAt : undefined;
     const hb = meta.heartbeatSec;
-    const due = hb !== undefined && hb > 0 && ageSec !== undefined && ageSec > hb * DUE_GRACE;
+    const due = hb !== undefined && hb > 0 && ageSec !== undefined && ageSec > hb * DUE_GRACE + DUE_FLOOR_SEC;
     node.chainlink = {
       name: meta.name,
       heartbeatSec: hb,
