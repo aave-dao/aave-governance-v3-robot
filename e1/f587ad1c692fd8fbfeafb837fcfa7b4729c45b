@@ -1,0 +1,27 @@
+interface/lib/feeds/graph.ts
+  s_ade8d5c2aebb4d::t_0d3477c4704ede 17-18,20,191-192,219
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e1f587ad1c692fd8fbfeafb837fcfa7b4729c45b",
+  "prompts": {},
+  "humans": {
+    "h_739c25e72c37fb": {
+      "author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    },
+    "h_c84ca9b512ee6d": {
+      "author": "DhairyaSethi"
+    }
+  },
+  "sessions": {
+    "s_ade8d5c2aebb4d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4d25ec51-e6fb-42c9-b82d-5370c3f77951",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "DhairyaSethi <55102840+DhairyaSethi@users.noreply.github.com>"
+    }
+  }
+}
