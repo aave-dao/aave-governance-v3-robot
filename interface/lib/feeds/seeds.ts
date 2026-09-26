@@ -2,7 +2,7 @@
 //
 //   - v3       : read Pool.getReservesCount()/getReserveAddressById() + Oracle.getSourceOfAsset()
 //                + ERC20.symbol(), all on chain.
-//   - v4-spoke / explicit : the asset→feed map is already known (address book / curated).
+//   - v4-spoke : the asset→feed map is already published in the address book.
 //
 // `leaf` is the address Aave actually consumes for the asset — the root of the adapter path.
 
@@ -80,7 +80,7 @@ async function resolveV3Market(
 }
 
 function resolveMappedMarket(
-  market: Extract<Market, { type: 'v4-spoke' | 'explicit' }>,
+  market: Extract<Market, { type: 'v4-spoke' }>,
 ): Listing[] {
   const listings: Listing[] = [];
   for (const [symbol, addr] of Object.entries(market.seeds)) {

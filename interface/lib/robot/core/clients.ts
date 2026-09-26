@@ -77,6 +77,11 @@ const tenderlyGatewayUrl = (chainId: number): string | undefined => {
   if (!key) return undefined;
   return `https://${slug}.gateway.tenderly.co/${key}`;
 };
+// Chains neither toolbox nor viem know, so no `RPC_<NETWORK>` name can be derived for them.
+const ENV_NAME_BY_CHAIN_ID: Record<number, string> = {
+  5042: 'RPC_ARC',
+};
+
 const publicCache = new Map<number, PublicClient>();
 const walletCache = new Map<string, WalletClient>(); // key = `${chainId}:${signerAddress}`
 
@@ -173,6 +178,7 @@ const candidateUrls = (chainId: number): string[] => {
   } catch {
     /* chain not in toolbox list */
   }
+  if (ENV_NAME_BY_CHAIN_ID[chainId]) envNames.add(ENV_NAME_BY_CHAIN_ID[chainId]);
   if (chain) {
     envNames.add(`RPC_${chain.name.replace(/[^A-Za-z0-9]/g, '').toUpperCase()}`);
   }
@@ -233,7 +239,7 @@ const synthChain = (chainId: number, primaryUrl: string): Chain =>
 export const getPublicClient = (chainId: number): PublicClient => {
   const hit = publicCache.get(chainId);
   if (hit) return hit;
-  const chain = viemChainByChainId(chainId) ?? synthChain(chainId, getRpcUrl(chainId));
+  const chain = viemChainByChainId(chainId) ?? synthChain(chainId, candidateUrls(chainId)[0] ?? '');
   const transport = buildTransport(chainId);
   const client = createPublicClient({chain, transport}) as unknown as PublicClient;
   publicCache.set(chainId, client);
@@ -246,7 +252,7 @@ export const getWalletClient = (chainId: number, privateKey: Hex): WalletClient 
   const hit = walletCache.get(key);
   if (hit) return hit;
 
-  const chain = viemChainByChainId(chainId) ?? synthChain(chainId, getRpcUrl(chainId));
+  const chain = viemChainByChainId(chainId) ?? synthChain(chainId, candidateUrls(chainId)[0] ?? '');
   const transport = buildTransport(chainId);
   const client = createWalletClient({
     account,

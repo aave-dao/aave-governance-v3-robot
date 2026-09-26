@@ -1,17 +1,16 @@
 // Chain → markets registry, derived at module load from @aave-dao/aave-address-book.
 //
-// Three kinds of market feed the seed resolver (lib/feeds/seeds.ts):
+// Two kinds of market feed the seed resolver (lib/feeds/seeds.ts):
 //   - 'v3'        : an Aave V3 Pool + AaveOracle — assets & their sources are read on chain.
 //   - 'v4-spoke'  : an Aave V4 spoke — its asset→feed map is published in the address book
 //                   (SPOKE_PRICE_FEEDS); the feed *paths* are still probed on chain.
-//   - 'explicit'  : a hand-curated asset→feed map (Monad, whose adapters are deployed but
-//                   not all wired into an oracle yet — mirrors the reference tool).
 
 import type { Address } from 'viem';
 import {
   AaveV3Ethereum,
   AaveV3EthereumLido,
   AaveV3EthereumEtherFi,
+  AaveV3EthereumHorizon,
   AaveV3Polygon,
   AaveV3Avalanche,
   AaveV3Arbitrum,
@@ -26,7 +25,15 @@ import {
   AaveV3Mantle,
   AaveV3Plasma,
   AaveV3Celo,
+  AaveV3Soneium,
+  AaveV3InkWhitelabel,
+  AaveV3MegaEth,
+  AaveV3XLayer,
+  AaveV3Monad,
   AaveV4Ethereum,
+  AaveV4Avalanche,
+  AaveV4Base,
+  AaveV4Arc,
 } from '@aave-dao/aave-address-book';
 
 export type Market =
@@ -37,8 +44,7 @@ export type Market =
       name: string;
       oracle?: Address;
       seeds: Record<string, Address>;
-    }
-  | { type: 'explicit'; chainId: number; name: string; seeds: Record<string, Address> };
+    };
 
 type V3Mod = { CHAIN_ID: number; POOL: string; ORACLE: string };
 
@@ -47,6 +53,7 @@ const V3_DEFS: Array<{ name: string; mod: V3Mod }> = [
   { name: 'V3 Core', mod: AaveV3Ethereum },
   { name: 'V3 Lido', mod: AaveV3EthereumLido },
   { name: 'V3 EtherFi', mod: AaveV3EthereumEtherFi },
+  { name: 'V3 Horizon', mod: AaveV3EthereumHorizon },
   { name: 'V3', mod: AaveV3Polygon },
   { name: 'V3', mod: AaveV3Avalanche },
   { name: 'V3', mod: AaveV3Arbitrum },
@@ -61,6 +68,11 @@ const V3_DEFS: Array<{ name: string; mod: V3Mod }> = [
   { name: 'V3', mod: AaveV3Mantle },
   { name: 'V3', mod: AaveV3Plasma },
   { name: 'V3', mod: AaveV3Celo },
+  { name: 'V3', mod: AaveV3Soneium },
+  { name: 'V3', mod: AaveV3InkWhitelabel },
+  { name: 'V3', mod: AaveV3MegaEth },
+  { name: 'V3', mod: AaveV3XLayer },
+  { name: 'V3', mod: AaveV3Monad },
 ];
 
 const V3_MARKETS: Market[] = V3_DEFS.map(({ name, mod }) => ({
@@ -71,13 +83,17 @@ const V3_MARKETS: Market[] = V3_DEFS.map(({ name, mod }) => ({
   oracle: mod.ORACLE as Address,
 }));
 
-// ---- V4 Ethereum spokes ----
+// ---- V4 spokes ----
+type V4Mod = { CHAIN_ID: number; SPOKES: object; SPOKE_PRICE_FEEDS: object };
+
+const V4_DEFS: V4Mod[] = [AaveV4Ethereum, AaveV4Avalanche, AaveV4Base, AaveV4Arc];
+
 // SPOKES holds `<SPOKE>` + `<SPOKE>_ORACLE`; SPOKE_PRICE_FEEDS holds
 // `<SPOKE>_<ASSET>_PRICE_FEED → feed`. Group the feed map back under each spoke.
-function buildV4Markets(): Market[] {
-  const spokes = AaveV4Ethereum.SPOKES as Record<string, string>;
-  const feeds = AaveV4Ethereum.SPOKE_PRICE_FEEDS as Record<string, string>;
-  const chainId = AaveV4Ethereum.CHAIN_ID;
+function buildV4Markets(mod: V4Mod): Market[] {
+  const spokes = mod.SPOKES as Record<string, string>;
+  const feeds = mod.SPOKE_PRICE_FEEDS as Record<string, string>;
+  const chainId = mod.CHAIN_ID;
 
   const spokeNames: string[] = [];
   const oracleBySpoke: Record<string, string> = {};
@@ -112,32 +128,9 @@ function buildV4Markets(): Market[] {
   }
   return out;
 }
-const V4_MARKETS = buildV4Markets();
+const V4_MARKETS = V4_DEFS.flatMap(buildV4Markets);
 
-// ---- Monad (explicit): deployed leaf adapters consumed by Aave per asset ----
-const MONAD_ASSETS: Record<string, Address> = {
-  WETH: '0x47F1D18329Ae59341617B7a5BE59605B63f0e373',
-  cbBTC: '0x48692d15DA2636E1b0335344104Ce9d92f231DdA',
-  MON: '0x11fEb287b8dd9A184F47c890B11B8385AD191670',
-  USDT: '0x3c187a25f0f05E009DA794069682653e40062730',
-  USDC: '0x787962943811D279d01eC973Bd3A15f1b3e1F0D9',
-  AUSD: '0x6b7c151653c35845a5826b15435fc055A9Db1D0C',
-  USDe: '0x3abA25B23378A84FD7638E20F9Af86A66000f090',
-  GHO: '0x26cBccD96502D2EfDb612737bD6aECe19f65109c',
-  mUSD: '0xbbb58AA3a251c9f19653771c44481c39500b71A3',
-  wstETH: '0x7c1DbD7879C421ebd1A2dE397Ea6Bedb5D3795A5',
-  weETH: '0x53E2d62Cd8c36104DEC69bA0CB3Bb599d6D42FE1',
-  sUSDe: '0x99946fe1a49d8650a31efe0fcfee0508892742f0',
-  syrupUSDC: '0xB1f36c815761a3F77CE26c013F646cdCdCd06384',
-};
-const MONAD_MARKET: Market = {
-  type: 'explicit',
-  chainId: 143,
-  name: 'Monad adapters',
-  seeds: MONAD_ASSETS,
-};
-
-const ALL_MARKETS: Market[] = [...V3_MARKETS, ...V4_MARKETS, MONAD_MARKET];
+const ALL_MARKETS: Market[] = [...V3_MARKETS, ...V4_MARKETS];
 
 const CHAIN_NAMES: Record<number, string> = {
   1: 'Ethereum',
@@ -147,13 +140,18 @@ const CHAIN_NAMES: Record<number, string> = {
   137: 'Polygon',
   143: 'Monad',
   146: 'Sonic',
+  196: 'X Layer',
   1088: 'Metis',
+  1868: 'Soneium',
+  4326: 'MegaETH',
   5000: 'Mantle',
+  5042: 'Arc',
   8453: 'Base',
   9745: 'Plasma',
   42161: 'Arbitrum',
   42220: 'Celo',
   43114: 'Avalanche',
+  57073: 'Ink',
   59144: 'Linea',
   534352: 'Scroll',
 };

@@ -61,7 +61,7 @@ export type FeedNode = {
   chainlink?: ChainlinkMeta;
 };
 
-export type MarketType = 'v3' | 'v4-spoke' | 'explicit';
+export type MarketType = 'v3' | 'v4-spoke';
 
 /** A deduped price source for one asset on one chain. */
 export type Feed = {

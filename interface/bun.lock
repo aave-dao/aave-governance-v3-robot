@@ -5,7 +5,7 @@
     "": {
       "name": "aave-gov-v3-robot-interface",
       "dependencies": {
-        "@aave-dao/aave-address-book": "^4.55.2",
+        "@aave-dao/aave-address-book": "^4.70.3",
         "@aave-dao/toolbox": "^0.5.1",
         "@tailwindcss/postcss": "^4",
         "clsx": "^2.1.1",
@@ -34,7 +34,7 @@
     },
   },
   "packages": {
-    "@aave-dao/aave-address-book": ["@aave-dao/aave-address-book@4.55.2", "", { "peerDependencies": { "viem": "^2.23.5" } }, "sha512-cFi05PusMCHKy9lSl4ogyVZthsJgk2kzsVi+I276NMKEc9W5RljArDkNTNTA6qAhdmZzvQAVv3W32H5AtcUHLQ=="],
+    "@aave-dao/aave-address-book": ["@aave-dao/aave-address-book@4.70.3", "", { "peerDependencies": { "viem": "^2.23.5" } }, "sha512-CV/JuIdlo3fL0pTuXCXH4oEntJV8rMxqjMbYrDVxDnrqkl1bwHgViYzzc0jmYTr9eSM1w1bIYca8Oh3MlVwNZw=="],
 
     "@aave-dao/toolbox": ["@aave-dao/toolbox@0.5.1", "", { "dependencies": { "bs58": "^6.0.0", "diff": "^8.0.3", "eventsource": "^4.1.0", "js-yaml": "^4.1.0" }, "peerDependencies": { "prettier": "^3.5.2", "prettier-plugin-solidity": "^1.0.0", "viem": "^2.45.0" } }, "sha512-AfxPEgS3SerAkxfgQCeSLEXVKiw9elNXgmoNpF9y98QJUBc7OVDibYyF23Jkdtt5DRfnib2tMo6nBbtBoKVffQ=="],
 
