@@ -2,6 +2,7 @@ import type {Address} from 'viem';
 import {MULTICALL3_ADDRESS, governanceAbi} from '../abis';
 import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {findCompletionEvent} from '../frontrun';
 import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {ProposalState, proposalStateName} from '../state';
@@ -89,8 +90,18 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
   return {txHash};
 };
 
+const findCompletion = (ctx: ReadContext, proposalId: bigint, fromBlock: bigint) =>
+  findCompletionEvent(ctx.publicClient, {
+    address: GOVERNANCE,
+    abi: governanceAbi,
+    eventName: 'ProposalExecuted',
+    args: {proposalId},
+    fromBlock,
+  });
+
 export const executeProposalAction: ActionModule<bigint> = {
   name: 'executeProposal',
   check: checkExecuteProposal,
   execute,
+  findCompletion,
 };

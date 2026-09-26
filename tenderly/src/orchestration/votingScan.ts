@@ -7,6 +7,7 @@ import {
 import {VOTING_CHAINS, type VotingChainConfig, type VotingChainId} from '../core/chains';
 import {closeAndSendVoteAction, createVoteAction, executeSubmitStorageRoots} from '../core/actions';
 import type {ReadContext, WriteContext} from '../core/context';
+import {completionSearchStart, notifyIfFrontrun, type Completion} from '../core/frontrun';
 import {notifyError} from '../core/notify';
 import {VotingMachineProposalState, votingProposalStateName} from '../core/state';
 
@@ -172,17 +173,25 @@ export const scanVotingChain = async (ctx: ReadContext): Promise<VotingScannedAc
 export const runVotingScan = async (
   ctx: WriteContext & {ethRpcUrls: string | string[]},
 ): Promise<
-  Array<{kind: VotingActionKind; proposalId: bigint; txHash?: string; error?: string}>
+  Array<{
+    kind: VotingActionKind;
+    proposalId: bigint;
+    txHash?: string;
+    frontrun?: Completion;
+    error?: string;
+  }>
 > => {
   const items = await scanVotingChain(ctx);
   const results: Array<{
     kind: VotingActionKind;
     proposalId: bigint;
     txHash?: string;
+    frontrun?: Completion;
     error?: string;
   }> = [];
 
   for (const item of items) {
+    const fromBlock = await completionSearchStart(ctx.publicClient).catch(() => undefined);
     try {
       if (item.kind === 'submitStorageRoots') {
         const r = await executeSubmitStorageRoots(ctx, {
@@ -217,6 +226,23 @@ export const runVotingScan = async (
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      const action =
+        item.kind === 'createVote'
+          ? createVoteAction
+          : item.kind === 'closeAndSendVote'
+            ? closeAndSendVoteAction
+            : undefined;
+      const frontrun =
+        action && fromBlock !== undefined
+          ? await notifyIfFrontrun(ctx, action, item.proposalId, fromBlock, {
+              chainName: VOTING_CHAINS[ctx.chainId as VotingChainId]?.name,
+              meta: {proposalId: item.proposalId.toString()},
+            })
+          : null;
+      if (frontrun) {
+        results.push({kind: item.kind, proposalId: item.proposalId, frontrun});
+        continue;
+      }
       ctx.logger.error('votingScan: action failed', {
         proposalId: item.proposalId.toString(),
         kind: item.kind,

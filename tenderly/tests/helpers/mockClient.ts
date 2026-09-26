@@ -126,6 +126,12 @@ export const makeMockClient = (
     getBlock: async () => ({
       gasLimit: 30_000_000n,
     }),
+
+    /** Anchor for the frontrun completion search (core/frontrun.ts). */
+    getBlockNumber: async () => 10_000n,
+
+    /** No completion events unless a test replaces this to simulate a lost race. */
+    getContractEvents: async () => [],
   } as unknown as PublicClient;
 };
 

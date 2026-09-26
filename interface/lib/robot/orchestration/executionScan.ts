@@ -2,6 +2,7 @@ import {MULTICALL3_ADDRESS, payloadsControllerAbi} from '../core/abis';
 import {EXECUTION_CHAINS} from '../core/chains';
 import {executePayloadAction} from '../core/actions';
 import type {ReadContext, WriteContext} from '../core/context';
+import {completionSearchStart, notifyIfFrontrun, type Completion} from '../core/frontrun';
 import {notifyError} from '../core/notify';
 import {PayloadState} from '../core/state';
 
@@ -101,10 +102,18 @@ export const scanExecutionChain = async (ctx: ReadContext): Promise<ScannedPaylo
 
 export const runExecutionScan = async (
   ctx: WriteContext,
-): Promise<Array<{payloadId: bigint; txHash?: string; error?: string}>> => {
+): Promise<
+  Array<{payloadId: bigint; txHash?: string; frontrun?: Completion; error?: string}>
+> => {
   const items = await scanExecutionChain(ctx);
-  const results: Array<{payloadId: bigint; txHash?: string; error?: string}> = [];
+  const results: Array<{
+    payloadId: bigint;
+    txHash?: string;
+    frontrun?: Completion;
+    error?: string;
+  }> = [];
   for (const {payloadId} of items) {
+    const fromBlock = await completionSearchStart(ctx.publicClient).catch(() => undefined);
     try {
       const recheck = await executePayloadAction.check(ctx, payloadId);
       if (!recheck.ok) {
@@ -115,6 +124,17 @@ export const runExecutionScan = async (
       results.push({payloadId, txHash});
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      const frontrun =
+        fromBlock !== undefined
+          ? await notifyIfFrontrun(ctx, executePayloadAction, payloadId, fromBlock, {
+              chainName: EXECUTION_CHAINS[ctx.chainId]?.name,
+              meta: {payloadId: payloadId.toString()},
+            })
+          : null;
+      if (frontrun) {
+        results.push({payloadId, frontrun});
+        continue;
+      }
       ctx.logger.error('executionScan: action failed', {
         payloadId: payloadId.toString(),
         error: msg,

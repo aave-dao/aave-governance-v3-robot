@@ -3,6 +3,7 @@ import {MULTICALL3_ADDRESS, governanceAbi, powerStrategyAbi} from '../abis';
 import {GovernanceV3Ethereum} from '@aave-dao/aave-address-book';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
 import {formatAave} from '../format';
+import {findCompletionEvent} from '../frontrun';
 import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {ProposalState, proposalStateName, isProposalFinal} from '../state';
@@ -112,8 +113,18 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
   return {txHash};
 };
 
+const findCompletion = (ctx: ReadContext, proposalId: bigint, fromBlock: bigint) =>
+  findCompletionEvent(ctx.publicClient, {
+    address: GOVERNANCE,
+    abi: governanceAbi,
+    eventName: 'ProposalCanceled',
+    args: {proposalId},
+    fromBlock,
+  });
+
 export const cancelProposalAction: ActionModule<bigint> = {
   name: 'cancelProposal',
   check: checkCancelProposal,
   execute,
+  findCompletion,
 };

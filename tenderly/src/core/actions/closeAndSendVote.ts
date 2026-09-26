@@ -1,6 +1,7 @@
 import {votingMachineAbi} from '../abis';
 import {VOTING_CHAINS, type VotingChainId, type VotingChainConfig} from '../chains';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
+import {findCompletionEvent} from '../frontrun';
 import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {VotingMachineProposalState, votingProposalStateName} from '../state';
@@ -68,8 +69,18 @@ const execute = async (ctx: WriteContext, proposalId: bigint): Promise<ExecuteRe
   return {txHash};
 };
 
+const findCompletion = (ctx: ReadContext, proposalId: bigint, fromBlock: bigint) =>
+  findCompletionEvent(ctx.publicClient, {
+    address: requireVotingChain(ctx.chainId).votingMachine,
+    abi: votingMachineAbi,
+    eventName: 'ProposalResultsSent',
+    args: {proposalId},
+    fromBlock,
+  });
+
 export const closeAndSendVoteAction: ActionModule<bigint> = {
   name: 'closeAndSendVote',
   check: checkCloseAndSendVote,
   execute,
+  findCompletion,
 };

@@ -2,6 +2,7 @@ import {payloadsControllerAbi} from '../abis';
 import {EXECUTION_CHAINS} from '../chains';
 import type {ActionModule, CheckResult, ExecuteResult, ReadContext, WriteContext} from '../context';
 import {isPayloadDisabled} from '../disabledPayloads';
+import {findCompletionEvent} from '../frontrun';
 import {estimateGasWithMargin} from '../gas';
 import {notifyTxSuccess} from '../notify';
 import {PayloadState, payloadStateName} from '../state';
@@ -87,8 +88,18 @@ const execute = async (ctx: WriteContext, payloadId: bigint): Promise<ExecuteRes
   return {txHash};
 };
 
+const findCompletion = (ctx: ReadContext, payloadId: bigint, fromBlock: bigint) =>
+  findCompletionEvent(ctx.publicClient, {
+    address: requireExecutionChain(ctx.chainId).payloadsController,
+    abi: payloadsControllerAbi,
+    eventName: 'PayloadExecuted',
+    matches: (args) => args.payloadId === Number(payloadId),
+    fromBlock,
+  });
+
 export const executePayloadAction: ActionModule<bigint> = {
   name: 'executePayload',
   check: checkExecutePayload,
   execute,
+  findCompletion,
 };

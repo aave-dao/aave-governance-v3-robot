@@ -115,4 +115,16 @@ export const governanceAbi = [
       {name: 'votingDuration', type: 'uint24', indexed: false},
     ],
   },
+  {
+    name: 'ProposalExecuted',
+    type: 'event',
+    anonymous: false,
+    inputs: [{name: 'proposalId', type: 'uint256', indexed: true}],
+  },
+  {
+    name: 'ProposalCanceled',
+    type: 'event',
+    anonymous: false,
+    inputs: [{name: 'proposalId', type: 'uint256', indexed: true}],
+  },
 ] as const;

@@ -83,4 +83,25 @@ export const votingMachineAbi = [
     inputs: [],
     outputs: [{name: '', type: 'address'}],
   },
+  {
+    name: 'ProposalVoteStarted',
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {name: 'proposalId', type: 'uint256', indexed: true},
+      {name: 'l1BlockHash', type: 'bytes32', indexed: true},
+      {name: 'startTime', type: 'uint256', indexed: false},
+      {name: 'endTime', type: 'uint256', indexed: false},
+    ],
+  },
+  {
+    name: 'ProposalResultsSent',
+    type: 'event',
+    anonymous: false,
+    inputs: [
+      {name: 'proposalId', type: 'uint256', indexed: true},
+      {name: 'forVotes', type: 'uint256', indexed: false},
+      {name: 'againstVotes', type: 'uint256', indexed: false},
+    ],
+  },
 ] as const;

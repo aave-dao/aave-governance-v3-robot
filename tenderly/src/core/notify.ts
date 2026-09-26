@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import type {Hex, PublicClient} from 'viem';
 import type {Logger} from './logger';
-import {explorerBaseUrl, shortHash, txUrl} from './explorers';
+import {addressUrl, explorerBaseUrl, shortHash, txUrl} from './explorers';
 import {redactSecrets} from './redact-secrets';
 
 /**
@@ -379,6 +379,8 @@ export type NotifyTxParams = {
   action: string;
   txHash: string;
   meta?: Record<string, unknown>;
+  /** Set when `txHash` is another sender's tx that beat ours to the same action. */
+  frontrunBy?: string;
   logger?: Logger;
   /** Receipt-wait timeout in ms. Defaults to 90s (single Tenderly Action invocation budget). */
   confirmTimeoutMs?: number;
@@ -446,6 +448,16 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
 
   const joinLines = (lines: string[]): string => (lines.length > 0 ? '\n' + lines.join('\n') : '');
 
+  const frontrunUrl = p.frontrunBy ? addressUrl(p.chainId, p.frontrunBy) : undefined;
+  const frontrunShort = p.frontrunBy ? shortHash(p.frontrunBy) : '';
+  const slackFrontrun = p.frontrunBy
+    ? `\nfrontrun by ${frontrunUrl ? `<${frontrunUrl}|${frontrunShort}>` : `\`${p.frontrunBy}\``}`
+    : '';
+  const tgFrontrun = p.frontrunBy
+    ? `\nfrontrun by ${frontrunUrl ? `<a href="${frontrunUrl}">${escapeHtml(frontrunShort)}</a>` : `<code>${escapeHtml(p.frontrunBy)}</code>`}`
+    : '';
+  const plainFrontrun = p.frontrunBy ? `\nfrontrun by ${p.frontrunBy}` : '';
+
   // Slack: mrkdwn — `<URL|text>` for a link, backticks for inline code.
   const slackTxLine = url ? `tx: <${url}|${short}>` : `tx: \`${p.txHash}\``;
   const slack =
@@ -453,7 +465,8 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
     joinLines(enrichment.preMeta.slack) +
     (meta.slack ? `\n${meta.slack}` : '') +
     `\n${slackTxLine}` +
-    joinLines(enrichment.postTx.slack);
+    joinLines(enrichment.postTx.slack) +
+    slackFrontrun;
 
   // Telegram HTML: <b>, <code>, <a href>.
   const tgTxLine = url
@@ -464,7 +477,8 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
     joinLines(enrichment.preMeta.tg) +
     (meta.tg ? `\n${meta.tg}` : '') +
     `\n${tgTxLine}` +
-    joinLines(enrichment.postTx.tg);
+    joinLines(enrichment.postTx.tg) +
+    tgFrontrun;
 
   // Plain text fallback for the relay — still includes the explorer URL, just unlinked.
   const plain =
@@ -472,7 +486,8 @@ export const notifyTxSuccess = async (p: NotifyTxParams): Promise<void> => {
     joinLines(enrichment.preMeta.plain) +
     (meta.plain ? `\n${meta.plain}` : '') +
     `\ntx: ${url ?? p.txHash}` +
-    joinLines(enrichment.postTx.plain);
+    joinLines(enrichment.postTx.plain) +
+    plainFrontrun;
 
   await fanOut(slack, tg, plain, p.logger);
 };

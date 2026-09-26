@@ -3,6 +3,7 @@ import type {Address} from 'viem';
 import {MULTICALL3_ADDRESS, governanceAbi} from '../core/abis';
 import {activateVotingAction, cancelProposalAction, executeProposalAction} from '../core/actions';
 import type {ActionModule, ReadContext, WriteContext} from '../core/context';
+import {completionSearchStart, notifyIfFrontrun, type Completion} from '../core/frontrun';
 import {notifyError} from '../core/notify';
 import {isProposalFinal} from '../core/state';
 
@@ -130,10 +131,25 @@ export const scanGovernanceChain = async (ctx: ReadContext): Promise<ScannedActi
  */
 export const runGovernanceScan = async (
   ctx: WriteContext,
-): Promise<Array<{proposalId: bigint; action: string; txHash?: string; error?: string}>> => {
+): Promise<
+  Array<{
+    proposalId: bigint;
+    action: string;
+    txHash?: string;
+    frontrun?: Completion;
+    error?: string;
+  }>
+> => {
   const scanned = await scanGovernanceChain(ctx);
-  const results: Array<{proposalId: bigint; action: string; txHash?: string; error?: string}> = [];
+  const results: Array<{
+    proposalId: bigint;
+    action: string;
+    txHash?: string;
+    frontrun?: Completion;
+    error?: string;
+  }> = [];
   for (const item of scanned) {
+    const fromBlock = await completionSearchStart(ctx.publicClient).catch(() => undefined);
     try {
       const recheck = await item.action.check(ctx, item.proposalId);
       if (!recheck.ok) {
@@ -153,6 +169,17 @@ export const runGovernanceScan = async (
       results.push({proposalId: item.proposalId, action: item.action.name, txHash});
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      const frontrun =
+        fromBlock !== undefined
+          ? await notifyIfFrontrun(ctx, item.action, item.proposalId, fromBlock, {
+              chainName: 'ethereum',
+              meta: {proposalId: item.proposalId.toString()},
+            })
+          : null;
+      if (frontrun) {
+        results.push({proposalId: item.proposalId, action: item.action.name, frontrun});
+        continue;
+      }
       ctx.logger.error('governanceScan: action failed', {
         proposalId: item.proposalId.toString(),
         action: item.action.name,

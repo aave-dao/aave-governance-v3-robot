@@ -49,4 +49,10 @@ export const payloadsControllerAbi = [
     inputs: [{name: 'payloadId', type: 'uint40'}],
     outputs: [],
   },
+  {
+    name: 'PayloadExecuted',
+    type: 'event',
+    anonymous: false,
+    inputs: [{name: 'payloadId', type: 'uint40', indexed: false}],
+  },
 ] as const;

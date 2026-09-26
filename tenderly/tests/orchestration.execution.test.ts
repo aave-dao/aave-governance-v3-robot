@@ -15,6 +15,8 @@ import {
   silentLogger,
   type Mocks,
 } from './helpers/mockClient';
+import {withEnv} from './helpers/env';
+import {installFetchMock} from './helpers/mockFetch';
 
 const PC = GovernanceV3Polygon.PAYLOADS_CONTROLLER.toLowerCase();
 const ACCOUNT = ('0x' + '99'.repeat(20)) as Address;
@@ -174,5 +176,105 @@ describe('runExecutionScan', () => {
     expect(out[0]?.txHash).toBeUndefined();
     expect(out[0]?.error).toBeDefined();
     expect(spy.calls.length).toBe(0);
+  });
+});
+
+describe('runExecutionScan lost race', () => {
+  const OTHER = ('0x' + '22'.repeat(20)) as Address;
+  const OTHER_TX = ('0x' + 'dd'.repeat(32)) as Hex;
+  const SLACK_ONLY = {
+    SLACK_WEBHOOK_URL: 'https://example.com/slack',
+    TELEGRAM_BOT_TOKEN: undefined,
+    TELEGRAM_CHAT_ID: undefined,
+    TELEGRAM_WEBHOOK_URL: undefined,
+  };
+
+  // Gas estimation is where a same-block race shows up first: flip the payload to Executed
+  // and revert, as if another keeper's tx landed between our recheck and our estimate.
+  const racedCtx = (opts: {executedByOther: boolean; events: unknown[]}) => {
+    let executed = false;
+    const spy = makeWalletSpy(TX);
+    const publicClient = makeMockClient(
+      {
+        [`${PC}.getPayloadsCount`]: 1,
+        [`${PC}.getPayloadById`]: () =>
+          makePayload(executed ? {state: PayloadState.Executed} : {}),
+      },
+      {chainId: 137},
+    );
+    const eventQueries: Array<Record<string, unknown>> = [];
+    Object.assign(publicClient, {
+      estimateContractGas: async () => {
+        executed = opts.executedByOther;
+        throw new Error('execution reverted');
+      },
+      getContractEvents: async (q: Record<string, unknown>) => {
+        eventQueries.push(q);
+        return opts.events;
+      },
+      getTransaction: async () => ({from: OTHER}),
+    });
+    const ctx = {
+      chainId: 137,
+      logger: silentLogger,
+      publicClient,
+      walletClient: makeMockWalletClient(spy, {chainId: 137, account: ACCOUNT}),
+      account: ACCOUNT,
+    };
+    return {ctx, spy, eventQueries};
+  };
+
+  test('posts the other sender tx as success with a frontrun line, no failure alert', async () => {
+    const {ctx, spy, eventQueries} = racedCtx({
+      executedByOther: true,
+      events: [
+        {transactionHash: ('0x' + 'ee'.repeat(32)) as Hex, args: {payloadId: 7}},
+        {transactionHash: OTHER_TX, args: {payloadId: 0}},
+      ],
+    });
+    const {restore, calls} = installFetchMock(() => ({status: 200, body: '{}'}));
+    try {
+      const out = await withEnv(SLACK_ONLY, () => runExecutionScan(ctx));
+      expect(out).toEqual([{payloadId: 0n, frontrun: {txHash: OTHER_TX, from: OTHER}}]);
+      expect(spy.calls.length).toBe(0);
+      expect(eventQueries[0]?.eventName).toBe('PayloadExecuted');
+      expect(eventQueries[0]?.fromBlock).toBe(9_000n);
+      expect(calls.length).toBe(1);
+      const text = JSON.parse(calls[0]!.bodyText!).text as string;
+      expect(text).toContain(':white_check_mark: *executePayload*');
+      expect(text).toContain(`/tx/${OTHER_TX}`);
+      expect(text).toContain(`frontrun by <https://polygonscan.com/address/${OTHER}|0x2222…2222>`);
+      expect(text).not.toContain(':rotating_light:');
+    } finally {
+      restore();
+    }
+  });
+
+  test('alerts as a failure when the payload is still executable', async () => {
+    const {ctx} = racedCtx({executedByOther: false, events: []});
+    const {restore, calls} = installFetchMock(() => ({status: 200, body: '{}'}));
+    try {
+      const out = await withEnv(SLACK_ONLY, () => runExecutionScan(ctx));
+      expect(out[0]?.frontrun).toBeUndefined();
+      expect(out[0]?.error).toContain('execution reverted');
+      expect(calls.length).toBe(1);
+      expect(JSON.parse(calls[0]!.bodyText!).text).toContain(':rotating_light: *executePayload* failed');
+    } finally {
+      restore();
+    }
+  });
+
+  test('alerts as a failure when no completion event explains the state change', async () => {
+    const {ctx} = racedCtx({executedByOther: true, events: []});
+    const {restore, calls} = installFetchMock(() => ({status: 200, body: '{}'}));
+    try {
+      const out = await withEnv(SLACK_ONLY, () => runExecutionScan(ctx));
+      expect(out[0]?.frontrun).toBeUndefined();
+      expect(out[0]?.error).toContain('execution reverted');
+      expect(calls.length).toBe(1);
+      expect(JSON.parse(calls[0]!.bodyText!).text).toContain(':rotating_light:');
+    } finally {
+      restore();
+    }
   });
 });
